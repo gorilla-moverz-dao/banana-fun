@@ -35,7 +35,7 @@ export default function Header() {
 				<button
 					type="button"
 					onClick={() => setIsOpen(true)}
-					className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+					className="p-2 hover:bg-gray-700 rounded-lg transition-colors md:hidden"
 					aria-label="Open menu"
 				>
 					<Menu size={24} />
@@ -43,7 +43,24 @@ export default function Header() {
 				<Link to="/" className="text-4xl font-bold">
 					🍌 BANANA FUN 🍌
 				</Link>
-				<div className="flex-1"></div>
+				<div
+					className="flex-1 
+				flex items-center gap-2 justify-center"
+				>
+					{links.map((link) => (
+						<Link
+							key={link.to}
+							to={link.to}
+							className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-700 transition-colors"
+							activeProps={{
+								className: "flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 transition-colors",
+							}}
+						>
+							<link.icon size={20} />
+							<span className="font-medium">{link.label}</span>
+						</Link>
+					))}
+				</div>
 				<WalletSelector />
 			</header>
 
