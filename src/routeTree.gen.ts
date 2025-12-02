@@ -13,7 +13,6 @@ import { Route as MintRouteImport } from './routes/mint'
 import { Route as CollectionsRouteImport } from './routes/collections'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MintCollectionIdRouteImport } from './routes/mint.$collectionId'
-import { Route as DemoTanstackQueryRouteImport } from './routes/demo/tanstack-query'
 import { Route as CollectionsCollectionIdRouteImport } from './routes/collections.$collectionId'
 
 const MintRoute = MintRouteImport.update({
@@ -36,11 +35,6 @@ const MintCollectionIdRoute = MintCollectionIdRouteImport.update({
   path: '/$collectionId',
   getParentRoute: () => MintRoute,
 } as any)
-const DemoTanstackQueryRoute = DemoTanstackQueryRouteImport.update({
-  id: '/demo/tanstack-query',
-  path: '/demo/tanstack-query',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CollectionsCollectionIdRoute = CollectionsCollectionIdRouteImport.update({
   id: '/$collectionId',
   path: '/$collectionId',
@@ -52,7 +46,6 @@ export interface FileRoutesByFullPath {
   '/collections': typeof CollectionsRouteWithChildren
   '/mint': typeof MintRouteWithChildren
   '/collections/$collectionId': typeof CollectionsCollectionIdRoute
-  '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/mint/$collectionId': typeof MintCollectionIdRoute
 }
 export interface FileRoutesByTo {
@@ -60,7 +53,6 @@ export interface FileRoutesByTo {
   '/collections': typeof CollectionsRouteWithChildren
   '/mint': typeof MintRouteWithChildren
   '/collections/$collectionId': typeof CollectionsCollectionIdRoute
-  '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/mint/$collectionId': typeof MintCollectionIdRoute
 }
 export interface FileRoutesById {
@@ -69,7 +61,6 @@ export interface FileRoutesById {
   '/collections': typeof CollectionsRouteWithChildren
   '/mint': typeof MintRouteWithChildren
   '/collections/$collectionId': typeof CollectionsCollectionIdRoute
-  '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/mint/$collectionId': typeof MintCollectionIdRoute
 }
 export interface FileRouteTypes {
@@ -79,7 +70,6 @@ export interface FileRouteTypes {
     | '/collections'
     | '/mint'
     | '/collections/$collectionId'
-    | '/demo/tanstack-query'
     | '/mint/$collectionId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -87,7 +77,6 @@ export interface FileRouteTypes {
     | '/collections'
     | '/mint'
     | '/collections/$collectionId'
-    | '/demo/tanstack-query'
     | '/mint/$collectionId'
   id:
     | '__root__'
@@ -95,7 +84,6 @@ export interface FileRouteTypes {
     | '/collections'
     | '/mint'
     | '/collections/$collectionId'
-    | '/demo/tanstack-query'
     | '/mint/$collectionId'
   fileRoutesById: FileRoutesById
 }
@@ -103,7 +91,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CollectionsRoute: typeof CollectionsRouteWithChildren
   MintRoute: typeof MintRouteWithChildren
-  DemoTanstackQueryRoute: typeof DemoTanstackQueryRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -135,13 +122,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/mint/$collectionId'
       preLoaderRoute: typeof MintCollectionIdRouteImport
       parentRoute: typeof MintRoute
-    }
-    '/demo/tanstack-query': {
-      id: '/demo/tanstack-query'
-      path: '/demo/tanstack-query'
-      fullPath: '/demo/tanstack-query'
-      preLoaderRoute: typeof DemoTanstackQueryRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/collections/$collectionId': {
       id: '/collections/$collectionId'
@@ -179,7 +159,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CollectionsRoute: CollectionsRouteWithChildren,
   MintRoute: MintRouteWithChildren,
-  DemoTanstackQueryRoute: DemoTanstackQueryRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

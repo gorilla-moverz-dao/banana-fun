@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Home, List, Menu, Network, Plus, X } from "lucide-react";
+import { Home, List, Menu, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { WalletSelector } from "@/components/WalletSelector";
 
@@ -11,11 +11,6 @@ export default function Header() {
 			label: "Home",
 			to: "/",
 			icon: Home,
-		},
-		{
-			label: "TanStack Query",
-			to: "/demo/tanstack-query",
-			icon: Network,
 		},
 		{
 			label: "Collections",
@@ -32,36 +27,38 @@ export default function Header() {
 	return (
 		<>
 			<header className="p-4 flex items-center bg-gray-800 text-white shadow-lg sticky top-0 z-50">
-				<button
-					type="button"
-					onClick={() => setIsOpen(true)}
-					className="p-2 hover:bg-gray-700 rounded-lg transition-colors md:hidden"
-					aria-label="Open menu"
-				>
-					<Menu size={24} />
-				</button>
-				<Link to="/" className="text-4xl font-bold">
-					🍌 BANANA FUN 🍌
-				</Link>
-				<div
-					className="flex-1 
+				<div className="flex w-full max-w-7xl mx-auto">
+					<button
+						type="button"
+						onClick={() => setIsOpen(true)}
+						className="p-2 hover:bg-gray-700 rounded-lg transition-colors md:hidden"
+						aria-label="Open menu"
+					>
+						<Menu size={24} />
+					</button>
+					<Link to="/" className="text-4xl font-bold">
+						🍌 BANANA FUN 🍌
+					</Link>
+					<div
+						className="flex-1 
 				flex items-center gap-2 justify-center"
-				>
-					{links.map((link) => (
-						<Link
-							key={link.to}
-							to={link.to}
-							className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-700 transition-colors"
-							activeProps={{
-								className: "flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 transition-colors",
-							}}
-						>
-							<link.icon size={20} />
-							<span className="font-medium">{link.label}</span>
-						</Link>
-					))}
+					>
+						{links.map((link) => (
+							<Link
+								key={link.to}
+								to={link.to}
+								className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-700 transition-colors"
+								activeProps={{
+									className: "flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 transition-colors",
+								}}
+							>
+								<link.icon size={20} />
+								<span className="font-medium">{link.label}</span>
+							</Link>
+						))}
+					</div>
+					<WalletSelector />
 				</div>
-				<WalletSelector />
 			</header>
 
 			<aside

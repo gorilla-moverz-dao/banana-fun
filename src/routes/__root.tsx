@@ -13,7 +13,9 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 	component: () => (
 		<>
 			<Header />
-			<Outlet />
+			<main className="pt-4 w-full max-w-7xl mx-auto">
+				<Outlet />
+			</main>
 			<TanStackDevtools
 				config={{
 					position: "bottom-right",
