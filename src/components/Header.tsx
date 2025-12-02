@@ -1,10 +1,33 @@
 import { Link } from "@tanstack/react-router";
-import { Home, Menu, Network, X } from "lucide-react";
+import { Home, List, Menu, Network, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { WalletSelector } from "@/components/WalletSelector";
 
 export default function Header() {
 	const [isOpen, setIsOpen] = useState(false);
+
+	const links = [
+		{
+			label: "Home",
+			to: "/",
+			icon: Home,
+		},
+		{
+			label: "TanStack Query",
+			to: "/demo/tanstack-query",
+			icon: Network,
+		},
+		{
+			label: "Collections",
+			to: "/collections",
+			icon: List,
+		},
+		{
+			label: "Mint",
+			to: "/mint",
+			icon: Plus,
+		},
+	];
 
 	return (
 		<>
@@ -42,33 +65,21 @@ export default function Header() {
 				</div>
 
 				<nav className="flex-1 p-4 overflow-y-auto">
-					<Link
-						to="/"
-						onClick={() => setIsOpen(false)}
-						className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors mb-2"
-						activeProps={{
-							className: "flex items-center gap-3 p-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 transition-colors mb-2",
-						}}
-					>
-						<Home size={20} />
-						<span className="font-medium">Home</span>
-					</Link>
-
-					{/* Demo Links Start */}
-
-					<Link
-						to="/demo/tanstack-query"
-						onClick={() => setIsOpen(false)}
-						className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors mb-2"
-						activeProps={{
-							className: "flex items-center gap-3 p-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 transition-colors mb-2",
-						}}
-					>
-						<Network size={20} />
-						<span className="font-medium">TanStack Query</span>
-					</Link>
-
-					{/* Demo Links End */}
+					{links.map((link) => (
+						<Link
+							key={link.to}
+							to={link.to}
+							onClick={() => setIsOpen(false)}
+							className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors mb-2"
+							activeProps={{
+								className:
+									"flex items-center gap-3 p-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 transition-colors mb-2",
+							}}
+						>
+							<link.icon size={20} />
+							<span className="font-medium">{link.label}</span>
+						</Link>
+					))}
 				</nav>
 			</aside>
 		</>
