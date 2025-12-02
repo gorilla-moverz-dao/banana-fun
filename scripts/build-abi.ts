@@ -25,6 +25,7 @@ async function getABI(address: string, moduleName: string) {
 async function main() {
   await getABI("0x1", "coin");
   await getABI(LAUNCHPAD_MODULE_ADDRESS, "nft_launchpad");
+  await getABI(LAUNCHPAD_MODULE_ADDRESS, "nft_reduction_manager");
 }
 
 main().catch(console.error);

@@ -9,54 +9,132 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as MintRouteImport } from './routes/mint'
+import { Route as CollectionsRouteImport } from './routes/collections'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MintCollectionIdRouteImport } from './routes/mint.$collectionId'
 import { Route as DemoTanstackQueryRouteImport } from './routes/demo/tanstack-query'
+import { Route as CollectionsCollectionIdRouteImport } from './routes/collections.$collectionId'
 
+const MintRoute = MintRouteImport.update({
+  id: '/mint',
+  path: '/mint',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CollectionsRoute = CollectionsRouteImport.update({
+  id: '/collections',
+  path: '/collections',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const MintCollectionIdRoute = MintCollectionIdRouteImport.update({
+  id: '/$collectionId',
+  path: '/$collectionId',
+  getParentRoute: () => MintRoute,
 } as any)
 const DemoTanstackQueryRoute = DemoTanstackQueryRouteImport.update({
   id: '/demo/tanstack-query',
   path: '/demo/tanstack-query',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CollectionsCollectionIdRoute = CollectionsCollectionIdRouteImport.update({
+  id: '/$collectionId',
+  path: '/$collectionId',
+  getParentRoute: () => CollectionsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/collections': typeof CollectionsRouteWithChildren
+  '/mint': typeof MintRouteWithChildren
+  '/collections/$collectionId': typeof CollectionsCollectionIdRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/mint/$collectionId': typeof MintCollectionIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/collections': typeof CollectionsRouteWithChildren
+  '/mint': typeof MintRouteWithChildren
+  '/collections/$collectionId': typeof CollectionsCollectionIdRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/mint/$collectionId': typeof MintCollectionIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/collections': typeof CollectionsRouteWithChildren
+  '/mint': typeof MintRouteWithChildren
+  '/collections/$collectionId': typeof CollectionsCollectionIdRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/mint/$collectionId': typeof MintCollectionIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/demo/tanstack-query'
+  fullPaths:
+    | '/'
+    | '/collections'
+    | '/mint'
+    | '/collections/$collectionId'
+    | '/demo/tanstack-query'
+    | '/mint/$collectionId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/demo/tanstack-query'
-  id: '__root__' | '/' | '/demo/tanstack-query'
+  to:
+    | '/'
+    | '/collections'
+    | '/mint'
+    | '/collections/$collectionId'
+    | '/demo/tanstack-query'
+    | '/mint/$collectionId'
+  id:
+    | '__root__'
+    | '/'
+    | '/collections'
+    | '/mint'
+    | '/collections/$collectionId'
+    | '/demo/tanstack-query'
+    | '/mint/$collectionId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CollectionsRoute: typeof CollectionsRouteWithChildren
+  MintRoute: typeof MintRouteWithChildren
   DemoTanstackQueryRoute: typeof DemoTanstackQueryRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/mint': {
+      id: '/mint'
+      path: '/mint'
+      fullPath: '/mint'
+      preLoaderRoute: typeof MintRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/collections': {
+      id: '/collections'
+      path: '/collections'
+      fullPath: '/collections'
+      preLoaderRoute: typeof CollectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/mint/$collectionId': {
+      id: '/mint/$collectionId'
+      path: '/$collectionId'
+      fullPath: '/mint/$collectionId'
+      preLoaderRoute: typeof MintCollectionIdRouteImport
+      parentRoute: typeof MintRoute
     }
     '/demo/tanstack-query': {
       id: '/demo/tanstack-query'
@@ -65,11 +143,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DemoTanstackQueryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/collections/$collectionId': {
+      id: '/collections/$collectionId'
+      path: '/$collectionId'
+      fullPath: '/collections/$collectionId'
+      preLoaderRoute: typeof CollectionsCollectionIdRouteImport
+      parentRoute: typeof CollectionsRoute
+    }
   }
 }
 
+interface CollectionsRouteChildren {
+  CollectionsCollectionIdRoute: typeof CollectionsCollectionIdRoute
+}
+
+const CollectionsRouteChildren: CollectionsRouteChildren = {
+  CollectionsCollectionIdRoute: CollectionsCollectionIdRoute,
+}
+
+const CollectionsRouteWithChildren = CollectionsRoute._addFileChildren(
+  CollectionsRouteChildren,
+)
+
+interface MintRouteChildren {
+  MintCollectionIdRoute: typeof MintCollectionIdRoute
+}
+
+const MintRouteChildren: MintRouteChildren = {
+  MintCollectionIdRoute: MintCollectionIdRoute,
+}
+
+const MintRouteWithChildren = MintRoute._addFileChildren(MintRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CollectionsRoute: CollectionsRouteWithChildren,
+  MintRoute: MintRouteWithChildren,
   DemoTanstackQueryRoute: DemoTanstackQueryRoute,
 }
 export const routeTree = rootRouteImport
