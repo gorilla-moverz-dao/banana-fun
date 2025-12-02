@@ -1,0 +1,16 @@
+[package]
+name = 'banana_fun'
+version = '1.0.0'
+
+[dependencies]
+AptosFramework = { git = "https://github.com/movementlabsxyz/aptos-core", rev = "movement", subdir = "aptos-move/framework/aptos-framework" }
+AptosTokenObjects = { git = "https://github.com/movementlabsxyz/aptos-core", rev = "movement", subdir = "aptos-move/framework/aptos-token-objects" }
+TokenMinter = { git = "https://github.com/gorilla-moverz-dao/token-minter-movement.git", rev = "main", subdir = "token-minter" }
+                                                                                                                                                                             
+[addresses]
+deployment_addr='_'
+minter='_'
+
+[dev-addresses]
+deployment_addr='0x100'
+minter='0x101'
