@@ -173,8 +173,8 @@ module deployment_addr::vesting {
         // Get claimed amount for this NFT
         let nft_addr = object::object_address(&nft_obj);
         let claimed_amount =
-            if (simple_map::contains_key(&vesting_config.claimed_amounts, &nft_addr)) {
-                *simple_map::borrow(&vesting_config.claimed_amounts, &nft_addr)
+            if (vesting_config.claimed_amounts.contains_key(&nft_addr)) {
+                *vesting_config.claimed_amounts.borrow(&nft_addr)
             } else { 0 };
 
         // Calculate claimable amount
@@ -183,10 +183,10 @@ module deployment_addr::vesting {
 
         // Update claimed amount in the map
         let new_claimed = claimed_amount + claimable;
-        if (simple_map::contains_key(&vesting_config.claimed_amounts, &nft_addr)) {
-            *simple_map::borrow_mut(&mut vesting_config.claimed_amounts, &nft_addr) = new_claimed;
+        if (vesting_config.claimed_amounts.contains_key(&nft_addr)) {
+            *vesting_config.claimed_amounts.borrow_mut(&nft_addr) = new_claimed;
         } else {
-            simple_map::add(&mut vesting_config.claimed_amounts, nft_addr, new_claimed);
+            vesting_config.claimed_amounts.add(nft_addr, new_claimed);
         };
 
         // Get vault signer to withdraw tokens
@@ -250,8 +250,8 @@ module deployment_addr::vesting {
         let vesting_config = borrow_global<VestingConfig>(collection_addr);
         let nft_addr = object::object_address(&nft_obj);
 
-        if (simple_map::contains_key(&vesting_config.claimed_amounts, &nft_addr)) {
-            *simple_map::borrow(&vesting_config.claimed_amounts, &nft_addr)
+        if (vesting_config.claimed_amounts.contains_key(&nft_addr)) {
+            *vesting_config.claimed_amounts.borrow(&nft_addr)
         } else { 0 }
     }
 

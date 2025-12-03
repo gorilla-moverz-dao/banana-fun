@@ -1,7 +1,7 @@
 module deployment_addr::nft_launchpad {
     use std::option::{Self, Option};
     use std::signer;
-    use std::string::{Self, String, utf8};
+    use std::string::{String, utf8};
     use std::vector;
     use aptos_std::debug;
 
@@ -257,11 +257,11 @@ module deployment_addr::nft_launchpad {
 
     fun validate_settings(settings: vector<String>) {
         let i = 0;
-        let len = vector::length(&settings);
+        let len = settings.length();
         let all_settings = get_all_settings();
         while (i < len) {
-            let setting = vector::borrow(&settings, i);
-            let contains = vector::contains(&all_settings, setting);
+            let setting = settings.borrow(i);
+            let contains = all_settings.contains(setting);
             assert!(contains, EINVALID_SETTINGS);
             i += 1;
         };
@@ -339,7 +339,7 @@ module deployment_addr::nft_launchpad {
 
         // Get current supply to ensure new max supply is not less than current supply
         let current_supply = collection::count(collection_obj);
-        assert!(new_max_supply >= *option::borrow(&current_supply), EINVALID_MAX_SUPPLY);
+        assert!(new_max_supply >= *current_supply.borrow(), EINVALID_MAX_SUPPLY);
 
         collection_config.max_supply = new_max_supply;
 
@@ -387,9 +387,7 @@ module deployment_addr::nft_launchpad {
         );
 
         // Update the mint fee for the specified stage
-        simple_map::upsert(
-            &mut collection_config.mint_fee_per_nft_by_stages, stage_name, new_mint_fee
-        );
+        collection_config.mint_fee_per_nft_by_stages.upsert(stage_name, new_mint_fee);
     }
 
     /// Update protocol base fee for a specific collection (admin only)
@@ -559,18 +557,18 @@ module deployment_addr::nft_launchpad {
             }
         );
 
-        let num_stages = vector::length(&stage_names);
+        let num_stages = stage_names.length();
         assert!(num_stages > 0, EAT_LEAST_ONE_STAGE_IS_REQUIRED);
-        assert!(num_stages == vector::length(&stage_types), EINVALID_STAGE_TYPE);
-        assert!(num_stages == vector::length(&allowlist_addresses), EINVALID_STAGE_TYPE);
+        assert!(num_stages == stage_types.length(), EINVALID_STAGE_TYPE);
+        assert!(num_stages == allowlist_addresses.length(), EINVALID_STAGE_TYPE);
         assert!(
-            num_stages == vector::length(&allowlist_mint_limit_per_addr),
+            num_stages == allowlist_mint_limit_per_addr.length(),
             EINVALID_STAGE_TYPE
         );
-        assert!(num_stages == vector::length(&start_times), EINVALID_STAGE_TYPE);
-        assert!(num_stages == vector::length(&end_times), EINVALID_STAGE_TYPE);
-        assert!(num_stages == vector::length(&mint_fees_per_nft), EINVALID_STAGE_TYPE);
-        assert!(num_stages == vector::length(&mint_limits_per_addr), EINVALID_STAGE_TYPE);
+        assert!(num_stages == start_times.length(), EINVALID_STAGE_TYPE);
+        assert!(num_stages == end_times.length(), EINVALID_STAGE_TYPE);
+        assert!(num_stages == mint_fees_per_nft.length(), EINVALID_STAGE_TYPE);
+        assert!(num_stages == mint_limits_per_addr.length(), EINVALID_STAGE_TYPE);
 
         validate_settings(collection_settings);
 
@@ -585,23 +583,23 @@ module deployment_addr::nft_launchpad {
             let mint_limit = mint_limits_per_addr[i];
 
             if (stage_type == STAGE_TYPE_ALLOWLIST) {
-                assert!(option::is_some(&allowlist), EALLOWLIST_NOT_FOUND);
-                assert!(option::is_some(&allowlist_mint_limit), EALLOWLIST_NOT_FOUND);
+                assert!(allowlist.is_some(), EALLOWLIST_NOT_FOUND);
+                assert!(allowlist_mint_limit.is_some(), EALLOWLIST_NOT_FOUND);
                 add_mint_stage(
                     collection_obj,
                     collection_obj_addr,
                     collection_obj_signer,
                     collection_owner_obj_signer,
                     stage_name,
-                    *option::borrow(&allowlist),
-                    *option::borrow(&allowlist_mint_limit),
+                    *allowlist.borrow(),
+                    *allowlist_mint_limit.borrow(),
                     start_time,
                     end_time,
                     mint_fee
                 );
             } else if (stage_type == STAGE_TYPE_PUBLIC) {
                 assert!(
-                    option::is_some(&mint_limit),
+                    mint_limit.is_some(),
                     EMINT_LIMIT_PER_ADDR_MUST_BE_SET_FOR_STAGE
                 );
                 add_public_mint_stage(
@@ -612,7 +610,7 @@ module deployment_addr::nft_launchpad {
                     stage_name,
                     start_time,
                     end_time,
-                    *option::borrow(&mint_limit),
+                    *mint_limit.borrow(),
                     mint_fee
                 );
             } else {
@@ -621,7 +619,7 @@ module deployment_addr::nft_launchpad {
         };
 
         let registry = borrow_global_mut<Registry>(@deployment_addr);
-        vector::push_back(&mut registry.collection_objects, collection_obj);
+        registry.collection_objects.push_back(collection_obj);
 
         event::emit(
             CreateCollectionEvent {
@@ -669,7 +667,7 @@ module deployment_addr::nft_launchpad {
         let sender_addr = signer::address_of(sender);
 
         let stage_idx = &mint_stage::execute_earliest_stage(sender, collection_obj, amount);
-        assert!(option::is_some(stage_idx), ENO_ACTIVE_STAGES);
+        assert!(stage_idx.is_some(), ENO_ACTIVE_STAGES);
 
         debug::print(stage_idx);
 
@@ -692,7 +690,7 @@ module deployment_addr::nft_launchpad {
         let nft_objs = vector[];
         for (_i in 0..amount) {
             let nft_obj = mint_single_nft_internal(sender_addr, collection_obj, refundable_per_nft);
-            vector::push_back(&mut nft_objs, nft_obj);
+            nft_objs.push_back(nft_obj);
         };
 
         event::emit(
@@ -723,12 +721,12 @@ module deployment_addr::nft_launchpad {
         );
 
         let collection_owner_obj_signer = &get_collection_owner_signer(&collection_obj);
-        let n = vector::length(&nft_objs);
-        assert!(n == vector::length(&names), EINVALID_REVEAL_DATA);
-        assert!(n == vector::length(&descriptions), EINVALID_REVEAL_DATA);
-        assert!(n == vector::length(&uris), EINVALID_REVEAL_DATA);
-        assert!(n == vector::length(&prop_names_vec), EINVALID_REVEAL_DATA);
-        assert!(n == vector::length(&prop_values_vec), EINVALID_REVEAL_DATA);
+        let n = nft_objs.length();
+        assert!(n == names.length(), EINVALID_REVEAL_DATA);
+        assert!(n == descriptions.length(), EINVALID_REVEAL_DATA);
+        assert!(n == uris.length(), EINVALID_REVEAL_DATA);
+        assert!(n == prop_names_vec.length(), EINVALID_REVEAL_DATA);
+        assert!(n == prop_values_vec.length(), EINVALID_REVEAL_DATA);
         for (i in 0..n) {
             let nft_obj = nft_objs[i];
             let name = names[i];
@@ -739,8 +737,8 @@ module deployment_addr::nft_launchpad {
             token_components::set_name(collection_owner_obj_signer, nft_obj, name);
             token_components::set_description(collection_owner_obj_signer, nft_obj, description);
             token_components::set_uri(collection_owner_obj_signer, nft_obj, uri);
-            let prop_len = vector::length(&prop_names);
-            assert!(prop_len == vector::length(&prop_values), EINVALID_REVEAL_DATA);
+            let prop_len = prop_names.length();
+            assert!(prop_len == prop_values.length(), EINVALID_REVEAL_DATA);
             for (j in 0..prop_len) {
                 let prop_name = prop_names[j];
                 let prop_value = prop_values[j];
@@ -844,7 +842,7 @@ module deployment_addr::nft_launchpad {
         );
 
         // Check if all NFTs are sold (max_supply reached)
-        let minted_count = *option::borrow(&collection::count(collection_obj));
+        let minted_count = *collection::count(collection_obj).borrow();
         assert!(minted_count >= collection_config.max_supply, ESALE_THRESHOLD_NOT_MET);
 
         // Mark sale as completed
@@ -966,7 +964,7 @@ module deployment_addr::nft_launchpad {
         );
 
         // Check that max_supply was NOT reached (otherwise sale should be completed, not refunded)
-        let minted_count = *option::borrow(&collection::count(collection_obj));
+        let minted_count = *collection::count(collection_obj).borrow();
         assert!(minted_count < collection_config.max_supply, ESALE_NOT_COMPLETED);
 
         // Verify the NFT belongs to this collection
@@ -1068,10 +1066,10 @@ module deployment_addr::nft_launchpad {
     public fun get_registry(): vector<Object<Collection>> acquires Registry, CollectionConfig {
         let registry = borrow_global<Registry>(@deployment_addr);
         let collections = vector[];
-        for (i in 0..vector::length(&registry.collection_objects)) {
+        for (i in 0..registry.collection_objects.length()) {
             let collection_obj = registry.collection_objects[i];
             if (is_mint_enabled(collection_obj)) {
-                vector::push_back(&mut collections, collection_obj);
+                collections.push_back(collection_obj);
             }
         };
         collections
@@ -1082,10 +1080,10 @@ module deployment_addr::nft_launchpad {
     public fun get_listed_collections(): vector<Object<Collection>> acquires Registry, CollectionConfig {
         let registry = borrow_global<Registry>(@deployment_addr);
         let collections = vector[];
-        for (i in 0..vector::length(&registry.collection_objects)) {
+        for (i in 0..registry.collection_objects.length()) {
             let collection_obj = registry.collection_objects[i];
             if (is_listing_enabled(collection_obj)) {
-                vector::push_back(&mut collections, collection_obj);
+                collections.push_back(collection_obj);
             }
         };
         collections
@@ -1114,7 +1112,7 @@ module deployment_addr::nft_launchpad {
     ): u64 acquires CollectionConfig {
         let collection_config =
             borrow_global<CollectionConfig>(object::object_address(&collection_obj));
-        let fee = *simple_map::borrow(&collection_config.mint_fee_per_nft_by_stages, &stage_name);
+        let fee = *collection_config.mint_fee_per_nft_by_stages.borrow(&stage_name);
         amount * fee
     }
 
@@ -1164,16 +1162,14 @@ module deployment_addr::nft_launchpad {
     /// Get the name of the current active mint stage or the next mint stage if there is no active mint stage
     public fun get_active_or_next_mint_stage(collection_obj: Object<Collection>): Option<String> {
         let active_stage_idx = mint_stage::ccurent_active_stage(collection_obj);
-        if (option::is_some(&active_stage_idx)) {
+        if (active_stage_idx.is_some()) {
             let stage_obj =
-                mint_stage::find_mint_stage_by_index(
-                    collection_obj, *option::borrow(&active_stage_idx)
-                );
+                mint_stage::find_mint_stage_by_index(collection_obj, *active_stage_idx.borrow());
             let stage_name = mint_stage::mint_stage_name(stage_obj);
             option::some(stage_name)
         } else {
             let stages = mint_stage::stages(collection_obj);
-            for (i in 0..vector::length(&stages)) {
+            for (i in 0..stages.length()) {
                 let stage_name = stages[i];
                 let stage_idx =
                     mint_stage::find_mint_stage_index_by_name(collection_obj, stage_name);
@@ -1245,7 +1241,7 @@ module deployment_addr::nft_launchpad {
         };
 
         // Cannot reclaim if max_supply was reached
-        let minted_count = *option::borrow(&collection::count(collection_obj));
+        let minted_count = *collection::count(collection_obj).borrow();
         if (minted_count >= collection_config.max_supply) {
             return false
         };
@@ -1338,7 +1334,7 @@ module deployment_addr::nft_launchpad {
         mint_fee_per_nft: u64
     ) acquires CollectionConfig {
         assert!(
-            vector::length(&allowlist) == vector::length(&allowlist_mint_limit_per_addr),
+            allowlist.length() == allowlist_mint_limit_per_addr.length(),
             EALLOWLIST_AND_MINT_LIMIT_PER_ADDR_MUST_BE_SAME_LENGTH
         );
 
@@ -1349,7 +1345,7 @@ module deployment_addr::nft_launchpad {
             end_time
         );
 
-        for (i in 0..vector::length(&allowlist)) {
+        for (i in 0..allowlist.length()) {
             mint_stage::upsert_allowlist(
                 collection_owner_obj_signer,
                 collection_obj,
@@ -1360,11 +1356,7 @@ module deployment_addr::nft_launchpad {
         };
 
         let collection_config = borrow_global_mut<CollectionConfig>(collection_obj_addr);
-        simple_map::upsert(
-            &mut collection_config.mint_fee_per_nft_by_stages,
-            stage_name,
-            mint_fee_per_nft
-        );
+        collection_config.mint_fee_per_nft_by_stages.upsert(stage_name, mint_fee_per_nft);
     }
 
     /// Add public mint stage
@@ -1395,11 +1387,7 @@ module deployment_addr::nft_launchpad {
         );
 
         let collection_config = borrow_global_mut<CollectionConfig>(collection_obj_addr);
-        simple_map::upsert(
-            &mut collection_config.mint_fee_per_nft_by_stages,
-            stage_name,
-            mint_fee_per_nft
-        );
+        collection_config.mint_fee_per_nft_by_stages.upsert(stage_name, mint_fee_per_nft);
     }
 
     /// Calculate and pay fees with NFT-based reductions
@@ -1469,8 +1457,8 @@ module deployment_addr::nft_launchpad {
 
     /// Create royalty object
     fun royalty(royalty_numerator: &mut Option<u64>, admin_addr: address): Option<Royalty> {
-        if (option::is_some(royalty_numerator)) {
-            let num = option::extract(royalty_numerator);
+        if (royalty_numerator.is_some()) {
+            let num = royalty_numerator.extract();
             option::some(royalty::create(num, 100, admin_addr))
         } else {
             option::none()
@@ -1480,7 +1468,7 @@ module deployment_addr::nft_launchpad {
     /// Helper function to pad a number with zeros to a specified length
     fun pad_number_with_zeros(num: u64, target_length: u64): String {
         let num_str = string_utils::to_string(&num);
-        let current_length = string::length(&num_str);
+        let current_length = num_str.length();
 
         if (current_length >= target_length) {
             num_str
@@ -1491,12 +1479,12 @@ module deployment_addr::nft_launchpad {
             // Add leading zeros
             let i = 0;
             while (i < padding_needed) {
-                string::append(padded_str, utf8(b"0"));
+                padded_str.append(utf8(b"0"));
                 i += 1;
             };
 
             // Add the original number
-            string::append(padded_str, num_str);
+            padded_str.append(num_str);
             *padded_str
         }
     }
@@ -1510,14 +1498,14 @@ module deployment_addr::nft_launchpad {
         let collection_config =
             borrow_global<CollectionConfig>(object::object_address(&collection_obj));
 
-        let next_nft_id = *option::borrow(&collection::count(collection_obj)) + 1;
+        let next_nft_id = *collection::count(collection_obj).borrow() + 1;
 
         let name = &mut collection::name(collection_obj);
         let max_supply = collection_config.max_supply;
-        let target_length = string::length(&string_utils::to_string(&max_supply));
+        let target_length = string_utils::to_string(&max_supply).length();
 
-        string::append(name, utf8(b" #"));
-        string::append(name, pad_number_with_zeros(next_nft_id, target_length));
+        name.append(utf8(b" #"));
+        name.append(pad_number_with_zeros(next_nft_id, target_length));
 
         let placeholder_uri = collection_config.placeholder_uri;
 
@@ -1555,13 +1543,11 @@ module deployment_addr::nft_launchpad {
     /// Construct NFT metadata URI
     fun construct_nft_metadata_uri(collection_uri: &String, _next_nft_id: u64): String {
         let nft_metadata_uri =
-            &mut string::sub_string(
-                collection_uri,
-                0,
-                string::length(collection_uri) - string::length(&utf8(b"collection.json"))
+            &mut collection_uri.sub_string(
+                0, collection_uri.length() - utf8(b"collection.json").length()
             );
         let nft_metadata_filename = utf8(b"placeholder.png");
-        string::append(nft_metadata_uri, nft_metadata_filename);
+        nft_metadata_uri.append(nft_metadata_filename);
         *nft_metadata_uri
     }
 
@@ -1603,14 +1589,13 @@ module deployment_addr::nft_launchpad {
         );
         assert!(allowlist_exists(collection_obj, stage_name), EALLOWLIST_NOT_FOUND);
         assert!(
-            vector::length(&allowlist_addresses)
-                == vector::length(&allowlist_mint_limit_per_addr),
+            allowlist_addresses.length() == allowlist_mint_limit_per_addr.length(),
             EALLOWLIST_AND_MINT_LIMIT_PER_ADDR_MUST_BE_SAME_LENGTH
         );
 
         let collection_owner_obj_signer = &get_collection_owner_signer(&collection_obj);
 
-        for (i in 0..vector::length(&allowlist_addresses)) {
+        for (i in 0..allowlist_addresses.length()) {
             let mint_limit = allowlist_mint_limit_per_addr[i];
             if (mint_limit > 0) {
                 mint_stage::upsert_allowlist(
@@ -1650,7 +1635,7 @@ module deployment_addr::nft_launchpad {
         let stages = mint_stage::stages(collection_obj);
         let infos = vector::empty<MintStageInfo>();
 
-        for (i in 0..vector::length(&stages)) {
+        for (i in 0..stages.length()) {
             let stage_name = stages[i];
             let stage_idx = mint_stage::find_mint_stage_index_by_name(collection_obj, stage_name);
             let stage_obj = mint_stage::find_mint_stage_by_index(collection_obj, stage_idx);
@@ -1676,7 +1661,7 @@ module deployment_addr::nft_launchpad {
                 end_time,
                 stage_type
             };
-            vector::push_back(&mut infos, info);
+            infos.push_back(info);
         };
         infos
     }
@@ -1736,10 +1721,10 @@ module deployment_addr::nft_launchpad {
     ): bool acquires CollectionConfig {
         let settings = get_collection_settings(collection_obj);
         let i = 0;
-        let len = vector::length(&settings);
+        let len = settings.length();
 
         while (i < len) {
-            let setting = vector::borrow(&settings, i);
+            let setting = settings.borrow(i);
             if (*setting == setting_name) {
                 return true
             };
