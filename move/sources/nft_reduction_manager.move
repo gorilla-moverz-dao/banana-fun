@@ -84,7 +84,7 @@ module deployment_addr::nft_reduction_manager {
 
         let nfts_len = vector::length(reduction_nfts);
         for (i in 0..nfts_len) {
-            let nft = *vector::borrow(reduction_nfts, i);
+            let nft = reduction_nfts[i];
 
             // Verify ownership
             assert!(verify_nft_ownership(nft, sender), ENFT_NOT_OWNED);
@@ -103,7 +103,7 @@ module deployment_addr::nft_reduction_manager {
                 let reduction = *simple_map::borrow(
                     &config.collection_reductions, &collection_addr
                 );
-                total_reduction = total_reduction + reduction;
+                total_reduction += reduction;
             };
         };
 

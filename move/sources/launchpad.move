@@ -274,7 +274,7 @@ module deployment_addr::nft_launchpad {
             let setting = vector::borrow(&settings, i);
             let contains = vector::contains(&all_settings, setting);
             assert!(contains, EINVALID_SETTINGS);
-            i = i + 1;
+            i += 1;
         };
     }
 
@@ -589,14 +589,14 @@ module deployment_addr::nft_launchpad {
         validate_settings(collection_settings);
 
         for (i in 0..num_stages) {
-            let stage_name = *vector::borrow(&stage_names, i);
-            let stage_type = *vector::borrow(&stage_types, i);
-            let allowlist = *vector::borrow(&allowlist_addresses, i);
-            let allowlist_mint_limit = *vector::borrow(&allowlist_mint_limit_per_addr, i);
-            let start_time = *vector::borrow(&start_times, i);
-            let end_time = *vector::borrow(&end_times, i);
-            let mint_fee = *vector::borrow(&mint_fees_per_nft, i);
-            let mint_limit = *vector::borrow(&mint_limits_per_addr, i);
+            let stage_name = stage_names[i];
+            let stage_type = stage_types[i];
+            let allowlist = allowlist_addresses[i];
+            let allowlist_mint_limit = allowlist_mint_limit_per_addr[i];
+            let start_time = start_times[i];
+            let end_time = end_times[i];
+            let mint_fee = mint_fees_per_nft[i];
+            let mint_limit = mint_limits_per_addr[i];
 
             if (stage_type == STAGE_TYPE_ALLOWLIST) {
                 assert!(option::is_some(&allowlist), EALLOWLIST_NOT_FOUND);
@@ -686,7 +686,7 @@ module deployment_addr::nft_launchpad {
 
         let collection_config =
             borrow_global_mut<CollectionConfig>(object::object_address(&collection_obj));
-        collection_config.premint_amount = collection_config.premint_amount + amount;
+        collection_config.premint_amount += amount;
     }
 
     /// Mint NFT, anyone with enough mint fee and has not reached mint limit can mint FA
@@ -775,20 +775,20 @@ module deployment_addr::nft_launchpad {
         assert!(n == vector::length(&prop_names_vec), EINVALID_REVEAL_DATA);
         assert!(n == vector::length(&prop_values_vec), EINVALID_REVEAL_DATA);
         for (i in 0..n) {
-            let nft_obj = *vector::borrow(&nft_objs, i);
-            let name = *vector::borrow(&names, i);
-            let description = *vector::borrow(&descriptions, i);
-            let uri = *vector::borrow(&uris, i);
-            let prop_names = *vector::borrow(&prop_names_vec, i);
-            let prop_values = *vector::borrow(&prop_values_vec, i);
+            let nft_obj = nft_objs[i];
+            let name = names[i];
+            let description = descriptions[i];
+            let uri = uris[i];
+            let prop_names = prop_names_vec[i];
+            let prop_values = prop_values_vec[i];
             token_components::set_name(collection_owner_obj_signer, nft_obj, name);
             token_components::set_description(collection_owner_obj_signer, nft_obj, description);
             token_components::set_uri(collection_owner_obj_signer, nft_obj, uri);
             let prop_len = vector::length(&prop_names);
             assert!(prop_len == vector::length(&prop_values), EINVALID_REVEAL_DATA);
             for (j in 0..prop_len) {
-                let prop_name = *vector::borrow(&prop_names, j);
-                let prop_value = *vector::borrow(&prop_values, j);
+                let prop_name = prop_names[j];
+                let prop_value = prop_values[j];
                 if (aptos_token_objects::property_map::contains_key(&nft_obj, &prop_name)) {
                     token_components::update_typed_property(
                         collection_owner_obj_signer,
@@ -1029,8 +1029,7 @@ module deployment_addr::nft_launchpad {
         // Only process refund if there's an amount to refund
         if (refund_amount > 0) {
             // Update total funds collected
-            collection_config.total_funds_collected =
-                collection_config.total_funds_collected - refund_amount;
+            collection_config.total_funds_collected -= refund_amount;
 
             // Transfer funds back to user from collection owner
             let collection_owner_obj = collection_config.collection_owner_obj;
@@ -1115,7 +1114,7 @@ module deployment_addr::nft_launchpad {
         let registry = borrow_global<Registry>(@deployment_addr);
         let collections = vector[];
         for (i in 0..vector::length(&registry.collection_objects)) {
-            let collection_obj = *vector::borrow(&registry.collection_objects, i);
+            let collection_obj = registry.collection_objects[i];
             if (is_mint_enabled(collection_obj)) {
                 vector::push_back(&mut collections, collection_obj);
             }
@@ -1129,7 +1128,7 @@ module deployment_addr::nft_launchpad {
         let registry = borrow_global<Registry>(@deployment_addr);
         let collections = vector[];
         for (i in 0..vector::length(&registry.collection_objects)) {
-            let collection_obj = *vector::borrow(&registry.collection_objects, i);
+            let collection_obj = registry.collection_objects[i];
             if (is_listing_enabled(collection_obj)) {
                 vector::push_back(&mut collections, collection_obj);
             }
@@ -1220,7 +1219,7 @@ module deployment_addr::nft_launchpad {
         } else {
             let stages = mint_stage::stages(collection_obj);
             for (i in 0..vector::length(&stages)) {
-                let stage_name = *vector::borrow(&stages, i);
+                let stage_name = stages[i];
                 let stage_idx =
                     mint_stage::find_mint_stage_index_by_name(collection_obj, stage_name);
                 if (mint_stage::start_time(collection_obj, stage_idx) > timestamp::now_seconds()) {
@@ -1400,8 +1399,8 @@ module deployment_addr::nft_launchpad {
                 collection_owner_obj_signer,
                 collection_obj,
                 mint_stage::find_mint_stage_index_by_name(collection_obj, stage_name),
-                *vector::borrow(&allowlist, i),
-                *vector::borrow(&allowlist_mint_limit_per_addr, i)
+                allowlist[i],
+                allowlist_mint_limit_per_addr[i]
             );
         };
 
@@ -1487,8 +1486,7 @@ module deployment_addr::nft_launchpad {
             aptos_account::transfer(sender, collection_owner_addr, total_fee);
 
             // Update total funds collected (only NFT cost, not protocol fees)
-            collection_config.total_funds_collected =
-                collection_config.total_funds_collected + nft_mint_fee;
+            collection_config.total_funds_collected += nft_mint_fee;
         };
 
         total_fee
@@ -1539,7 +1537,7 @@ module deployment_addr::nft_launchpad {
             let i = 0;
             while (i < padding_needed) {
                 string::append(padded_str, string::utf8(b"0"));
-                i = i + 1;
+                i += 1;
             };
 
             // Add the original number
@@ -1659,13 +1657,13 @@ module deployment_addr::nft_launchpad {
         let collection_owner_obj_signer = &get_collection_owner_signer(&collection_obj);
 
         for (i in 0..vector::length(&allowlist_addresses)) {
-            let mint_limit = *vector::borrow(&allowlist_mint_limit_per_addr, i);
+            let mint_limit = allowlist_mint_limit_per_addr[i];
             if (mint_limit > 0) {
                 mint_stage::upsert_allowlist(
                     collection_owner_obj_signer,
                     collection_obj,
                     mint_stage::find_mint_stage_index_by_name(collection_obj, stage_name),
-                    *vector::borrow(&allowlist_addresses, i),
+                    allowlist_addresses[i],
                     mint_limit
                 );
             } else {
@@ -1673,7 +1671,7 @@ module deployment_addr::nft_launchpad {
                     collection_owner_obj_signer,
                     collection_obj,
                     mint_stage::find_mint_stage_index_by_name(collection_obj, stage_name),
-                    *vector::borrow(&allowlist_addresses, i)
+                    allowlist_addresses[i]
                 );
             }
         };
@@ -1699,7 +1697,7 @@ module deployment_addr::nft_launchpad {
         let infos = vector::empty<MintStageInfo>();
 
         for (i in 0..vector::length(&stages)) {
-            let stage_name = *vector::borrow(&stages, i);
+            let stage_name = stages[i];
             let stage_idx = mint_stage::find_mint_stage_index_by_name(collection_obj, stage_name);
             let stage_obj = mint_stage::find_mint_stage_by_index(collection_obj, stage_idx);
             let (start_time, end_time) =
@@ -1799,7 +1797,7 @@ module deployment_addr::nft_launchpad {
             if (*setting == setting_name) {
                 return true
             };
-            i = i + 1;
+            i += 1;
         };
         false
     }

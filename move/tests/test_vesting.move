@@ -1,7 +1,6 @@
 #[test_only]
 module deployment_addr::test_vesting {
     use std::string;
-    use std::vector;
     use aptos_std::debug;
 
     use aptos_framework::account;
@@ -68,7 +67,7 @@ module deployment_addr::test_vesting {
         nft_launchpad::check_and_complete_sale(collection_obj);
 
         // Get user's first NFT
-        let nft_obj = *vector::borrow(&nfts, 0);
+        let nft_obj = nfts[0];
 
         // Try to claim before cliff - should fail with ECLIFF_NOT_PASSED (error code 1)
         vesting::claim(user1, collection_obj, nft_obj);
@@ -112,7 +111,7 @@ module deployment_addr::test_vesting {
         nft_launchpad::check_and_complete_sale(collection_obj);
 
         // Get user's first NFT
-        let nft_obj = *vector::borrow(&nfts, 0);
+        let nft_obj = nfts[0];
 
         // Get FA metadata
         let collection_owner_obj = nft_launchpad::get_collection_owner_obj(collection_obj);
@@ -187,7 +186,7 @@ module deployment_addr::test_vesting {
         nft_launchpad::check_and_complete_sale(collection_obj);
 
         // Get user's first NFT
-        let nft_obj = *vector::borrow(&nfts, 0);
+        let nft_obj = nfts[0];
 
         // Get FA metadata
         let collection_owner_obj = nft_launchpad::get_collection_owner_obj(collection_obj);
@@ -261,7 +260,7 @@ module deployment_addr::test_vesting {
         nft_launchpad::check_and_complete_sale(collection_obj);
 
         // Get user1's NFT
-        let nft_obj = *vector::borrow(&nfts, 0);
+        let nft_obj = nfts[0];
 
         // Move time past cliff
         timestamp::update_global_time_for_test_secs(SALE_DEADLINE_OFFSET + 1 + VESTING_CLIFF + 50);

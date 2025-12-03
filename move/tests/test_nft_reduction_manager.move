@@ -128,7 +128,7 @@ module deployment_addr::test_nft_reduction_manager {
         let collections = nft_launchpad::get_registry();
         assert!(vector::length(&collections) > 0, 0);
         let last_index = vector::length(&collections) - 1;
-        *vector::borrow(&collections, last_index)
+        collections[last_index]
     }
 
     // ================================= Admin Function Tests ================================= //
@@ -580,7 +580,7 @@ module deployment_addr::test_nft_reduction_manager {
         while (i < count) {
             let nft = create_test_nft_for_reduction(owner, collection_obj);
             vector::push_back(&mut nfts, nft);
-            i = i + 1;
+            i += 1;
         };
 
         nfts
