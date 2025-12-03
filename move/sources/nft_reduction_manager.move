@@ -108,7 +108,7 @@ module deployment_addr::nft_reduction_manager {
         };
 
         // Cap at 100% maximum reduction
-        if (total_reduction > 100) { 
+        if (total_reduction > 100) {
             total_reduction = 100
         };
         total_reduction

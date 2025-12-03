@@ -33,5 +33,16 @@
 		"source.organizeImports.biome": "explicit"
 	},
 	"typescript.tsdk": "node_modules/typescript/lib",
-	"typescript.enablePromptUseWorkspaceTsdk": true
+	"typescript.enablePromptUseWorkspaceTsdk": true,
+
+	"editor.formatOnSave": true,
+	"[move]": {
+		"editor.defaultFormatter": "aptoslabs.move-on-aptos"
+	},
+	"move-on-aptos.movefmt.extraArgs": ["--config", "max_width=100"],
+	"move-on-aptos.diagnostics.disabled": [
+		"replace-with-method-call",
+		"replace-with-index-expr",
+		"replace-with-compound-expr"
+	]
 }

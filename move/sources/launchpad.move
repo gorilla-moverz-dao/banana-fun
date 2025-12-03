@@ -8,6 +8,7 @@ module deployment_addr::nft_launchpad {
     use aptos_std::simple_map::{Self, SimpleMap};
     use aptos_std::string_utils;
 
+    use aptos_framework::account;
     use aptos_framework::aptos_account;
     use aptos_framework::event;
     use aptos_framework::object::{Self, Object, ObjectCore};
@@ -80,6 +81,20 @@ module deployment_addr::nft_launchpad {
     const EONLY_COLLECTION_CREATOR_CAN_UPDATE_SETTINGS: u64 = 1002;
     /// Invalid settings
     const EINVALID_SETTINGS: u64 = 1003;
+    /// Sale already completed
+    const ESALE_ALREADY_COMPLETED: u64 = 1004;
+    /// Sale not completed yet
+    const ESALE_NOT_COMPLETED: u64 = 1005;
+    /// User has no contribution to reclaim
+    const ENO_CONTRIBUTION: u64 = 1006;
+    /// Deadline has not passed yet
+    const EDEADLINE_NOT_PASSED: u64 = 1007;
+    /// Invalid threshold value
+    const EINVALID_THRESHOLD: u64 = 1008;
+    /// Invalid deadline value
+    const EINVALID_DEADLINE: u64 = 1009;
+    /// Sale threshold not met
+    const ESALE_THRESHOLD_NOT_MET: u64 = 1010;
 
     /// 100 years in seconds, we consider mint end time to be infinite when it is set to 100 years after start time
     const ONE_HUNDRED_YEARS_IN_SECONDS: u64 = 100 * 365 * 24 * 60 * 60;
@@ -137,6 +152,29 @@ module deployment_addr::nft_launchpad {
         recipient_addr: address
     }
 
+    #[event]
+    struct SaleCompletedEvent has store, drop {
+        collection_obj: Object<Collection>,
+        total_funds: u64,
+        lp_wallet_addr: address,
+        minted_count: u64
+    }
+
+    #[event]
+    struct FundsReclaimedEvent has store, drop {
+        collection_obj: Object<Collection>,
+        user_addr: address,
+        nft_obj: Object<Token>,
+        reclaimed_amount: u64
+    }
+
+    /// Stores the mint fee paid and burn reference for each NFT
+    /// burn_ref allows the contract to burn the NFT during refund
+    struct TokenMintInfo has key {
+        mint_fee_paid: u64,
+        burn_ref: token::BurnRef
+    }
+
     /// Unique per collection
     /// We need this object to own the collection object instead of contract directly owns the collection object
     /// This helps us avoid address collision when we create multiple collections with same name
@@ -161,10 +199,18 @@ module deployment_addr::nft_launchpad {
         protocol_base_fee: u64,
         protocol_percentage_fee: u64,
         premint_amount: u64,
-        max_supply: Option<u64>,
+        max_supply: u64,
         // Extensible collection settings stored as string array
         // This allows for future extensibility without changing the struct
-        collection_settings: vector<String>
+        collection_settings: vector<String>,
+        // LP wallet address for fund transfer after successful sale
+        lp_wallet_addr: address,
+        // Sale deadline timestamp
+        sale_deadline: u64,
+        // Whether sale has been completed
+        sale_completed: bool,
+        // Total funds collected in this sale
+        total_funds_collected: u64
     }
 
     /// Global per contract
@@ -265,7 +311,9 @@ module deployment_addr::nft_launchpad {
         sender: &signer, collection_obj: Object<Collection>, enabled: bool
     ) acquires CollectionConfig {
         verify_collection_creator(
-            sender, &collection_obj, EONLY_COLLECTION_CREATOR_CAN_UPDATE_LISTING_ENABLED
+            sender,
+            &collection_obj,
+            EONLY_COLLECTION_CREATOR_CAN_UPDATE_LISTING_ENABLED
         );
         let collection_obj_addr = object::object_address(&collection_obj);
         let collection_config = borrow_global_mut<CollectionConfig>(collection_obj_addr);
@@ -287,7 +335,7 @@ module deployment_addr::nft_launchpad {
         let current_supply = collection::count(collection_obj);
         assert!(new_max_supply >= *option::borrow(&current_supply), EINVALID_MAX_SUPPLY);
 
-        collection_config.max_supply = option::some(new_max_supply);
+        collection_config.max_supply = new_max_supply;
 
         let collection_owner_obj_signer = &get_collection_owner_signer(&collection_obj);
         collection_components::set_collection_max_supply(
@@ -427,7 +475,11 @@ module deployment_addr::nft_launchpad {
         mint_fees_per_nft: vector<u64>,
         mint_limits_per_addr: vector<Option<u64>>,
         // Extensible collection settings (e.g., soulbound token, reveal type, etc.)
-        collection_settings: vector<String>
+        collection_settings: vector<String>,
+        // LP wallet address for fund transfer after successful sale
+        lp_wallet_addr: address,
+        // Sale deadline timestamp
+        sale_deadline: u64
     ) acquires Config, Registry, CollectionConfig, CollectionOwnerObjConfig {
         let sender_addr = signer::address_of(sender);
 
@@ -462,6 +514,11 @@ module deployment_addr::nft_launchpad {
         let collection_owner_obj =
             object::object_from_constructor_ref(collection_owner_obj_constructor_ref);
         let config = borrow_global<Config>(@deployment_addr);
+
+        // Validate sale parameters
+        assert!(max_supply > 0, EINVALID_THRESHOLD);
+        assert!(sale_deadline > timestamp::now_seconds(), EINVALID_DEADLINE);
+
         move_to(
             collection_obj_signer,
             CollectionConfig {
@@ -476,8 +533,12 @@ module deployment_addr::nft_launchpad {
                 protocol_base_fee: config.default_protocol_base_fee,
                 protocol_percentage_fee: config.default_protocol_percentage_fee,
                 premint_amount: 0,
-                max_supply: option::some(max_supply),
-                collection_settings
+                max_supply,
+                collection_settings,
+                lp_wallet_addr,
+                sale_deadline,
+                sale_completed: false,
+                total_funds_collected: 0
             }
         );
 
@@ -585,7 +646,8 @@ module deployment_addr::nft_launchpad {
 
         let nft_objs = vector[];
         for (i in 0..amount) {
-            let nft_obj = mint_nft_internal(sender_addr, collection_obj);
+            // Preminted NFTs have 0 mint fee (not eligible for refund)
+            let nft_obj = mint_nft_internal(sender_addr, collection_obj, 0);
             vector::push_back(&mut nft_objs, nft_obj);
         };
 
@@ -604,7 +666,7 @@ module deployment_addr::nft_launchpad {
         collection_obj: Object<Collection>,
         amount: u64,
         reduction_nfts: vector<Object<Token>>
-    ) acquires CollectionConfig, CollectionOwnerObjConfig, Config {
+    ) acquires CollectionConfig, CollectionOwnerObjConfig {
         assert!(amount > 0, ECANNOT_MINT_ZERO);
         assert!(is_mint_enabled(collection_obj), EMINT_IS_DISABLED);
         let sender_addr = signer::address_of(sender);
@@ -627,9 +689,12 @@ module deployment_addr::nft_launchpad {
             reduction_nfts
         );
 
+        // Calculate refundable fee per NFT (only NFT cost, not protocol fees)
+        let refundable_per_nft = nft_mint_fee / amount;
+
         let nft_objs = vector[];
         for (i in 0..amount) {
-            let nft_obj = mint_nft_internal(sender_addr, collection_obj);
+            let nft_obj = mint_nft_internal(sender_addr, collection_obj, refundable_per_nft);
             vector::push_back(&mut nft_objs, nft_obj);
         };
 
@@ -750,6 +815,125 @@ module deployment_addr::nft_launchpad {
             stage_name,
             new_start_time,
             new_end_time
+        );
+    }
+
+    /// Check and complete sale if conditions are met
+    /// Conditions: deadline reached AND threshold met
+    /// Anyone can call this function to trigger the completion
+    public entry fun check_and_complete_sale(
+        collection_obj: Object<Collection>
+    ) acquires CollectionConfig, CollectionOwnerObjConfig {
+        let collection_obj_addr = object::object_address(&collection_obj);
+        let collection_config = borrow_global_mut<CollectionConfig>(collection_obj_addr);
+
+        // Ensure sale is not already completed
+        assert!(!collection_config.sale_completed, ESALE_ALREADY_COMPLETED);
+
+        // Check if deadline has passed
+        assert!(
+            timestamp::now_seconds() >= collection_config.sale_deadline,
+            EDEADLINE_NOT_PASSED
+        );
+
+        // Check if all NFTs are sold (max_supply reached)
+        let minted_count = *option::borrow(&collection::count(collection_obj));
+        assert!(minted_count >= collection_config.max_supply, ESALE_THRESHOLD_NOT_MET);
+
+        // Mark sale as completed
+        collection_config.sale_completed = true;
+
+        let total_funds = collection_config.total_funds_collected;
+        let lp_wallet_addr = collection_config.lp_wallet_addr;
+
+        // Transfer all funds from collection owner to LP wallet
+        if (total_funds > 0) {
+            let collection_owner_obj = collection_config.collection_owner_obj;
+            let collection_owner_config =
+                borrow_global<CollectionOwnerObjConfig>(
+                    object::object_address(&collection_owner_obj)
+                );
+            let collection_owner_signer =
+                object::generate_signer_for_extending(&collection_owner_config.extend_ref);
+
+            // Transfer funds to LP wallet
+            aptos_account::transfer(&collection_owner_signer, lp_wallet_addr, total_funds);
+        };
+
+        // Emit sale completed event
+        event::emit(
+            SaleCompletedEvent { collection_obj, total_funds, lp_wallet_addr, minted_count }
+        );
+    }
+
+    /// Reclaim funds if sale deadline passed without meeting threshold
+    /// Users can only reclaim if:
+    /// 1. Sale deadline has passed
+    /// 2. Sale threshold was NOT met
+    /// 3. User has contributions to reclaim
+    /// Reclaim funds by returning an NFT from a failed sale
+    /// The NFT serves as proof of purchase - user burns the NFT to get refund
+    public entry fun reclaim_funds(
+        sender: &signer, collection_obj: Object<Collection>, nft_obj: Object<Token>
+    ) acquires CollectionConfig, CollectionOwnerObjConfig, TokenMintInfo {
+        let sender_addr = signer::address_of(sender);
+        let collection_obj_addr = object::object_address(&collection_obj);
+        let collection_config = borrow_global_mut<CollectionConfig>(collection_obj_addr);
+
+        // Ensure sale is not completed (threshold was met)
+        assert!(!collection_config.sale_completed, ESALE_ALREADY_COMPLETED);
+
+        // Check if deadline has passed
+        assert!(
+            timestamp::now_seconds() >= collection_config.sale_deadline,
+            EDEADLINE_NOT_PASSED
+        );
+
+        // Check that max_supply was NOT reached (otherwise sale should be completed, not refunded)
+        let minted_count = *option::borrow(&collection::count(collection_obj));
+        assert!(minted_count < collection_config.max_supply, ESALE_NOT_COMPLETED);
+
+        // Verify the NFT belongs to this collection
+        let nft_collection = token::collection_object(nft_obj);
+        assert!(nft_collection == collection_obj, ENO_CONTRIBUTION);
+
+        // Verify the sender owns the NFT
+        assert!(object::is_owner(nft_obj, sender_addr), ENO_CONTRIBUTION);
+
+        // Extract the TokenMintInfo to get refund amount and burn_ref
+        let nft_addr = object::object_address(&nft_obj);
+        let TokenMintInfo { mint_fee_paid: refund_amount, burn_ref } =
+            move_from<TokenMintInfo>(nft_addr);
+
+        // Only process refund if there's an amount to refund
+        if (refund_amount > 0) {
+            // Update total funds collected
+            collection_config.total_funds_collected =
+                collection_config.total_funds_collected - refund_amount;
+
+            // Transfer funds back to user from collection owner
+            let collection_owner_obj = collection_config.collection_owner_obj;
+            let collection_owner_config =
+                borrow_global<CollectionOwnerObjConfig>(
+                    object::object_address(&collection_owner_obj)
+                );
+            let collection_owner_signer =
+                object::generate_signer_for_extending(&collection_owner_config.extend_ref);
+
+            aptos_account::transfer(&collection_owner_signer, sender_addr, refund_amount);
+        };
+
+        // Burn the NFT using the stored burn_ref
+        token::burn(burn_ref);
+
+        // Emit funds reclaimed event
+        event::emit(
+            FundsReclaimedEvent {
+                collection_obj,
+                user_addr: sender_addr,
+                nft_obj,
+                reclaimed_amount: refund_amount
+            }
         );
     }
 
@@ -938,6 +1122,79 @@ module deployment_addr::nft_launchpad {
         (start_time, end_time)
     }
 
+    #[view]
+    /// Get total funds collected for a collection
+    public fun get_collected_funds(collection_obj: Object<Collection>): u64 acquires CollectionConfig {
+        let collection_config =
+            borrow_global<CollectionConfig>(object::object_address(&collection_obj));
+        collection_config.total_funds_collected
+    }
+
+    #[view]
+    /// Get the refund amount for a specific NFT
+    /// Returns the actual mint fee paid for this NFT
+    public fun get_nft_refund_amount(nft_obj: Object<Token>): u64 acquires TokenMintInfo {
+        let nft_addr = object::object_address(&nft_obj);
+        if (exists<TokenMintInfo>(nft_addr)) {
+            let token_mint_info = borrow_global<TokenMintInfo>(nft_addr);
+            token_mint_info.mint_fee_paid
+        } else { 0 }
+    }
+
+    #[view]
+    /// Check if sale is completed for a collection
+    public fun is_sale_completed(collection_obj: Object<Collection>): bool acquires CollectionConfig {
+        let collection_config =
+            borrow_global<CollectionConfig>(object::object_address(&collection_obj));
+        collection_config.sale_completed
+    }
+
+    #[view]
+    /// Check if reclaim is possible for a collection
+    /// Returns true if deadline passed and threshold not met
+    /// Users can reclaim by providing an NFT they own from this collection
+    public fun can_reclaim(
+        collection_obj: Object<Collection>, _user_addr: address
+    ): bool acquires CollectionConfig {
+        let collection_config =
+            borrow_global<CollectionConfig>(object::object_address(&collection_obj));
+
+        // Cannot reclaim if sale is completed
+        if (collection_config.sale_completed) {
+            return false
+        };
+
+        // Cannot reclaim if deadline hasn't passed
+        if (timestamp::now_seconds() < collection_config.sale_deadline) {
+            return false
+        };
+
+        // Cannot reclaim if max_supply was reached
+        let minted_count = *option::borrow(&collection::count(collection_obj));
+        if (minted_count >= collection_config.max_supply) {
+            return false
+        };
+
+        // Reclaim is possible - user needs to provide an NFT they own from this collection
+        true
+    }
+
+    #[view]
+    /// Get sale deadline for a collection
+    public fun get_sale_deadline(collection_obj: Object<Collection>): u64 acquires CollectionConfig {
+        let collection_config =
+            borrow_global<CollectionConfig>(object::object_address(&collection_obj));
+        collection_config.sale_deadline
+    }
+
+    #[view]
+    /// Get LP wallet address for a collection
+    public fun get_lp_wallet_addr(collection_obj: Object<Collection>): address acquires CollectionConfig {
+        let collection_config =
+            borrow_global<CollectionConfig>(object::object_address(&collection_obj));
+        collection_config.lp_wallet_addr
+    }
+
     // ================================= Helpers ================================= //
 
     /// Check if sender is admin or owner of the object when package is published to object
@@ -976,7 +1233,9 @@ module deployment_addr::nft_launchpad {
             borrow_global<CollectionConfig>(object::object_address(collection_obj));
         let collection_owner_obj = collection_config.collection_owner_obj;
         let collection_owner_config =
-            borrow_global<CollectionOwnerObjConfig>(object::object_address(&collection_owner_obj));
+            borrow_global<CollectionOwnerObjConfig>(
+                object::object_address(&collection_owner_obj)
+            );
         object::generate_signer_for_extending(&collection_owner_config.extend_ref)
     }
 
@@ -1059,38 +1318,49 @@ module deployment_addr::nft_launchpad {
     }
 
     /// Calculate and pay fees with NFT-based reductions
+    /// Funds are stored in the collection's fund store until sale completion
+    /// The NFT itself serves as proof of purchase for refunds
+    /// Returns total_fee for events (caller already has nft_mint_fee for refunds)
     fun pay_for_mint(
         sender: &signer,
         nft_mint_fee: u64,
         collection_obj: Object<Collection>,
         amount: u64,
         reduction_nfts: vector<Object<Token>>
-    ): u64 acquires Config, CollectionConfig {
+    ): u64 acquires CollectionConfig {
+        let sender_addr = signer::address_of(sender);
+
         // Calculate protocol fees separately
         let original_protocol_fee = get_protocol_fee(collection_obj, nft_mint_fee, amount);
 
         // Apply NFT-based reduction only to protocol fees
         let (reduced_protocol_fee, _reduction_percentage, _) =
             nft_reduction_manager::calculate_reduced_protocol_fee(
-                original_protocol_fee,
-                reduction_nfts,
-                signer::address_of(sender)
+                original_protocol_fee, reduction_nfts, sender_addr
             );
 
-        // Pay NFT mint fee to collection mint fee collector (no reduction)
-        if (nft_mint_fee > 0) {
-            let mint_fee_collector = get_collection_mint_fee_collector_addr(collection_obj);
-            aptos_account::transfer(sender, mint_fee_collector, nft_mint_fee);
+        let total_fee = nft_mint_fee + reduced_protocol_fee;
+
+        // Transfer funds to the collection's fund store (held until sale completion)
+        if (total_fee > 0) {
+            // Get collection config to store funds
+            let collection_obj_addr = object::object_address(&collection_obj);
+            let collection_config = borrow_global_mut<CollectionConfig>(collection_obj_addr);
+
+            // Ensure sale is not already completed
+            assert!(!collection_config.sale_completed, ESALE_ALREADY_COMPLETED);
+
+            // Transfer funds to the collection owner object address (acts as escrow)
+            let collection_owner_addr =
+                object::object_address(&collection_config.collection_owner_obj);
+            aptos_account::transfer(sender, collection_owner_addr, total_fee);
+
+            // Update total funds collected (only NFT cost, not protocol fees)
+            collection_config.total_funds_collected =
+                collection_config.total_funds_collected + nft_mint_fee;
         };
 
-        // Pay reduced protocol fee to protocol
-        if (reduced_protocol_fee > 0) {
-            let protocol_fee_collector = get_protocol_fee_collector();
-            aptos_account::transfer(sender, protocol_fee_collector, reduced_protocol_fee);
-        };
-
-        // Return total fee paid
-        nft_mint_fee + reduced_protocol_fee
+        total_fee
     }
 
     /// Helper to calculate the final mint price (mint_fee + base + percentage)
@@ -1148,8 +1418,9 @@ module deployment_addr::nft_launchpad {
     }
 
     /// Actual implementation of minting NFT
+    /// mint_fee_paid is stored with the NFT for refund calculation
     fun mint_nft_internal(
-        sender_addr: address, collection_obj: Object<Collection>
+        sender_addr: address, collection_obj: Object<Collection>, mint_fee_paid: u64
     ): Object<Token> acquires CollectionConfig, CollectionOwnerObjConfig {
         let collection_owner_obj_signer = &get_collection_owner_signer(&collection_obj);
         let collection_config =
@@ -1158,7 +1429,7 @@ module deployment_addr::nft_launchpad {
         let next_nft_id = *option::borrow(&collection::count(collection_obj)) + 1;
 
         let name = &mut collection::name(collection_obj);
-        let max_supply = *option::borrow(&collection_config.max_supply);
+        let max_supply = collection_config.max_supply;
         let target_length = string::length(&string_utils::to_string(&max_supply));
 
         string::append(name, string::utf8(b" #"));
@@ -1179,6 +1450,14 @@ module deployment_addr::nft_launchpad {
             );
         token_components::create_refs(nft_obj_constructor_ref);
         let nft_obj = object::object_from_constructor_ref(nft_obj_constructor_ref);
+
+        // Generate burn_ref so we can burn the NFT during refund
+        let burn_ref = token::generate_burn_ref(nft_obj_constructor_ref);
+
+        // Store the mint fee paid and burn_ref with the NFT for refund
+        let nft_signer = object::generate_signer(nft_obj_constructor_ref);
+        move_to(&nft_signer, TokenMintInfo { mint_fee_paid, burn_ref });
+
         object::transfer(collection_owner_obj_signer, nft_obj, sender_addr);
 
         if (is_soulbound(collection_obj)) {
@@ -1327,10 +1606,46 @@ module deployment_addr::nft_launchpad {
     }
 
     #[test_only]
+    /// Mint an NFT for testing without payment (for tests that don't need refund functionality)
     public fun test_mint_nft(
         sender_addr: address, collection_obj: Object<Collection>
     ): Object<Token> acquires CollectionConfig, CollectionOwnerObjConfig {
-        let nft = mint_nft_internal(sender_addr, collection_obj);
+        // Test mint with 0 fee (not eligible for refund)
+        let nft = mint_nft_internal(sender_addr, collection_obj, 0);
+        nft
+    }
+
+    #[test_only]
+    /// Mint an NFT for testing WITH payment simulation (for tests that need refund functionality)
+    /// Uses a configurable mint fee
+    public fun test_mint_nft_with_payment(
+        sender_addr: address, collection_obj: Object<Collection>
+    ): Object<Token> acquires CollectionConfig, CollectionOwnerObjConfig {
+        // Use a default test mint fee
+        test_mint_nft_with_fee(sender_addr, collection_obj, 2) // MINT_FEE_SMALL from tests
+    }
+
+    #[test_only]
+    /// Mint an NFT for testing WITH specific payment amount (for tests that need refund functionality)
+    public fun test_mint_nft_with_fee(
+        sender_addr: address, collection_obj: Object<Collection>, mint_fee: u64
+    ): Object<Token> acquires CollectionConfig, CollectionOwnerObjConfig {
+        let collection_obj_addr = object::object_address(&collection_obj);
+        let collection_config = borrow_global_mut<CollectionConfig>(collection_obj_addr);
+
+        // Transfer funds to collection owner (simulating payment for testing refunds)
+        let collection_owner_addr = object::object_address(&collection_config.collection_owner_obj);
+        aptos_account::transfer_coins<aptos_framework::aptos_coin::AptosCoin>(
+            &account::create_signer_for_test(sender_addr),
+            collection_owner_addr,
+            mint_fee
+        );
+
+        // Update total funds collected
+        collection_config.total_funds_collected = collection_config.total_funds_collected
+            + mint_fee;
+
+        let nft = mint_nft_internal(sender_addr, collection_obj, mint_fee);
 
         nft
     }

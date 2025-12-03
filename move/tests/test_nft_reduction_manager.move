@@ -113,7 +113,9 @@ module deployment_addr::test_nft_reduction_manager {
             end_times,
             mint_fees_per_nft,
             mint_limits_per_addr,
-            vector[]
+            vector[],
+            @0x400, // lp_wallet_addr
+            timestamp::now_seconds() + 10000 // sale_deadline
         );
 
         // Get the collection from registry (get the last one, which is the newly created one)

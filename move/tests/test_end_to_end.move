@@ -54,6 +54,10 @@ module deployment_addr::test_end_to_end {
     const PREMINT_AMOUNT_LARGE: u64 = 5u64;
     const PREMINT_AMOUNT_ZERO: u64 = 0u64;
 
+    // Sale configuration constants
+    const LP_WALLET: address = @0x400;
+    const SALE_DEADLINE_OFFSET: u64 = 10000u64; // 10000 seconds from now
+
     // Stage types
     const STAGE_TYPE_ALLOWLIST: u8 = 1u8;
     const STAGE_TYPE_PUBLIC: u8 = 2u8;
@@ -109,7 +113,9 @@ module deployment_addr::test_end_to_end {
             end_times,
             mint_fees_per_nft,
             mint_limits_per_addr,
-            vector[]
+            vector[],
+            LP_WALLET,
+            timestamp::now_seconds() + SALE_DEADLINE_OFFSET
         );
 
         let registry = nft_launchpad::get_registry();
@@ -294,8 +300,9 @@ module deployment_addr::test_end_to_end {
             end_times,
             mint_fees_per_nft,
             mint_limits_per_addr,
-            vector[]
-
+            vector[],
+            LP_WALLET,
+            timestamp::now_seconds() + SALE_DEADLINE_OFFSET
         );
         let registry = nft_launchpad::get_registry();
         let collection_1 = *vector::borrow(&registry, vector::length(&registry) - 1);
@@ -520,7 +527,9 @@ module deployment_addr::test_end_to_end {
             end_times,
             mint_fees_per_nft,
             mint_limits_per_addr,
-            vector[]
+            vector[],
+            LP_WALLET,
+            timestamp::now_seconds() + SALE_DEADLINE_OFFSET
         );
 
         let registry = nft_launchpad::get_registry();
@@ -1621,6 +1630,467 @@ module deployment_addr::test_end_to_end {
 
         let nft2 = nft_launchpad::test_mint_nft(signer::address_of(user1), collection_obj);
         object::transfer(user1, nft2, signer::address_of(user2));
+    }
+
+    // ================================= Fund Management Tests ================================= //
+
+    #[
+        test(
+            aptos_framework = @0x1,
+            admin = @deployment_addr,
+            user1 = @0x200,
+            royalty_user = @0x300,
+            lp_wallet = @0x400
+        )
+    ]
+    fun test_fund_collection_in_object(
+        aptos_framework: &signer,
+        admin: &signer,
+        user1: &signer,
+        royalty_user: &signer,
+        lp_wallet: &signer
+    ) {
+        let user1_addr = setup_test_env(aptos_framework, user1, admin);
+        account::create_account_for_test(signer::address_of(lp_wallet));
+
+        let collection_obj =
+            create_public_only_collection(
+                admin,
+                royalty_user,
+                MINT_FEE_SMALL, // mint_fee
+                MINT_LIMIT_LARGE, // mint_limit
+                DURATION_SHORT // duration
+            );
+
+        // Verify initial collected funds is 0
+        let initial_funds = nft_launchpad::get_collected_funds(collection_obj);
+        assert!(initial_funds == 0, 0);
+
+        // Mint coins for the user to cover mint fees
+        let total_fee = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 2);
+        mint(user1_addr, total_fee);
+
+        // Mint 2 NFTs with payment tracking
+        let nft1 = nft_launchpad::test_mint_nft_with_payment(user1_addr, collection_obj);
+        let _nft2 = nft_launchpad::test_mint_nft_with_payment(user1_addr, collection_obj);
+
+        // Verify funds are now collected
+        let collected_funds = nft_launchpad::get_collected_funds(collection_obj);
+        assert!(collected_funds > 0, 1);
+
+        // Verify refund amount is stored per NFT
+        let refund_amount = nft_launchpad::get_nft_refund_amount(nft1);
+        assert!(refund_amount == MINT_FEE_SMALL, 2);
+    }
+
+    #[
+        test(
+            aptos_framework = @0x1,
+            admin = @deployment_addr,
+            user1 = @0x200,
+            royalty_user = @0x300,
+            lp_wallet = @0x400
+        )
+    ]
+    fun test_sale_completion_success(
+        aptos_framework: &signer,
+        admin: &signer,
+        user1: &signer,
+        royalty_user: &signer,
+        lp_wallet: &signer
+    ) {
+        let user1_addr = setup_test_env(aptos_framework, user1, admin);
+        let lp_wallet_addr = signer::address_of(lp_wallet);
+        account::create_account_for_test(lp_wallet_addr);
+
+        // Create collection with max_supply of 10
+        let stage_names = vector[string::utf8(STAGE_NAME_PUBLIC)];
+        let stage_types = vector[STAGE_TYPE_PUBLIC];
+        let allowlist_addresses = vector[option::none()];
+        let allowlist_mint_limit_per_addr = vector[option::none()];
+        let start_times = vector[timestamp::now_seconds()];
+        let end_times = vector[timestamp::now_seconds() + DURATION_SHORT];
+        let mint_fees_per_nft = vector[MINT_FEE_SMALL];
+        let mint_limits_per_addr = vector[option::some(MINT_LIMIT_XLARGE)];
+
+        nft_launchpad::create_collection(
+            admin,
+            string::utf8(COLLECTION_DESCRIPTION),
+            string::utf8(COLLECTION_NAME),
+            string::utf8(COLLECTION_URI),
+            MAX_SUPPLY,
+            string::utf8(PLACEHOLDER_URI),
+            signer::address_of(admin),
+            signer::address_of(royalty_user),
+            option::some(ROYALTY_PERCENTAGE),
+            option::none(), // no premint
+            stage_names,
+            stage_types,
+            allowlist_addresses,
+            allowlist_mint_limit_per_addr,
+            start_times,
+            end_times,
+            mint_fees_per_nft,
+            mint_limits_per_addr,
+            vector[],
+            lp_wallet_addr,
+            timestamp::now_seconds() + DURATION_MEDIUM // deadline
+        );
+
+        let registry = nft_launchpad::get_registry();
+        let collection_obj = *vector::borrow(&registry, vector::length(&registry) - 1);
+
+        // Mint all NFTs to reach max_supply
+        let total_fee =
+            get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), MAX_SUPPLY);
+        mint(user1_addr, total_fee);
+        nft_launchpad::mint_nft(user1, collection_obj, MAX_SUPPLY, vector[]);
+
+        // Verify sale is not completed yet
+        assert!(!nft_launchpad::is_sale_completed(collection_obj), 0);
+
+        // Move time past deadline
+        timestamp::update_global_time_for_test_secs(DURATION_MEDIUM + 1);
+
+        // Complete the sale
+        nft_launchpad::check_and_complete_sale(collection_obj);
+
+        // Verify sale is completed
+        assert!(nft_launchpad::is_sale_completed(collection_obj), 1);
+    }
+
+    #[
+        test(
+            aptos_framework = @0x1,
+            admin = @deployment_addr,
+            user1 = @0x200,
+            royalty_user = @0x300,
+            lp_wallet = @0x400
+        )
+    ]
+    #[expected_failure(abort_code = 1010, location = nft_launchpad)]
+    // ESALE_THRESHOLD_NOT_MET
+    fun test_sale_completion_failure_threshold_not_met(
+        aptos_framework: &signer,
+        admin: &signer,
+        user1: &signer,
+        royalty_user: &signer,
+        lp_wallet: &signer
+    ) {
+        let user1_addr = setup_test_env(aptos_framework, user1, admin);
+        let lp_wallet_addr = signer::address_of(lp_wallet);
+        account::create_account_for_test(lp_wallet_addr);
+
+        // Create collection with max_supply of 10
+        let stage_names = vector[string::utf8(STAGE_NAME_PUBLIC)];
+        let stage_types = vector[STAGE_TYPE_PUBLIC];
+        let allowlist_addresses = vector[option::none()];
+        let allowlist_mint_limit_per_addr = vector[option::none()];
+        let start_times = vector[timestamp::now_seconds()];
+        let end_times = vector[timestamp::now_seconds() + DURATION_SHORT];
+        let mint_fees_per_nft = vector[MINT_FEE_SMALL];
+        let mint_limits_per_addr = vector[option::some(MINT_LIMIT_XLARGE)];
+
+        nft_launchpad::create_collection(
+            admin,
+            string::utf8(COLLECTION_DESCRIPTION),
+            string::utf8(COLLECTION_NAME),
+            string::utf8(COLLECTION_URI),
+            MAX_SUPPLY,
+            string::utf8(PLACEHOLDER_URI),
+            signer::address_of(admin),
+            signer::address_of(royalty_user),
+            option::some(ROYALTY_PERCENTAGE),
+            option::none(), // no premint
+            stage_names,
+            stage_types,
+            allowlist_addresses,
+            allowlist_mint_limit_per_addr,
+            start_times,
+            end_times,
+            mint_fees_per_nft,
+            mint_limits_per_addr,
+            vector[],
+            lp_wallet_addr,
+            timestamp::now_seconds() + DURATION_MEDIUM // deadline
+        );
+
+        let registry = nft_launchpad::get_registry();
+        let collection_obj = *vector::borrow(&registry, vector::length(&registry) - 1);
+
+        // Mint only 3 NFTs (below max_supply of 10)
+        let total_fee = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 3);
+        mint(user1_addr, total_fee);
+        nft_launchpad::mint_nft(user1, collection_obj, 3, vector[]);
+
+        // Move time past deadline
+        timestamp::update_global_time_for_test_secs(DURATION_MEDIUM + 1);
+
+        // Try to complete the sale (should fail because threshold not met)
+        nft_launchpad::check_and_complete_sale(collection_obj);
+    }
+
+    #[
+        test(
+            aptos_framework = @0x1,
+            admin = @deployment_addr,
+            user1 = @0x200,
+            royalty_user = @0x300,
+            lp_wallet = @0x400
+        )
+    ]
+    fun test_reclaim_after_deadline(
+        aptos_framework: &signer,
+        admin: &signer,
+        user1: &signer,
+        royalty_user: &signer,
+        lp_wallet: &signer
+    ) {
+        let user1_addr = setup_test_env(aptos_framework, user1, admin);
+        let lp_wallet_addr = signer::address_of(lp_wallet);
+        account::create_account_for_test(lp_wallet_addr);
+
+        // Create collection with max_supply of 10
+        let stage_names = vector[string::utf8(STAGE_NAME_PUBLIC)];
+        let stage_types = vector[STAGE_TYPE_PUBLIC];
+        let allowlist_addresses = vector[option::none()];
+        let allowlist_mint_limit_per_addr = vector[option::none()];
+        let start_times = vector[timestamp::now_seconds()];
+        let end_times = vector[timestamp::now_seconds() + DURATION_SHORT];
+        let mint_fees_per_nft = vector[MINT_FEE_SMALL];
+        let mint_limits_per_addr = vector[option::some(MINT_LIMIT_XLARGE)];
+
+        nft_launchpad::create_collection(
+            admin,
+            string::utf8(COLLECTION_DESCRIPTION),
+            string::utf8(COLLECTION_NAME),
+            string::utf8(COLLECTION_URI),
+            MAX_SUPPLY,
+            string::utf8(PLACEHOLDER_URI),
+            signer::address_of(admin),
+            signer::address_of(royalty_user),
+            option::some(ROYALTY_PERCENTAGE),
+            option::none(), // no premint
+            stage_names,
+            stage_types,
+            allowlist_addresses,
+            allowlist_mint_limit_per_addr,
+            start_times,
+            end_times,
+            mint_fees_per_nft,
+            mint_limits_per_addr,
+            vector[],
+            lp_wallet_addr,
+            timestamp::now_seconds() + DURATION_MEDIUM // deadline
+        );
+
+        let registry = nft_launchpad::get_registry();
+        let collection_obj = *vector::borrow(&registry, vector::length(&registry) - 1);
+
+        // Mint 3 NFTs (below max_supply of 10) and track them
+        let total_fee = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 3);
+        mint(user1_addr, total_fee);
+
+        // Mint NFTs one at a time to track them (with payment for refund testing)
+        let nft1 = nft_launchpad::test_mint_nft_with_payment(user1_addr, collection_obj);
+        let nft2 = nft_launchpad::test_mint_nft_with_payment(user1_addr, collection_obj);
+        let nft3 = nft_launchpad::test_mint_nft_with_payment(user1_addr, collection_obj);
+
+        // Verify refund amount is stored per NFT
+        let refund_amount = nft_launchpad::get_nft_refund_amount(nft1);
+        assert!(refund_amount == MINT_FEE_SMALL, 0);
+
+        // Move time past deadline
+        timestamp::update_global_time_for_test_secs(DURATION_MEDIUM + 1);
+
+        // User can now reclaim (sale failed because threshold not met)
+        assert!(nft_launchpad::can_reclaim(collection_obj, user1_addr), 1);
+
+        // Reclaim funds by returning NFT1
+        nft_launchpad::reclaim_funds(user1, collection_obj, nft1);
+
+        // User can still reclaim with remaining NFTs
+        assert!(nft_launchpad::can_reclaim(collection_obj, user1_addr), 2);
+
+        // Reclaim with NFT2 and NFT3
+        nft_launchpad::reclaim_funds(user1, collection_obj, nft2);
+        nft_launchpad::reclaim_funds(user1, collection_obj, nft3);
+    }
+
+    #[
+        test(
+            aptos_framework = @0x1,
+            admin = @deployment_addr,
+            user1 = @0x200,
+            royalty_user = @0x300,
+            lp_wallet = @0x400
+        )
+    ]
+    #[expected_failure(abort_code = 1007, location = nft_launchpad)]
+    // EDEADLINE_NOT_PASSED
+    fun test_reclaim_before_deadline(
+        aptos_framework: &signer,
+        admin: &signer,
+        user1: &signer,
+        royalty_user: &signer,
+        lp_wallet: &signer
+    ) {
+        let user1_addr = setup_test_env(aptos_framework, user1, admin);
+        let lp_wallet_addr = signer::address_of(lp_wallet);
+        account::create_account_for_test(lp_wallet_addr);
+
+        let collection_obj =
+            create_public_only_collection(
+                admin,
+                royalty_user,
+                MINT_FEE_SMALL, // mint_fee
+                MINT_LIMIT_LARGE, // mint_limit
+                DURATION_SHORT // duration
+            );
+
+        // Mint 2 NFTs (with payment for refund testing)
+        let total_fee = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 2);
+        mint(user1_addr, total_fee);
+        let nft1 = nft_launchpad::test_mint_nft_with_payment(user1_addr, collection_obj);
+        let _nft2 = nft_launchpad::test_mint_nft_with_payment(user1_addr, collection_obj);
+
+        // Try to reclaim before deadline (should fail)
+        nft_launchpad::reclaim_funds(user1, collection_obj, nft1);
+    }
+
+    #[
+        test(
+            aptos_framework = @0x1,
+            admin = @deployment_addr,
+            user1 = @0x200,
+            user2 = @0x201,
+            royalty_user = @0x300,
+            lp_wallet = @0x400
+        )
+    ]
+    fun test_multiple_users_reclaim(
+        aptos_framework: &signer,
+        admin: &signer,
+        user1: &signer,
+        user2: &signer,
+        royalty_user: &signer,
+        lp_wallet: &signer
+    ) {
+        let user1_addr = setup_test_env(aptos_framework, user1, admin);
+        let user2_addr = signer::address_of(user2);
+        account::create_account_for_test(user2_addr);
+        coin::register<AptosCoin>(user2);
+        let lp_wallet_addr = signer::address_of(lp_wallet);
+        account::create_account_for_test(lp_wallet_addr);
+
+        // Create collection with max_supply of 10
+        let stage_names = vector[string::utf8(STAGE_NAME_PUBLIC)];
+        let stage_types = vector[STAGE_TYPE_PUBLIC];
+        let allowlist_addresses = vector[option::none()];
+        let allowlist_mint_limit_per_addr = vector[option::none()];
+        let start_times = vector[timestamp::now_seconds()];
+        let end_times = vector[timestamp::now_seconds() + DURATION_SHORT];
+        let mint_fees_per_nft = vector[MINT_FEE_SMALL];
+        let mint_limits_per_addr = vector[option::some(MINT_LIMIT_XLARGE)];
+
+        nft_launchpad::create_collection(
+            admin,
+            string::utf8(COLLECTION_DESCRIPTION),
+            string::utf8(COLLECTION_NAME),
+            string::utf8(COLLECTION_URI),
+            MAX_SUPPLY,
+            string::utf8(PLACEHOLDER_URI),
+            signer::address_of(admin),
+            signer::address_of(royalty_user),
+            option::some(ROYALTY_PERCENTAGE),
+            option::none(), // no premint
+            stage_names,
+            stage_types,
+            allowlist_addresses,
+            allowlist_mint_limit_per_addr,
+            start_times,
+            end_times,
+            mint_fees_per_nft,
+            mint_limits_per_addr,
+            vector[],
+            lp_wallet_addr,
+            timestamp::now_seconds() + DURATION_MEDIUM // deadline
+        );
+
+        let registry = nft_launchpad::get_registry();
+        let collection_obj = *vector::borrow(&registry, vector::length(&registry) - 1);
+
+        // User1 mints 2 NFTs (with payment for refund testing)
+        let total_fee_1 = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 2);
+        mint(user1_addr, total_fee_1);
+        let user1_nft1 = nft_launchpad::test_mint_nft_with_payment(user1_addr, collection_obj);
+        let user1_nft2 = nft_launchpad::test_mint_nft_with_payment(user1_addr, collection_obj);
+
+        // User2 mints 1 NFT (with payment for refund testing)
+        let total_fee_2 = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 1);
+        mint(user2_addr, total_fee_2);
+        let user2_nft1 = nft_launchpad::test_mint_nft_with_payment(user2_addr, collection_obj);
+
+        // Verify refund amount is stored per NFT
+        let refund_amount = nft_launchpad::get_nft_refund_amount(user1_nft1);
+        assert!(refund_amount == MINT_FEE_SMALL, 0);
+
+        // Move time past deadline
+        timestamp::update_global_time_for_test_secs(DURATION_MEDIUM + 1);
+
+        // Both users can reclaim (sale failed)
+        assert!(nft_launchpad::can_reclaim(collection_obj, user1_addr), 1);
+        assert!(nft_launchpad::can_reclaim(collection_obj, user2_addr), 2);
+
+        // User1 reclaims with first NFT
+        nft_launchpad::reclaim_funds(user1, collection_obj, user1_nft1);
+        // User1 can still reclaim with second NFT
+        assert!(nft_launchpad::can_reclaim(collection_obj, user1_addr), 3);
+
+        // User1 reclaims with second NFT
+        nft_launchpad::reclaim_funds(user1, collection_obj, user1_nft2);
+
+        // User2 reclaims
+        nft_launchpad::reclaim_funds(user2, collection_obj, user2_nft1);
+    }
+
+    #[
+        test(
+            aptos_framework = @0x1,
+            admin = @deployment_addr,
+            user1 = @0x200,
+            royalty_user = @0x300,
+            lp_wallet = @0x400
+        )
+    ]
+    fun test_get_sale_info(
+        aptos_framework: &signer,
+        admin: &signer,
+        user1: &signer,
+        royalty_user: &signer,
+        lp_wallet: &signer
+    ) {
+        setup_test_env(aptos_framework, user1, admin);
+        let lp_wallet_addr = signer::address_of(lp_wallet);
+        account::create_account_for_test(lp_wallet_addr);
+
+        let collection_obj =
+            create_public_only_collection(
+                admin,
+                royalty_user,
+                MINT_FEE_SMALL, // mint_fee
+                MINT_LIMIT_LARGE, // mint_limit
+                DURATION_SHORT // duration
+            );
+
+        // Verify sale info
+        let sale_deadline = nft_launchpad::get_sale_deadline(collection_obj);
+        let lp_wallet_from_contract = nft_launchpad::get_lp_wallet_addr(collection_obj);
+        let is_completed = nft_launchpad::is_sale_completed(collection_obj);
+
+        assert!(sale_deadline == SALE_DEADLINE_OFFSET, 0);
+        assert!(lp_wallet_from_contract == LP_WALLET, 1);
+        assert!(!is_completed, 2);
     }
 }
 
