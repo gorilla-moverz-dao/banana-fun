@@ -8,8 +8,6 @@ module deployment_addr::nft_launchpad {
     use aptos_std::simple_map::{Self, SimpleMap};
     use aptos_std::string_utils;
 
-    #[test_only]
-    use aptos_framework::account;
     use aptos_framework::aptos_account;
     use aptos_framework::event;
     use aptos_framework::object::{Self, Object, ObjectCore};
@@ -26,6 +24,7 @@ module deployment_addr::nft_launchpad {
     use minter::mint_stage;
     use minter::collection_components;
     use deployment_addr::nft_reduction_manager;
+    use deployment_addr::vesting;
 
     /// Only collection creator can update creator
     const EONLY_COLLECTION_CREATOR_CAN_UPDATE_CREATOR: u64 = 1;
@@ -166,6 +165,7 @@ module deployment_addr::nft_launchpad {
         fa_metadata_addr: address,
         fa_total_minted: u64,
         fa_lp_amount: u64,
+        fa_vesting_amount: u64,
         fa_contract_amount: u64
     }
 
@@ -224,7 +224,10 @@ module deployment_addr::nft_launchpad {
         fa_symbol: vector<u8>,
         fa_name: vector<u8>,
         fa_icon_uri: vector<u8>,
-        fa_project_uri: vector<u8>
+        fa_project_uri: vector<u8>,
+        // Vesting configuration
+        vesting_cliff: u64, // Cliff period in seconds before claims allowed
+        vesting_duration: u64 // Total vesting duration in seconds
     }
 
     /// Global per contract
@@ -498,7 +501,10 @@ module deployment_addr::nft_launchpad {
         fa_symbol: vector<u8>,
         fa_name: vector<u8>,
         fa_icon_uri: vector<u8>,
-        fa_project_uri: vector<u8>
+        fa_project_uri: vector<u8>,
+        // Vesting configuration
+        vesting_cliff: u64, // Cliff period in seconds before claims allowed
+        vesting_duration: u64 // Total vesting duration in seconds
     ) acquires Config, Registry, CollectionConfig, CollectionOwnerObjConfig {
         let sender_addr = signer::address_of(sender);
 
@@ -561,7 +567,9 @@ module deployment_addr::nft_launchpad {
                 fa_symbol,
                 fa_name,
                 fa_icon_uri,
-                fa_project_uri
+                fa_project_uri,
+                vesting_cliff,
+                vesting_duration
             }
         );
 
@@ -670,7 +678,7 @@ module deployment_addr::nft_launchpad {
         let nft_objs = vector[];
         for (i in 0..amount) {
             // Preminted NFTs have 0 mint fee (not eligible for refund)
-            let nft_obj = mint_nft_internal(sender_addr, collection_obj, 0);
+            let nft_obj = mint_single_nft_internal(sender_addr, collection_obj, 0);
             vector::push_back(&mut nft_objs, nft_obj);
         };
 
@@ -690,6 +698,17 @@ module deployment_addr::nft_launchpad {
         amount: u64,
         reduction_nfts: vector<Object<Token>>
     ) acquires CollectionConfig, CollectionOwnerObjConfig {
+        mint_nft_internal(sender, collection_obj, amount, reduction_nfts);
+    }
+
+    /// Internal mint logic that returns the minted NFTs
+    /// Can be called from other modules or tests that need the NFT objects
+    public fun mint_nft_internal(
+        sender: &signer,
+        collection_obj: Object<Collection>,
+        amount: u64,
+        reduction_nfts: vector<Object<Token>>
+    ): vector<Object<Token>> acquires CollectionConfig, CollectionOwnerObjConfig {
         assert!(amount > 0, ECANNOT_MINT_ZERO);
         assert!(is_mint_enabled(collection_obj), EMINT_IS_DISABLED);
         let sender_addr = signer::address_of(sender);
@@ -716,8 +735,8 @@ module deployment_addr::nft_launchpad {
         let refundable_per_nft = nft_mint_fee / amount;
 
         let nft_objs = vector[];
-        for (i in 0..amount) {
-            let nft_obj = mint_nft_internal(sender_addr, collection_obj, refundable_per_nft);
+        for (_i in 0..amount) {
+            let nft_obj = mint_single_nft_internal(sender_addr, collection_obj, refundable_per_nft);
             vector::push_back(&mut nft_objs, nft_obj);
         };
 
@@ -729,6 +748,8 @@ module deployment_addr::nft_launchpad {
                 nft_objs
             }
         );
+
+        nft_objs
     }
 
     /// Batch reveal NFTs for performance
@@ -845,6 +866,9 @@ module deployment_addr::nft_launchpad {
     const FA_TOTAL_SUPPLY: u64 = 1_000_000_000_000_000_000; // 1B * 10^9
     // Percentage to send to LP wallet (10%)
     const FA_LP_PERCENTAGE: u64 = 10;
+    // Percentage reserved for NFT holder vesting (10%)
+    const FA_VESTING_PERCENTAGE: u64 = 10;
+    // Remaining 80% stays in contract
 
     /// Check and complete sale if conditions are met
     /// Conditions: deadline reached AND threshold met
@@ -908,15 +932,37 @@ module deployment_addr::nft_launchpad {
         // Mint the total supply
         let minted_fa = fungible_asset::mint(&mint_ref, FA_TOTAL_SUPPLY);
 
-        // Calculate 10% for LP wallet
+        // Calculate distribution: 10% LP, 10% vesting, 80% contract
         let lp_amount = FA_TOTAL_SUPPLY * FA_LP_PERCENTAGE / 100;
-        let contract_amount = FA_TOTAL_SUPPLY - lp_amount;
+        let vesting_amount = FA_TOTAL_SUPPLY * FA_VESTING_PERCENTAGE / 100;
+        let contract_amount = FA_TOTAL_SUPPLY - lp_amount - vesting_amount;
 
         // Extract LP portion and deposit to LP wallet
         let lp_fa = fungible_asset::extract(&mut minted_fa, lp_amount);
         primary_fungible_store::deposit(lp_wallet_addr, lp_fa);
 
-        // Store the rest in the collection owner (contract holds it)
+        // Extract vesting portion and store in VestingPool
+        let vesting_fa = fungible_asset::extract(&mut minted_fa, vesting_amount);
+
+        // Get vesting config from collection
+        let vesting_cliff = collection_config.vesting_cliff;
+        let vesting_duration = collection_config.vesting_duration;
+        let max_supply = collection_config.max_supply;
+
+        // Initialize vesting in the vesting module (pass FA tokens directly)
+        let collection_signer =
+            object::generate_signer_for_extending(&collection_config.extend_ref);
+        vesting::init_vesting(
+            &collection_signer,
+            collection_obj,
+            fa_metadata,
+            vesting_fa, // Pass FA tokens directly to vesting module
+            max_supply,
+            vesting_cliff,
+            vesting_duration
+        );
+
+        // Store the rest in the collection owner (contract holds 80%)
         let collection_owner_addr = object::object_address(&collection_owner_obj);
         primary_fungible_store::deposit(collection_owner_addr, minted_fa);
 
@@ -935,6 +981,7 @@ module deployment_addr::nft_launchpad {
                 fa_metadata_addr: object::object_address(&fa_metadata),
                 fa_total_minted: FA_TOTAL_SUPPLY,
                 fa_lp_amount: lp_amount,
+                fa_vesting_amount: vesting_amount,
                 fa_contract_amount: contract_amount
             }
         );
@@ -1501,9 +1548,9 @@ module deployment_addr::nft_launchpad {
         }
     }
 
-    /// Actual implementation of minting NFT
+    /// Actual implementation of minting a single NFT
     /// mint_fee_paid is stored with the NFT for refund calculation
-    fun mint_nft_internal(
+    fun mint_single_nft_internal(
         sender_addr: address, collection_obj: Object<Collection>, mint_fee_paid: u64
     ): Object<Token> acquires CollectionConfig, CollectionOwnerObjConfig {
         let collection_owner_obj_signer = &get_collection_owner_signer(&collection_obj);
@@ -1695,42 +1742,7 @@ module deployment_addr::nft_launchpad {
         sender_addr: address, collection_obj: Object<Collection>
     ): Object<Token> acquires CollectionConfig, CollectionOwnerObjConfig {
         // Test mint with 0 fee (not eligible for refund)
-        let nft = mint_nft_internal(sender_addr, collection_obj, 0);
-        nft
-    }
-
-    #[test_only]
-    /// Mint an NFT for testing WITH payment simulation (for tests that need refund functionality)
-    /// Uses a configurable mint fee
-    public fun test_mint_nft_with_payment(
-        sender_addr: address, collection_obj: Object<Collection>
-    ): Object<Token> acquires CollectionConfig, CollectionOwnerObjConfig {
-        // Use a default test mint fee
-        test_mint_nft_with_fee(sender_addr, collection_obj, 2) // MINT_FEE_SMALL from tests
-    }
-
-    #[test_only]
-    /// Mint an NFT for testing WITH specific payment amount (for tests that need refund functionality)
-    public fun test_mint_nft_with_fee(
-        sender_addr: address, collection_obj: Object<Collection>, mint_fee: u64
-    ): Object<Token> acquires CollectionConfig, CollectionOwnerObjConfig {
-        let collection_obj_addr = object::object_address(&collection_obj);
-        let collection_config = borrow_global_mut<CollectionConfig>(collection_obj_addr);
-
-        // Transfer funds to collection owner (simulating payment for testing refunds)
-        let collection_owner_addr = object::object_address(&collection_config.collection_owner_obj);
-        aptos_account::transfer_coins<aptos_framework::aptos_coin::AptosCoin>(
-            &account::create_signer_for_test(sender_addr),
-            collection_owner_addr,
-            mint_fee
-        );
-
-        // Update total funds collected
-        collection_config.total_funds_collected = collection_config.total_funds_collected
-            + mint_fee;
-
-        let nft = mint_nft_internal(sender_addr, collection_obj, mint_fee);
-
+        let nft = mint_single_nft_internal(sender_addr, collection_obj, 0);
         nft
     }
 

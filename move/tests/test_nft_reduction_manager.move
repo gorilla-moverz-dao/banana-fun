@@ -119,7 +119,9 @@ module deployment_addr::test_nft_reduction_manager {
             b"BANANA", // fa_symbol
             b"Banana Token", // fa_name
             b"https://example.com/banana.png", // fa_icon_uri
-            b"https://banana.fun" // fa_project_uri
+            b"https://banana.fun", // fa_project_uri
+            100, // vesting_cliff
+            1000 // vesting_duration
         );
 
         // Get the collection from registry (get the last one, which is the newly created one)

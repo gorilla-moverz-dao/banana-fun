@@ -16,6 +16,7 @@ module deployment_addr::test_end_to_end {
 
     use deployment_addr::nft_launchpad;
     use deployment_addr::nft_reduction_manager;
+    use deployment_addr::vesting;
 
     use aptos_framework::primary_fungible_store;
     use aptos_framework::fungible_asset;
@@ -64,6 +65,10 @@ module deployment_addr::test_end_to_end {
     const FA_NAME: vector<u8> = b"Banana Token";
     const FA_ICON_URI: vector<u8> = b"https://example.com/banana.png";
     const FA_PROJECT_URI: vector<u8> = b"https://banana.fun";
+
+    // Vesting configuration
+    const VESTING_CLIFF: u64 = 100u64; // 100 seconds cliff
+    const VESTING_DURATION: u64 = 1000u64; // 1000 seconds total duration
 
     // Stage types
     const STAGE_TYPE_ALLOWLIST: u8 = 1u8;
@@ -126,7 +131,9 @@ module deployment_addr::test_end_to_end {
             FA_SYMBOL,
             FA_NAME,
             FA_ICON_URI,
-            FA_PROJECT_URI
+            FA_PROJECT_URI,
+            VESTING_CLIFF,
+            VESTING_DURATION
         );
 
         let registry = nft_launchpad::get_registry();
@@ -134,7 +141,7 @@ module deployment_addr::test_end_to_end {
     }
 
     /// Helper function to create a simple public-only collection
-    fun create_public_only_collection(
+    public fun create_public_only_collection(
         sender: &signer,
         royalty_user: &signer,
         mint_fee: u64,
@@ -317,7 +324,9 @@ module deployment_addr::test_end_to_end {
             FA_SYMBOL,
             FA_NAME,
             FA_ICON_URI,
-            FA_PROJECT_URI
+            FA_PROJECT_URI,
+            VESTING_CLIFF,
+            VESTING_DURATION
         );
         let registry = nft_launchpad::get_registry();
         let collection_1 = *vector::borrow(&registry, vector::length(&registry) - 1);
@@ -548,7 +557,9 @@ module deployment_addr::test_end_to_end {
             FA_SYMBOL,
             FA_NAME,
             FA_ICON_URI,
-            FA_PROJECT_URI
+            FA_PROJECT_URI,
+            VESTING_CLIFF,
+            VESTING_DURATION
         );
 
         let registry = nft_launchpad::get_registry();
@@ -570,7 +581,7 @@ module deployment_addr::test_end_to_end {
 
     }
 
-    fun mint(addr: address, amount: u64) {
+    public fun mint(addr: address, amount: u64) {
         primary_fungible_store::deposit(addr, mint_apt_fa_for_test(amount));
     }
 
@@ -708,7 +719,9 @@ module deployment_addr::test_end_to_end {
     }
 
     #[test_only]
-    fun setup_test_env(aptos_framework: &signer, user1: &signer, admin: &signer): address {
+    public fun setup_test_env(
+        aptos_framework: &signer, user1: &signer, admin: &signer
+    ): address {
         let (burn_cap, mint_cap) = aptos_coin::initialize_for_test(aptos_framework);
         let user1_addr = signer::address_of(user1);
 
@@ -728,7 +741,7 @@ module deployment_addr::test_end_to_end {
     }
 
     /// Helper to get the total mint fee (mint + protocol base + protocol percentage)
-    fun get_total_mint_fee(
+    public fun get_total_mint_fee(
         collection_obj: object::Object<collection::Collection>,
         stage_name: string::String,
         amount: u64
@@ -1690,8 +1703,8 @@ module deployment_addr::test_end_to_end {
         mint(user1_addr, total_fee);
 
         // Mint 2 NFTs with payment tracking
-        let nft1 = nft_launchpad::test_mint_nft_with_payment(user1_addr, collection_obj);
-        let _nft2 = nft_launchpad::test_mint_nft_with_payment(user1_addr, collection_obj);
+        let nfts = nft_launchpad::mint_nft_internal(user1, collection_obj, 2, vector[]);
+        let nft1 = *vector::borrow(&nfts, 0);
 
         // Verify funds are now collected
         let collected_funds = nft_launchpad::get_collected_funds(collection_obj);
@@ -1757,7 +1770,9 @@ module deployment_addr::test_end_to_end {
             FA_SYMBOL,
             FA_NAME,
             FA_ICON_URI,
-            FA_PROJECT_URI
+            FA_PROJECT_URI,
+            VESTING_CLIFF,
+            VESTING_DURATION
         );
 
         let registry = nft_launchpad::get_registry();
@@ -1839,7 +1854,9 @@ module deployment_addr::test_end_to_end {
             FA_SYMBOL,
             FA_NAME,
             FA_ICON_URI,
-            FA_PROJECT_URI
+            FA_PROJECT_URI,
+            VESTING_CLIFF,
+            VESTING_DURATION
         );
 
         let registry = nft_launchpad::get_registry();
@@ -1912,7 +1929,9 @@ module deployment_addr::test_end_to_end {
             FA_SYMBOL,
             FA_NAME,
             FA_ICON_URI,
-            FA_PROJECT_URI
+            FA_PROJECT_URI,
+            VESTING_CLIFF,
+            VESTING_DURATION
         );
 
         let registry = nft_launchpad::get_registry();
@@ -1922,10 +1941,11 @@ module deployment_addr::test_end_to_end {
         let total_fee = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 3);
         mint(user1_addr, total_fee);
 
-        // Mint NFTs one at a time to track them (with payment for refund testing)
-        let nft1 = nft_launchpad::test_mint_nft_with_payment(user1_addr, collection_obj);
-        let nft2 = nft_launchpad::test_mint_nft_with_payment(user1_addr, collection_obj);
-        let nft3 = nft_launchpad::test_mint_nft_with_payment(user1_addr, collection_obj);
+        // Mint NFTs (with payment for refund testing)
+        let nfts = nft_launchpad::mint_nft_internal(user1, collection_obj, 3, vector[]);
+        let nft1 = *vector::borrow(&nfts, 0);
+        let nft2 = *vector::borrow(&nfts, 1);
+        let nft3 = *vector::borrow(&nfts, 2);
 
         // Verify refund amount is stored per NFT
         let refund_amount = nft_launchpad::get_nft_refund_amount(nft1);
@@ -1982,8 +2002,8 @@ module deployment_addr::test_end_to_end {
         // Mint 2 NFTs (with payment for refund testing)
         let total_fee = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 2);
         mint(user1_addr, total_fee);
-        let nft1 = nft_launchpad::test_mint_nft_with_payment(user1_addr, collection_obj);
-        let _nft2 = nft_launchpad::test_mint_nft_with_payment(user1_addr, collection_obj);
+        let nfts = nft_launchpad::mint_nft_internal(user1, collection_obj, 2, vector[]);
+        let nft1 = *vector::borrow(&nfts, 0);
 
         // Try to reclaim before deadline (should fail)
         nft_launchpad::reclaim_funds(user1, collection_obj, nft1);
@@ -2049,7 +2069,9 @@ module deployment_addr::test_end_to_end {
             FA_SYMBOL,
             FA_NAME,
             FA_ICON_URI,
-            FA_PROJECT_URI
+            FA_PROJECT_URI,
+            VESTING_CLIFF,
+            VESTING_DURATION
         );
 
         let registry = nft_launchpad::get_registry();
@@ -2058,13 +2080,15 @@ module deployment_addr::test_end_to_end {
         // User1 mints 2 NFTs (with payment for refund testing)
         let total_fee_1 = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 2);
         mint(user1_addr, total_fee_1);
-        let user1_nft1 = nft_launchpad::test_mint_nft_with_payment(user1_addr, collection_obj);
-        let user1_nft2 = nft_launchpad::test_mint_nft_with_payment(user1_addr, collection_obj);
+        let user1_nfts = nft_launchpad::mint_nft_internal(user1, collection_obj, 2, vector[]);
+        let user1_nft1 = *vector::borrow(&user1_nfts, 0);
+        let user1_nft2 = *vector::borrow(&user1_nfts, 1);
 
         // User2 mints 1 NFT (with payment for refund testing)
         let total_fee_2 = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 1);
         mint(user2_addr, total_fee_2);
-        let user2_nft1 = nft_launchpad::test_mint_nft_with_payment(user2_addr, collection_obj);
+        let user2_nfts = nft_launchpad::mint_nft_internal(user2, collection_obj, 1, vector[]);
+        let user2_nft1 = *vector::borrow(&user2_nfts, 0);
 
         // Verify refund amount is stored per NFT
         let refund_amount = nft_launchpad::get_nft_refund_amount(user1_nft1);
@@ -2184,28 +2208,33 @@ module deployment_addr::test_end_to_end {
         assert!(fa_name == string::utf8(FA_NAME), 2);
         assert!(fa_symbol == string::utf8(FA_SYMBOL), 3);
 
-        // Constants from launchpad
+        // Constants from launchpad (10% LP, 10% vesting, 80% contract)
         let total_supply: u64 = 1_000_000_000_000_000_000; // 1B * 10^9
         let lp_percentage: u64 = 10;
+        let vesting_percentage: u64 = 10;
         let expected_lp_amount = total_supply * lp_percentage / 100;
-        let expected_contract_amount = total_supply - expected_lp_amount;
+        let expected_vesting_amount = total_supply * vesting_percentage / 100;
+        let expected_contract_amount = total_supply - expected_lp_amount
+            - expected_vesting_amount;
 
         // Verify LP wallet received 10% of the FA
         let lp_fa_balance = primary_fungible_store::balance(LP_WALLET, fa_metadata);
         debug::print(&lp_fa_balance);
         assert!(lp_fa_balance == expected_lp_amount, 4);
 
-        // Verify collection owner (contract) holds 90% of the FA
+        // Verify collection owner (contract) holds 80% of the FA
         let contract_fa_balance =
             primary_fungible_store::balance(collection_owner_addr, fa_metadata);
         debug::print(&contract_fa_balance);
         assert!(contract_fa_balance == expected_contract_amount, 5);
 
-        // Verify total is correct
-        assert!(
-            lp_fa_balance + contract_fa_balance == total_supply,
-            6
-        );
+        // Verify vesting is initialized
+        assert!(vesting::is_vesting_initialized(collection_obj), 6);
+
+        // Verify vesting pool has 10% of FA
+        let vesting_balance = vesting::get_remaining_vesting_tokens(collection_obj);
+        debug::print(&vesting_balance);
+        assert!(vesting_balance == expected_vesting_amount, 7);
     }
 }
 
