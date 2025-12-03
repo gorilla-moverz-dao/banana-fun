@@ -18,6 +18,7 @@ module deployment_addr::test_end_to_end {
     use deployment_addr::nft_reduction_manager;
 
     use aptos_framework::primary_fungible_store;
+    use aptos_framework::fungible_asset;
     use aptos_framework::aptos_coin::mint_apt_fa_for_test;
 
     // Test addresses
@@ -57,6 +58,12 @@ module deployment_addr::test_end_to_end {
     // Sale configuration constants
     const LP_WALLET: address = @0x400;
     const SALE_DEADLINE_OFFSET: u64 = 10000u64; // 10000 seconds from now
+
+    // Fungible asset configuration for tests
+    const FA_SYMBOL: vector<u8> = b"BANANA";
+    const FA_NAME: vector<u8> = b"Banana Token";
+    const FA_ICON_URI: vector<u8> = b"https://example.com/banana.png";
+    const FA_PROJECT_URI: vector<u8> = b"https://banana.fun";
 
     // Stage types
     const STAGE_TYPE_ALLOWLIST: u8 = 1u8;
@@ -115,7 +122,11 @@ module deployment_addr::test_end_to_end {
             mint_limits_per_addr,
             vector[],
             LP_WALLET,
-            timestamp::now_seconds() + SALE_DEADLINE_OFFSET
+            timestamp::now_seconds() + SALE_DEADLINE_OFFSET,
+            FA_SYMBOL,
+            FA_NAME,
+            FA_ICON_URI,
+            FA_PROJECT_URI
         );
 
         let registry = nft_launchpad::get_registry();
@@ -302,7 +313,11 @@ module deployment_addr::test_end_to_end {
             mint_limits_per_addr,
             vector[],
             LP_WALLET,
-            timestamp::now_seconds() + SALE_DEADLINE_OFFSET
+            timestamp::now_seconds() + SALE_DEADLINE_OFFSET,
+            FA_SYMBOL,
+            FA_NAME,
+            FA_ICON_URI,
+            FA_PROJECT_URI
         );
         let registry = nft_launchpad::get_registry();
         let collection_1 = *vector::borrow(&registry, vector::length(&registry) - 1);
@@ -529,7 +544,11 @@ module deployment_addr::test_end_to_end {
             mint_limits_per_addr,
             vector[],
             LP_WALLET,
-            timestamp::now_seconds() + SALE_DEADLINE_OFFSET
+            timestamp::now_seconds() + SALE_DEADLINE_OFFSET,
+            FA_SYMBOL,
+            FA_NAME,
+            FA_ICON_URI,
+            FA_PROJECT_URI
         );
 
         let registry = nft_launchpad::get_registry();
@@ -1734,7 +1753,11 @@ module deployment_addr::test_end_to_end {
             mint_limits_per_addr,
             vector[],
             lp_wallet_addr,
-            timestamp::now_seconds() + DURATION_MEDIUM // deadline
+            timestamp::now_seconds() + DURATION_MEDIUM, // deadline
+            FA_SYMBOL,
+            FA_NAME,
+            FA_ICON_URI,
+            FA_PROJECT_URI
         );
 
         let registry = nft_launchpad::get_registry();
@@ -1812,7 +1835,11 @@ module deployment_addr::test_end_to_end {
             mint_limits_per_addr,
             vector[],
             lp_wallet_addr,
-            timestamp::now_seconds() + DURATION_MEDIUM // deadline
+            timestamp::now_seconds() + DURATION_MEDIUM, // deadline
+            FA_SYMBOL,
+            FA_NAME,
+            FA_ICON_URI,
+            FA_PROJECT_URI
         );
 
         let registry = nft_launchpad::get_registry();
@@ -1881,7 +1908,11 @@ module deployment_addr::test_end_to_end {
             mint_limits_per_addr,
             vector[],
             lp_wallet_addr,
-            timestamp::now_seconds() + DURATION_MEDIUM // deadline
+            timestamp::now_seconds() + DURATION_MEDIUM, // deadline
+            FA_SYMBOL,
+            FA_NAME,
+            FA_ICON_URI,
+            FA_PROJECT_URI
         );
 
         let registry = nft_launchpad::get_registry();
@@ -2014,7 +2045,11 @@ module deployment_addr::test_end_to_end {
             mint_limits_per_addr,
             vector[],
             lp_wallet_addr,
-            timestamp::now_seconds() + DURATION_MEDIUM // deadline
+            timestamp::now_seconds() + DURATION_MEDIUM, // deadline
+            FA_SYMBOL,
+            FA_NAME,
+            FA_ICON_URI,
+            FA_PROJECT_URI
         );
 
         let registry = nft_launchpad::get_registry();
@@ -2091,6 +2126,86 @@ module deployment_addr::test_end_to_end {
         assert!(sale_deadline == SALE_DEADLINE_OFFSET, 0);
         assert!(lp_wallet_from_contract == LP_WALLET, 1);
         assert!(!is_completed, 2);
+    }
+
+    // ================================= Fungible Asset Creation Tests ================================= //
+
+    #[test(
+        aptos_framework = @0x1, admin = @deployment_addr, user1 = @0x200, royalty_user = @0x300
+    )]
+    /// Test that completing a sale creates a fungible asset and distributes it correctly:
+    /// - 10% goes to LP wallet
+    /// - 90% stays in the contract (collection owner)
+    fun test_sale_completion_creates_fungible_asset(
+        aptos_framework: &signer,
+        admin: &signer,
+        user1: &signer,
+        royalty_user: &signer
+    ) {
+        let user1_addr = setup_test_env(aptos_framework, user1, admin);
+
+        // Create collection using helper (uses LP_WALLET = @0x400)
+        let collection_obj =
+            create_public_only_collection(
+                admin,
+                royalty_user,
+                MINT_FEE_SMALL,
+                MINT_LIMIT_XLARGE,
+                DURATION_MEDIUM
+            );
+
+        // Mint all NFTs to reach max_supply
+        let total_fee =
+            get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), MAX_SUPPLY);
+        mint(user1_addr, total_fee);
+        nft_launchpad::mint_nft(user1, collection_obj, MAX_SUPPLY, vector[]);
+
+        // Verify sale is not completed yet
+        assert!(!nft_launchpad::is_sale_completed(collection_obj), 0);
+
+        // Move time past deadline (helper uses SALE_DEADLINE_OFFSET)
+        timestamp::update_global_time_for_test_secs(SALE_DEADLINE_OFFSET + 1);
+
+        // Complete the sale - this should create the fungible asset
+        nft_launchpad::check_and_complete_sale(collection_obj);
+
+        // Verify sale is completed
+        assert!(nft_launchpad::is_sale_completed(collection_obj), 1);
+
+        // Get the FA metadata object address (it's created as a named object under collection owner)
+        let collection_owner_obj = nft_launchpad::get_collection_owner_obj(collection_obj);
+        let collection_owner_addr = object::object_address(&collection_owner_obj);
+        let fa_obj_addr = object::create_object_address(&collection_owner_addr, FA_SYMBOL);
+        let fa_metadata = object::address_to_object<fungible_asset::Metadata>(fa_obj_addr);
+
+        // Verify FA metadata
+        let fa_name = fungible_asset::name(fa_metadata);
+        let fa_symbol = fungible_asset::symbol(fa_metadata);
+        assert!(fa_name == string::utf8(FA_NAME), 2);
+        assert!(fa_symbol == string::utf8(FA_SYMBOL), 3);
+
+        // Constants from launchpad
+        let total_supply: u64 = 1_000_000_000_000_000_000; // 1B * 10^9
+        let lp_percentage: u64 = 10;
+        let expected_lp_amount = total_supply * lp_percentage / 100;
+        let expected_contract_amount = total_supply - expected_lp_amount;
+
+        // Verify LP wallet received 10% of the FA
+        let lp_fa_balance = primary_fungible_store::balance(LP_WALLET, fa_metadata);
+        debug::print(&lp_fa_balance);
+        assert!(lp_fa_balance == expected_lp_amount, 4);
+
+        // Verify collection owner (contract) holds 90% of the FA
+        let contract_fa_balance =
+            primary_fungible_store::balance(collection_owner_addr, fa_metadata);
+        debug::print(&contract_fa_balance);
+        assert!(contract_fa_balance == expected_contract_amount, 5);
+
+        // Verify total is correct
+        assert!(
+            lp_fa_balance + contract_fa_balance == total_supply,
+            6
+        );
     }
 }
 

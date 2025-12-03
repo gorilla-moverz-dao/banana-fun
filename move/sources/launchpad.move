@@ -1,13 +1,14 @@
 module deployment_addr::nft_launchpad {
     use std::option::{Self, Option};
     use std::signer;
-    use std::string::{Self, String};
+    use std::string::{Self, String, utf8};
     use std::vector;
     use aptos_std::debug;
 
     use aptos_std::simple_map::{Self, SimpleMap};
     use aptos_std::string_utils;
 
+    #[test_only]
     use aptos_framework::account;
     use aptos_framework::aptos_account;
     use aptos_framework::event;
@@ -17,6 +18,9 @@ module deployment_addr::nft_launchpad {
     use aptos_token_objects::collection::{Self, Collection};
     use aptos_token_objects::royalty::{Self, Royalty};
     use aptos_token_objects::token::{Self, Token};
+
+    use aptos_framework::primary_fungible_store;
+    use aptos_framework::fungible_asset;
 
     use minter::token_components;
     use minter::mint_stage;
@@ -157,7 +161,12 @@ module deployment_addr::nft_launchpad {
         collection_obj: Object<Collection>,
         total_funds: u64,
         lp_wallet_addr: address,
-        minted_count: u64
+        minted_count: u64,
+        // Fungible asset info
+        fa_metadata_addr: address,
+        fa_total_minted: u64,
+        fa_lp_amount: u64,
+        fa_contract_amount: u64
     }
 
     #[event]
@@ -210,7 +219,12 @@ module deployment_addr::nft_launchpad {
         // Whether sale has been completed
         sale_completed: bool,
         // Total funds collected in this sale
-        total_funds_collected: u64
+        total_funds_collected: u64,
+        // Fungible asset configuration (created on successful sale)
+        fa_symbol: vector<u8>,
+        fa_name: vector<u8>,
+        fa_icon_uri: vector<u8>,
+        fa_project_uri: vector<u8>
     }
 
     /// Global per contract
@@ -479,7 +493,12 @@ module deployment_addr::nft_launchpad {
         // LP wallet address for fund transfer after successful sale
         lp_wallet_addr: address,
         // Sale deadline timestamp
-        sale_deadline: u64
+        sale_deadline: u64,
+        // Fungible asset configuration
+        fa_symbol: vector<u8>,
+        fa_name: vector<u8>,
+        fa_icon_uri: vector<u8>,
+        fa_project_uri: vector<u8>
     ) acquires Config, Registry, CollectionConfig, CollectionOwnerObjConfig {
         let sender_addr = signer::address_of(sender);
 
@@ -538,7 +557,11 @@ module deployment_addr::nft_launchpad {
                 lp_wallet_addr,
                 sale_deadline,
                 sale_completed: false,
-                total_funds_collected: 0
+                total_funds_collected: 0,
+                fa_symbol,
+                fa_name,
+                fa_icon_uri,
+                fa_project_uri
             }
         );
 
@@ -818,6 +841,11 @@ module deployment_addr::nft_launchpad {
         );
     }
 
+    // Total supply of fungible asset to mint (1 billion with 9 decimals)
+    const FA_TOTAL_SUPPLY: u64 = 1_000_000_000_000_000_000; // 1B * 10^9
+    // Percentage to send to LP wallet (10%)
+    const FA_LP_PERCENTAGE: u64 = 10;
+
     /// Check and complete sale if conditions are met
     /// Conditions: deadline reached AND threshold met
     /// Anyone can call this function to trigger the completion
@@ -846,23 +874,69 @@ module deployment_addr::nft_launchpad {
         let total_funds = collection_config.total_funds_collected;
         let lp_wallet_addr = collection_config.lp_wallet_addr;
 
-        // Transfer all funds from collection owner to LP wallet
-        if (total_funds > 0) {
-            let collection_owner_obj = collection_config.collection_owner_obj;
-            let collection_owner_config =
-                borrow_global<CollectionOwnerObjConfig>(
-                    object::object_address(&collection_owner_obj)
-                );
-            let collection_owner_signer =
-                object::generate_signer_for_extending(&collection_owner_config.extend_ref);
+        // Get FA config from collection
+        let fa_symbol = collection_config.fa_symbol;
+        let fa_name = collection_config.fa_name;
+        let fa_icon_uri = collection_config.fa_icon_uri;
+        let fa_project_uri = collection_config.fa_project_uri;
 
-            // Transfer funds to LP wallet
+        let collection_owner_obj = collection_config.collection_owner_obj;
+        let collection_owner_config =
+            borrow_global<CollectionOwnerObjConfig>(
+                object::object_address(&collection_owner_obj)
+            );
+        let collection_owner_signer =
+            object::generate_signer_for_extending(&collection_owner_config.extend_ref);
+
+        // Create the fungible asset with max supply set to total supply (no more can ever be minted)
+        let constructor_ref = &object::create_named_object(&collection_owner_signer, fa_symbol);
+        primary_fungible_store::create_primary_store_enabled_fungible_asset(
+            constructor_ref,
+            option::some(FA_TOTAL_SUPPLY as u128), // Hard cap - no more tokens can ever be minted
+            utf8(fa_name),
+            utf8(fa_symbol),
+            9, // decimals
+            utf8(fa_icon_uri),
+            utf8(fa_project_uri)
+        );
+
+        // Create mint ref to mint the tokens
+        let mint_ref = fungible_asset::generate_mint_ref(constructor_ref);
+        let fa_metadata =
+            object::object_from_constructor_ref<fungible_asset::Metadata>(constructor_ref);
+
+        // Mint the total supply
+        let minted_fa = fungible_asset::mint(&mint_ref, FA_TOTAL_SUPPLY);
+
+        // Calculate 10% for LP wallet
+        let lp_amount = FA_TOTAL_SUPPLY * FA_LP_PERCENTAGE / 100;
+        let contract_amount = FA_TOTAL_SUPPLY - lp_amount;
+
+        // Extract LP portion and deposit to LP wallet
+        let lp_fa = fungible_asset::extract(&mut minted_fa, lp_amount);
+        primary_fungible_store::deposit(lp_wallet_addr, lp_fa);
+
+        // Store the rest in the collection owner (contract holds it)
+        let collection_owner_addr = object::object_address(&collection_owner_obj);
+        primary_fungible_store::deposit(collection_owner_addr, minted_fa);
+
+        // Transfer APT funds to LP wallet
+        if (total_funds > 0) {
             aptos_account::transfer(&collection_owner_signer, lp_wallet_addr, total_funds);
         };
 
         // Emit sale completed event
         event::emit(
-            SaleCompletedEvent { collection_obj, total_funds, lp_wallet_addr, minted_count }
+            SaleCompletedEvent {
+                collection_obj,
+                total_funds,
+                lp_wallet_addr,
+                minted_count,
+                fa_metadata_addr: object::object_address(&fa_metadata),
+                fa_total_minted: FA_TOTAL_SUPPLY,
+                fa_lp_amount: lp_amount,
+                fa_contract_amount: contract_amount
+            }
         );
     }
 
@@ -1193,6 +1267,16 @@ module deployment_addr::nft_launchpad {
         let collection_config =
             borrow_global<CollectionConfig>(object::object_address(&collection_obj));
         collection_config.lp_wallet_addr
+    }
+
+    #[view]
+    /// Get collection owner object for a collection
+    public fun get_collection_owner_obj(
+        collection_obj: Object<Collection>
+    ): Object<CollectionOwnerObjConfig> acquires CollectionConfig {
+        let collection_config =
+            borrow_global<CollectionConfig>(object::object_address(&collection_obj));
+        collection_config.collection_owner_obj
     }
 
     // ================================= Helpers ================================= //

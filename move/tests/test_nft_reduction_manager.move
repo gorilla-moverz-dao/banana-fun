@@ -115,7 +115,11 @@ module deployment_addr::test_nft_reduction_manager {
             mint_limits_per_addr,
             vector[],
             @0x400, // lp_wallet_addr
-            timestamp::now_seconds() + 10000 // sale_deadline
+            timestamp::now_seconds() + 10000, // sale_deadline
+            b"BANANA", // fa_symbol
+            b"Banana Token", // fa_name
+            b"https://example.com/banana.png", // fa_icon_uri
+            b"https://banana.fun" // fa_project_uri
         );
 
         // Get the collection from registry (get the last one, which is the newly created one)
