@@ -2,7 +2,7 @@
 module deployment_addr::test_end_to_end {
     use std::option;
     use std::signer;
-    use std::string;
+    use std::string::{Self, utf8};
     use std::vector;
     use aptos_std::debug;
 
@@ -103,11 +103,11 @@ module deployment_addr::test_end_to_end {
     ): object::Object<collection::Collection> {
         nft_launchpad::create_collection(
             sender,
-            string::utf8(COLLECTION_DESCRIPTION),
-            string::utf8(COLLECTION_NAME),
-            string::utf8(COLLECTION_URI),
+            utf8(COLLECTION_DESCRIPTION),
+            utf8(COLLECTION_NAME),
+            utf8(COLLECTION_URI),
             MAX_SUPPLY,
-            string::utf8(PLACEHOLDER_URI),
+            utf8(PLACEHOLDER_URI),
             signer::address_of(sender),
             signer::address_of(royalty_user),
             option::some(ROYALTY_PERCENTAGE),
@@ -142,7 +142,7 @@ module deployment_addr::test_end_to_end {
         mint_limit: u64,
         duration: u64
     ): object::Object<collection::Collection> {
-        let stage_names = vector[string::utf8(STAGE_NAME_PUBLIC)];
+        let stage_names = vector[utf8(STAGE_NAME_PUBLIC)];
         let stage_types = vector[STAGE_TYPE_PUBLIC];
         let allowlist_addresses = vector[option::none()];
         let allowlist_mint_limit_per_addr = vector[option::none()];
@@ -174,7 +174,7 @@ module deployment_addr::test_end_to_end {
         mint_fee: u64,
         duration: u64
     ): object::Object<collection::Collection> {
-        let stage_names = vector[string::utf8(STAGE_NAME_ALLOWLIST_ONLY)];
+        let stage_names = vector[utf8(STAGE_NAME_ALLOWLIST_ONLY)];
         let stage_types = vector[STAGE_TYPE_ALLOWLIST];
         let allowlist_addresses_vec = vector[option::some(allowlist_addresses)];
         let allowlist_mint_limit_per_addr = vector[option::some(allowlist_mint_limits)];
@@ -209,7 +209,7 @@ module deployment_addr::test_end_to_end {
         allowlist_duration: u64,
         public_duration: u64
     ): object::Object<collection::Collection> {
-        let stage_names = vector[string::utf8(STAGE_NAME_ALLOWLIST), string::utf8(STAGE_NAME_PUBLIC)];
+        let stage_names = vector[utf8(STAGE_NAME_ALLOWLIST), utf8(STAGE_NAME_PUBLIC)];
         let stage_types = vector[STAGE_TYPE_ALLOWLIST, STAGE_TYPE_PUBLIC];
         let allowlist_addresses_vec = vector[option::some(allowlist_addresses), option::none()];
         let allowlist_mint_limit_per_addr = vector[option::some(allowlist_mint_limits), option::none()];
@@ -258,9 +258,9 @@ module deployment_addr::test_end_to_end {
         account::create_account_for_test(user2_addr);
 
         let stage_names = vector[
-            string::utf8(STAGE_NAME_GUARANTEED_ALLOWLIST),
-            string::utf8(STAGE_NAME_ALLOWLIST),
-            string::utf8(STAGE_NAME_PUBLIC)
+            utf8(STAGE_NAME_GUARANTEED_ALLOWLIST),
+            utf8(STAGE_NAME_ALLOWLIST),
+            utf8(STAGE_NAME_PUBLIC)
         ];
         let stage_types = vector[STAGE_TYPE_ALLOWLIST, STAGE_TYPE_ALLOWLIST, STAGE_TYPE_PUBLIC];
         let allowlist_addresses = vector[
@@ -291,11 +291,11 @@ module deployment_addr::test_end_to_end {
 
         nft_launchpad::create_collection(
             sender,
-            string::utf8(COLLECTION_DESCRIPTION),
-            string::utf8(COLLECTION_NAME),
-            string::utf8(COLLECTION_URI),
+            utf8(COLLECTION_DESCRIPTION),
+            utf8(COLLECTION_NAME),
+            utf8(COLLECTION_URI),
             MAX_SUPPLY,
-            string::utf8(PLACEHOLDER_URI),
+            utf8(PLACEHOLDER_URI),
             signer::address_of(royalty_user),
             signer::address_of(sender),
             option::some(ROYALTY_PERCENTAGE),
@@ -321,19 +321,19 @@ module deployment_addr::test_end_to_end {
         let collection_1 = registry[vector::length(&registry) - 1];
         assert!(collection::count(collection_1) == option::some(0), 1);
 
-        let total_fee = get_total_mint_fee(collection_1, string::utf8(STAGE_NAME_ALLOWLIST), 1);
+        let total_fee = get_total_mint_fee(collection_1, utf8(STAGE_NAME_ALLOWLIST), 1);
         mint(user1_addr, total_fee);
 
         nft_launchpad::mint_nft(user1, collection_1, 1, vector[]);
 
         let active_or_next_stage = nft_launchpad::get_active_or_next_mint_stage(collection_1);
         assert!(
-            active_or_next_stage == option::some(string::utf8(STAGE_NAME_GUARANTEED_ALLOWLIST)),
+            active_or_next_stage == option::some(utf8(STAGE_NAME_GUARANTEED_ALLOWLIST)),
             3
         );
         let (start_time, end_time) =
             nft_launchpad::get_mint_stage_start_and_end_time(
-                collection_1, string::utf8(STAGE_NAME_GUARANTEED_ALLOWLIST)
+                collection_1, utf8(STAGE_NAME_GUARANTEED_ALLOWLIST)
             );
         assert!(start_time == 0, 4);
         assert!(end_time == DURATION_SHORT, 5);
@@ -341,10 +341,10 @@ module deployment_addr::test_end_to_end {
         // bump global timestamp to 150 so allowlist stage is over but public mint stage is not started yet
         timestamp::update_global_time_for_test_secs(350);
         let active_or_next_stage = nft_launchpad::get_active_or_next_mint_stage(collection_1);
-        assert!(active_or_next_stage == option::some(string::utf8(STAGE_NAME_PUBLIC)), 6);
+        assert!(active_or_next_stage == option::some(utf8(STAGE_NAME_PUBLIC)), 6);
         let (start_time, end_time) =
             nft_launchpad::get_mint_stage_start_and_end_time(
-                collection_1, string::utf8(STAGE_NAME_PUBLIC)
+                collection_1, utf8(STAGE_NAME_PUBLIC)
             );
         assert!(start_time == DURATION_LONG, 7);
         assert!(end_time == DURATION_LONG + DURATION_SHORT, 8);
@@ -352,15 +352,15 @@ module deployment_addr::test_end_to_end {
         // bump global timestamp to 550 so public mint stage is active
         timestamp::update_global_time_for_test_secs(550);
         let active_or_next_stage = nft_launchpad::get_active_or_next_mint_stage(collection_1);
-        assert!(active_or_next_stage == option::some(string::utf8(STAGE_NAME_PUBLIC)), 9);
+        assert!(active_or_next_stage == option::some(utf8(STAGE_NAME_PUBLIC)), 9);
         let (start_time, end_time) =
             nft_launchpad::get_mint_stage_start_and_end_time(
-                collection_1, string::utf8(STAGE_NAME_PUBLIC)
+                collection_1, utf8(STAGE_NAME_PUBLIC)
             );
         assert!(start_time == DURATION_LONG, 10);
         assert!(end_time == DURATION_LONG + DURATION_SHORT, 11);
 
-        let total_fee = get_total_mint_fee(collection_1, string::utf8(STAGE_NAME_PUBLIC), 1);
+        let total_fee = get_total_mint_fee(collection_1, utf8(STAGE_NAME_PUBLIC), 1);
         mint(user1_addr, total_fee);
 
         nft_launchpad::mint_nft(user1, collection_1, 1, vector[]);
@@ -399,7 +399,7 @@ module deployment_addr::test_end_to_end {
 
         assert!(nft_launchpad::is_mint_enabled(collection_1), 1);
 
-        let total_fee = get_total_mint_fee(collection_1, string::utf8(STAGE_NAME_ALLOWLIST), 1);
+        let total_fee = get_total_mint_fee(collection_1, utf8(STAGE_NAME_ALLOWLIST), 1);
         mint(user1_addr, total_fee);
 
         nft_launchpad::mint_nft(user1, collection_1, 1, vector[]);
@@ -437,18 +437,18 @@ module deployment_addr::test_end_to_end {
 
         assert!(nft_launchpad::is_mint_enabled(collection_1), 1);
 
-        let total_fee = get_total_mint_fee(collection_1, string::utf8(STAGE_NAME_ALLOWLIST), 1);
+        let total_fee = get_total_mint_fee(collection_1, utf8(STAGE_NAME_ALLOWLIST), 1);
         mint(user1_addr, total_fee);
 
         let nft_obj = nft_launchpad::test_mint_nft(user1_addr, collection_1);
 
         // Prepare batch vectors for reveal_nfts
         let nft_objs = vector[nft_obj];
-        let names = vector[string::utf8(REVEALED_NAME)];
-        let descriptions = vector[string::utf8(REVEALED_DESCRIPTION)];
-        let uris = vector[string::utf8(REVEALED_URI)];
-        let prop_names_vec = vector[vector[string::utf8(PROPERTY_NAME)]];
-        let prop_values_vec = vector[vector[string::utf8(PROPERTY_VALUE)]];
+        let names = vector[utf8(REVEALED_NAME)];
+        let descriptions = vector[utf8(REVEALED_DESCRIPTION)];
+        let uris = vector[utf8(REVEALED_URI)];
+        let prop_names_vec = vector[vector[utf8(PROPERTY_NAME)]];
+        let prop_values_vec = vector[vector[utf8(PROPERTY_VALUE)]];
 
         nft_launchpad::reveal_nfts(
             sender,
@@ -470,16 +470,16 @@ module deployment_addr::test_end_to_end {
         debug::print(token_name);
 
         assert!(
-            aptos_token_objects::token::name(refreshed_nft_obj) == string::utf8(REVEALED_NAME),
+            aptos_token_objects::token::name(refreshed_nft_obj) == utf8(REVEALED_NAME),
             2
         );
         assert!(
             aptos_token_objects::token::description(refreshed_nft_obj)
-                == string::utf8(REVEALED_DESCRIPTION),
+                == utf8(REVEALED_DESCRIPTION),
             3
         );
         assert!(
-            aptos_token_objects::token::uri(refreshed_nft_obj) == string::utf8(REVEALED_URI),
+            aptos_token_objects::token::uri(refreshed_nft_obj) == utf8(REVEALED_URI),
             4
         );
 
@@ -506,7 +506,7 @@ module deployment_addr::test_end_to_end {
         account::create_account_for_test(user2_addr);
         coin::register<AptosCoin>(user2);
 
-        let stage_names = vector[string::utf8(STAGE_NAME_ALLOWLIST), string::utf8(STAGE_NAME_PUBLIC)];
+        let stage_names = vector[utf8(STAGE_NAME_ALLOWLIST), utf8(STAGE_NAME_PUBLIC)];
         let stage_types = vector[STAGE_TYPE_ALLOWLIST, STAGE_TYPE_PUBLIC];
         let allowlist_addresses = vector[option::some(vector[user1_addr]), option::none()];
         let allowlist_mint_limit_per_addr = vector[option::some(vector[MINT_LIMIT_SMALL]), option::none()];
@@ -521,11 +521,11 @@ module deployment_addr::test_end_to_end {
 
         nft_launchpad::create_collection(
             sender,
-            string::utf8(COLLECTION_DESCRIPTION),
-            string::utf8(COLLECTION_NAME),
-            string::utf8(COLLECTION_URI),
+            utf8(COLLECTION_DESCRIPTION),
+            utf8(COLLECTION_NAME),
+            utf8(COLLECTION_URI),
             MAX_SUPPLY,
-            string::utf8(PLACEHOLDER_URI),
+            utf8(PLACEHOLDER_URI),
             signer::address_of(royalty_user),
             signer::address_of(sender),
             option::some(ROYALTY_PERCENTAGE),
@@ -552,14 +552,14 @@ module deployment_addr::test_end_to_end {
         let collection = registry[vector::length(&registry) - 1];
 
         // Test FCFS allowlist stage
-        let total_fee = get_total_mint_fee(collection, string::utf8(STAGE_NAME_ALLOWLIST), 1);
+        let total_fee = get_total_mint_fee(collection, utf8(STAGE_NAME_ALLOWLIST), 1);
         mint(user1_addr, total_fee);
         nft_launchpad::mint_nft(user1, collection, 1, vector[]);
         assert!(collection::count(collection) == option::some(1), 1);
 
         // Move to public stage
         timestamp::update_global_time_for_test_secs(250);
-        let total_fee = get_total_mint_fee(collection, string::utf8(STAGE_NAME_PUBLIC), 1);
+        let total_fee = get_total_mint_fee(collection, utf8(STAGE_NAME_PUBLIC), 1);
         mint(user2_addr, total_fee);
         nft_launchpad::mint_nft(user2, collection, 1, vector[]);
         debug::print(&collection::count(collection));
@@ -597,20 +597,20 @@ module deployment_addr::test_end_to_end {
 
         // Verify initial mint fee
         let initial_mint_fee =
-            nft_launchpad::get_mint_fee(collection_1, string::utf8(STAGE_NAME_ALLOWLIST), 1);
+            nft_launchpad::get_mint_fee(collection_1, utf8(STAGE_NAME_ALLOWLIST), 1);
         assert!(initial_mint_fee == MINT_FEE_MEDIUM, 1);
 
         // Update mint fee to 5
         nft_launchpad::update_mint_fee(
             sender,
             collection_1,
-            string::utf8(STAGE_NAME_ALLOWLIST),
+            utf8(STAGE_NAME_ALLOWLIST),
             PROTOCOL_BASE_FEE
         );
 
         // Verify updated mint fee
         let updated_mint_fee =
-            nft_launchpad::get_mint_fee(collection_1, string::utf8(STAGE_NAME_ALLOWLIST), 1);
+            nft_launchpad::get_mint_fee(collection_1, utf8(STAGE_NAME_ALLOWLIST), 1);
         assert!(updated_mint_fee == PROTOCOL_BASE_FEE, 2);
 
     }
@@ -637,7 +637,7 @@ module deployment_addr::test_end_to_end {
         // Verify initial mint times
         let (start_time, end_time) =
             nft_launchpad::get_mint_stage_start_and_end_time(
-                collection_obj, string::utf8(STAGE_NAME_ALLOWLIST)
+                collection_obj, utf8(STAGE_NAME_ALLOWLIST)
             );
         assert!(start_time == 0, 0); // Helper function starts at now_seconds() which is 0
         assert!(end_time == DURATION_XLONG, 0); // allowlist_duration
@@ -646,7 +646,7 @@ module deployment_addr::test_end_to_end {
         nft_launchpad::update_mint_times(
             admin,
             collection_obj,
-            string::utf8(STAGE_NAME_ALLOWLIST),
+            utf8(STAGE_NAME_ALLOWLIST),
             200, // new start time
             1500 // new end time
         );
@@ -654,20 +654,20 @@ module deployment_addr::test_end_to_end {
         // Verify updated mint times
         let (new_start_time, new_end_time) =
             nft_launchpad::get_mint_stage_start_and_end_time(
-                collection_obj, string::utf8(STAGE_NAME_ALLOWLIST)
+                collection_obj, utf8(STAGE_NAME_ALLOWLIST)
             );
         assert!(new_start_time == 200, 0);
         assert!(new_end_time == 1500, 0);
 
         // Get next mint stage
         let next_mint_stage = nft_launchpad::get_active_or_next_mint_stage(collection_obj);
-        assert!(next_mint_stage == option::some(string::utf8(STAGE_NAME_ALLOWLIST)), 0);
+        assert!(next_mint_stage == option::some(utf8(STAGE_NAME_ALLOWLIST)), 0);
 
         // Update test time
         timestamp::update_global_time_for_test_secs(1600);
 
         next_mint_stage = nft_launchpad::get_active_or_next_mint_stage(collection_obj);
-        assert!(next_mint_stage == option::some(string::utf8(STAGE_NAME_PUBLIC)), 0);
+        assert!(next_mint_stage == option::some(utf8(STAGE_NAME_PUBLIC)), 0);
     }
 
     #[test(aptos_framework = @0x1, admin = @deployment_addr, user = @0x123)]
@@ -694,7 +694,7 @@ module deployment_addr::test_end_to_end {
         nft_launchpad::update_mint_times(
             user,
             collection_obj,
-            string::utf8(STAGE_NAME_PUBLIC),
+            utf8(STAGE_NAME_PUBLIC),
             1500, // new start time
             2500 // new end time
         );
@@ -755,7 +755,7 @@ module deployment_addr::test_end_to_end {
             );
 
         // Mint coins for the user to cover mint fees
-        let total_fee = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 2);
+        let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 2);
         mint(user1_addr, total_fee);
 
         // Mint 2 NFTs
@@ -763,9 +763,7 @@ module deployment_addr::test_end_to_end {
 
         // Verify mint balance
         let mint_balance =
-            nft_launchpad::get_mint_balance(
-                collection_obj, string::utf8(STAGE_NAME_PUBLIC), user1_addr
-            );
+            nft_launchpad::get_mint_balance(collection_obj, utf8(STAGE_NAME_PUBLIC), user1_addr);
         assert!(mint_balance == 3, 0); // 5 - 2 = 3 remaining
     }
 
@@ -793,14 +791,13 @@ module deployment_addr::test_end_to_end {
         // Verify user is allowlisted
         assert!(
             nft_launchpad::is_allowlisted(
-                collection_obj, string::utf8(STAGE_NAME_ALLOWLIST_ONLY), user1_addr
+                collection_obj, utf8(STAGE_NAME_ALLOWLIST_ONLY), user1_addr
             ),
             0
         );
 
         // Mint coins for the user to cover mint fees
-        let total_fee =
-            get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_ALLOWLIST_ONLY), 2);
+        let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_ALLOWLIST_ONLY), 2);
         mint(user1_addr, total_fee);
 
         // Mint 2 NFTs
@@ -809,7 +806,7 @@ module deployment_addr::test_end_to_end {
         // Verify mint balance
         let mint_balance =
             nft_launchpad::get_mint_balance(
-                collection_obj, string::utf8(STAGE_NAME_ALLOWLIST_ONLY), user1_addr
+                collection_obj, utf8(STAGE_NAME_ALLOWLIST_ONLY), user1_addr
             );
         assert!(mint_balance == 1, 0); // 3 - 2 = 1 remaining
     }
@@ -848,7 +845,7 @@ module deployment_addr::test_end_to_end {
         assert!(updated_protocol_base_fee == PROTOCOL_BASE_FEE, 1);
 
         // Mint coins for the user to cover mint fees + protocol base fee
-        let total_fee = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 1);
+        let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 1);
         mint(user1_addr, total_fee);
 
         // Mint 1 NFT
@@ -856,9 +853,7 @@ module deployment_addr::test_end_to_end {
 
         // Verify mint balance
         let mint_balance =
-            nft_launchpad::get_mint_balance(
-                collection_obj, string::utf8(STAGE_NAME_PUBLIC), user1_addr
-            );
+            nft_launchpad::get_mint_balance(collection_obj, utf8(STAGE_NAME_PUBLIC), user1_addr);
         assert!(mint_balance == 4, 2); // 5 - 1 = 4 remaining
     }
 
@@ -914,7 +909,7 @@ module deployment_addr::test_end_to_end {
         assert!(protocol_base_fee == 0, 0);
 
         // Mint coins for the user to cover only mint fees (no protocol base fee)
-        let total_fee = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 1);
+        let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 1);
         mint(user1_addr, total_fee);
 
         // Mint 1 NFT (should work without protocol base fee)
@@ -922,9 +917,7 @@ module deployment_addr::test_end_to_end {
 
         // Verify mint balance
         let mint_balance =
-            nft_launchpad::get_mint_balance(
-                collection_obj, string::utf8(STAGE_NAME_PUBLIC), user1_addr
-            );
+            nft_launchpad::get_mint_balance(collection_obj, utf8(STAGE_NAME_PUBLIC), user1_addr);
         assert!(mint_balance == 4, 1); // 5 - 1 = 4 remaining
     }
 
@@ -1013,7 +1006,7 @@ module deployment_addr::test_end_to_end {
 
         // Mint coins for the user to cover mint fees + protocol percentage fee
         // mint_fee = 100, protocol_percentage_fee = 2.5% => 2.5 APT (rounded down to 2)
-        let total_fee = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 1);
+        let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 1);
         mint(user1_addr, total_fee);
 
         // Mint 1 NFT
@@ -1021,9 +1014,7 @@ module deployment_addr::test_end_to_end {
 
         // Verify mint balance
         let mint_balance =
-            nft_launchpad::get_mint_balance(
-                collection_obj, string::utf8(STAGE_NAME_PUBLIC), user1_addr
-            );
+            nft_launchpad::get_mint_balance(collection_obj, utf8(STAGE_NAME_PUBLIC), user1_addr);
         assert!(mint_balance == 4, 2); // 5 - 1 = 4 remaining
     }
 
@@ -1066,7 +1057,7 @@ module deployment_addr::test_end_to_end {
         assert!(collection_protocol_fee == PROTOCOL_PERCENTAGE_FEE_MEDIUM, 2);
 
         // Mint coins for the user to cover mint fees + protocol percentage fee
-        let total_fee = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 1);
+        let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 1);
         mint(user1_addr, total_fee);
 
         // Mint 1 NFT
@@ -1074,9 +1065,7 @@ module deployment_addr::test_end_to_end {
 
         // Verify mint balance
         let mint_balance =
-            nft_launchpad::get_mint_balance(
-                collection_obj, string::utf8(STAGE_NAME_PUBLIC), user1_addr
-            );
+            nft_launchpad::get_mint_balance(collection_obj, utf8(STAGE_NAME_PUBLIC), user1_addr);
         assert!(mint_balance == 4, 3); // 5 - 1 = 4 remaining
     }
 
@@ -1108,14 +1097,12 @@ module deployment_addr::test_end_to_end {
             admin, collection_obj, PROTOCOL_PERCENTAGE_FEE_LARGE
         ); // 10%
 
-        let total_fee = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 1);
+        let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 1);
         mint(user1_addr, total_fee);
 
         nft_launchpad::mint_nft(user1, collection_obj, 1, vector[]);
         let mint_balance =
-            nft_launchpad::get_mint_balance(
-                collection_obj, string::utf8(STAGE_NAME_PUBLIC), user1_addr
-            );
+            nft_launchpad::get_mint_balance(collection_obj, utf8(STAGE_NAME_PUBLIC), user1_addr);
         assert!(mint_balance == 4, 4);
     }
 
@@ -1341,7 +1328,7 @@ module deployment_addr::test_end_to_end {
         nft_launchpad::update_max_supply(admin, collection_obj, 20);
 
         // Mint some NFTs to verify the new max supply works
-        let total_fee = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 5);
+        let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 5);
         mint(signer::address_of(user1), total_fee);
         nft_launchpad::mint_nft(user1, collection_obj, 5, vector[]);
 
@@ -1350,7 +1337,7 @@ module deployment_addr::test_end_to_end {
         assert!(updated_count == option::some(5), 1);
 
         // Try to mint more (should still work within new limit)
-        let total_fee_2 = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 10);
+        let total_fee_2 = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 10);
         mint(signer::address_of(user1), total_fee_2);
         nft_launchpad::mint_nft(user1, collection_obj, 10, vector[]);
 
@@ -1405,7 +1392,7 @@ module deployment_addr::test_end_to_end {
             );
 
         // Mint some NFTs first to test the validation
-        let total_fee = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 5);
+        let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 5);
         mint(signer::address_of(user1), total_fee);
         nft_launchpad::mint_nft(user1, collection_obj, 5, vector[]);
 
@@ -1434,7 +1421,7 @@ module deployment_addr::test_end_to_end {
             );
 
         nft_launchpad::update_collection_settings(
-            admin, collection_obj, vector[string::utf8(b"soulbound")]
+            admin, collection_obj, vector[utf8(b"soulbound")]
         );
     }
 
@@ -1460,7 +1447,7 @@ module deployment_addr::test_end_to_end {
             );
 
         nft_launchpad::update_collection_settings(
-            admin, collection_obj, vector[string::utf8(b"soulboundx")]
+            admin, collection_obj, vector[utf8(b"soulboundx")]
         );
     }
 
@@ -1497,7 +1484,7 @@ module deployment_addr::test_end_to_end {
         object::transfer(user1, nft1, signer::address_of(user2));
 
         nft_launchpad::update_collection_settings(
-            admin, collection_obj, vector[string::utf8(b"soulbound")]
+            admin, collection_obj, vector[utf8(b"soulbound")]
         );
 
         let nft2 = nft_launchpad::test_mint_nft(signer::address_of(user1), collection_obj);
@@ -1539,7 +1526,7 @@ module deployment_addr::test_end_to_end {
         assert!(initial_funds == 0, 0);
 
         // Mint coins for the user to cover mint fees
-        let total_fee = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 2);
+        let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 2);
         mint(user1_addr, total_fee);
 
         // Mint 2 NFTs with payment tracking
@@ -1576,7 +1563,7 @@ module deployment_addr::test_end_to_end {
         account::create_account_for_test(lp_wallet_addr);
 
         // Create collection with max_supply of 10
-        let stage_names = vector[string::utf8(STAGE_NAME_PUBLIC)];
+        let stage_names = vector[utf8(STAGE_NAME_PUBLIC)];
         let stage_types = vector[STAGE_TYPE_PUBLIC];
         let allowlist_addresses = vector[option::none()];
         let allowlist_mint_limit_per_addr = vector[option::none()];
@@ -1587,11 +1574,11 @@ module deployment_addr::test_end_to_end {
 
         nft_launchpad::create_collection(
             admin,
-            string::utf8(COLLECTION_DESCRIPTION),
-            string::utf8(COLLECTION_NAME),
-            string::utf8(COLLECTION_URI),
+            utf8(COLLECTION_DESCRIPTION),
+            utf8(COLLECTION_NAME),
+            utf8(COLLECTION_URI),
             MAX_SUPPLY,
-            string::utf8(PLACEHOLDER_URI),
+            utf8(PLACEHOLDER_URI),
             signer::address_of(admin),
             signer::address_of(royalty_user),
             option::some(ROYALTY_PERCENTAGE),
@@ -1618,8 +1605,7 @@ module deployment_addr::test_end_to_end {
         let collection_obj = registry[vector::length(&registry) - 1];
 
         // Mint all NFTs to reach max_supply
-        let total_fee =
-            get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), MAX_SUPPLY);
+        let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), MAX_SUPPLY);
         mint(user1_addr, total_fee);
         nft_launchpad::mint_nft(user1, collection_obj, MAX_SUPPLY, vector[]);
 
@@ -1659,7 +1645,7 @@ module deployment_addr::test_end_to_end {
         account::create_account_for_test(lp_wallet_addr);
 
         // Create collection with max_supply of 10
-        let stage_names = vector[string::utf8(STAGE_NAME_PUBLIC)];
+        let stage_names = vector[utf8(STAGE_NAME_PUBLIC)];
         let stage_types = vector[STAGE_TYPE_PUBLIC];
         let allowlist_addresses = vector[option::none()];
         let allowlist_mint_limit_per_addr = vector[option::none()];
@@ -1670,11 +1656,11 @@ module deployment_addr::test_end_to_end {
 
         nft_launchpad::create_collection(
             admin,
-            string::utf8(COLLECTION_DESCRIPTION),
-            string::utf8(COLLECTION_NAME),
-            string::utf8(COLLECTION_URI),
+            utf8(COLLECTION_DESCRIPTION),
+            utf8(COLLECTION_NAME),
+            utf8(COLLECTION_URI),
             MAX_SUPPLY,
-            string::utf8(PLACEHOLDER_URI),
+            utf8(PLACEHOLDER_URI),
             signer::address_of(admin),
             signer::address_of(royalty_user),
             option::some(ROYALTY_PERCENTAGE),
@@ -1701,7 +1687,7 @@ module deployment_addr::test_end_to_end {
         let collection_obj = registry[vector::length(&registry) - 1];
 
         // Mint only 3 NFTs (below max_supply of 10)
-        let total_fee = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 3);
+        let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 3);
         mint(user1_addr, total_fee);
         nft_launchpad::mint_nft(user1, collection_obj, 3, vector[]);
 
@@ -1733,7 +1719,7 @@ module deployment_addr::test_end_to_end {
         account::create_account_for_test(lp_wallet_addr);
 
         // Create collection with max_supply of 10
-        let stage_names = vector[string::utf8(STAGE_NAME_PUBLIC)];
+        let stage_names = vector[utf8(STAGE_NAME_PUBLIC)];
         let stage_types = vector[STAGE_TYPE_PUBLIC];
         let allowlist_addresses = vector[option::none()];
         let allowlist_mint_limit_per_addr = vector[option::none()];
@@ -1744,11 +1730,11 @@ module deployment_addr::test_end_to_end {
 
         nft_launchpad::create_collection(
             admin,
-            string::utf8(COLLECTION_DESCRIPTION),
-            string::utf8(COLLECTION_NAME),
-            string::utf8(COLLECTION_URI),
+            utf8(COLLECTION_DESCRIPTION),
+            utf8(COLLECTION_NAME),
+            utf8(COLLECTION_URI),
             MAX_SUPPLY,
-            string::utf8(PLACEHOLDER_URI),
+            utf8(PLACEHOLDER_URI),
             signer::address_of(admin),
             signer::address_of(royalty_user),
             option::some(ROYALTY_PERCENTAGE),
@@ -1775,7 +1761,7 @@ module deployment_addr::test_end_to_end {
         let collection_obj = registry[vector::length(&registry) - 1];
 
         // Mint 3 NFTs (below max_supply of 10) and track them
-        let total_fee = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 3);
+        let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 3);
         mint(user1_addr, total_fee);
 
         // Mint NFTs (with payment for refund testing)
@@ -1837,7 +1823,7 @@ module deployment_addr::test_end_to_end {
             );
 
         // Mint 2 NFTs (with payment for refund testing)
-        let total_fee = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 2);
+        let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 2);
         mint(user1_addr, total_fee);
         let nfts = nft_launchpad::mint_nft_internal(user1, collection_obj, 2, vector[]);
         let nft1 = nfts[0];
@@ -1872,7 +1858,7 @@ module deployment_addr::test_end_to_end {
         account::create_account_for_test(lp_wallet_addr);
 
         // Create collection with max_supply of 10
-        let stage_names = vector[string::utf8(STAGE_NAME_PUBLIC)];
+        let stage_names = vector[utf8(STAGE_NAME_PUBLIC)];
         let stage_types = vector[STAGE_TYPE_PUBLIC];
         let allowlist_addresses = vector[option::none()];
         let allowlist_mint_limit_per_addr = vector[option::none()];
@@ -1883,11 +1869,11 @@ module deployment_addr::test_end_to_end {
 
         nft_launchpad::create_collection(
             admin,
-            string::utf8(COLLECTION_DESCRIPTION),
-            string::utf8(COLLECTION_NAME),
-            string::utf8(COLLECTION_URI),
+            utf8(COLLECTION_DESCRIPTION),
+            utf8(COLLECTION_NAME),
+            utf8(COLLECTION_URI),
             MAX_SUPPLY,
-            string::utf8(PLACEHOLDER_URI),
+            utf8(PLACEHOLDER_URI),
             signer::address_of(admin),
             signer::address_of(royalty_user),
             option::some(ROYALTY_PERCENTAGE),
@@ -1914,14 +1900,14 @@ module deployment_addr::test_end_to_end {
         let collection_obj = registry[vector::length(&registry) - 1];
 
         // User1 mints 2 NFTs (with payment for refund testing)
-        let total_fee_1 = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 2);
+        let total_fee_1 = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 2);
         mint(user1_addr, total_fee_1);
         let user1_nfts = nft_launchpad::mint_nft_internal(user1, collection_obj, 2, vector[]);
         let user1_nft1 = user1_nfts[0];
         let user1_nft2 = user1_nfts[1];
 
         // User2 mints 1 NFT (with payment for refund testing)
-        let total_fee_2 = get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), 1);
+        let total_fee_2 = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 1);
         mint(user2_addr, total_fee_2);
         let user2_nfts = nft_launchpad::mint_nft_internal(user2, collection_obj, 1, vector[]);
         let user2_nft1 = user2_nfts[0];
@@ -2015,8 +2001,7 @@ module deployment_addr::test_end_to_end {
             );
 
         // Mint all NFTs to reach max_supply
-        let total_fee =
-            get_total_mint_fee(collection_obj, string::utf8(STAGE_NAME_PUBLIC), MAX_SUPPLY);
+        let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), MAX_SUPPLY);
         mint(user1_addr, total_fee);
         nft_launchpad::mint_nft(user1, collection_obj, MAX_SUPPLY, vector[]);
 
@@ -2041,8 +2026,8 @@ module deployment_addr::test_end_to_end {
         // Verify FA metadata
         let fa_name = fungible_asset::name(fa_metadata);
         let fa_symbol = fungible_asset::symbol(fa_metadata);
-        assert!(fa_name == string::utf8(FA_NAME), 2);
-        assert!(fa_symbol == string::utf8(FA_SYMBOL), 3);
+        assert!(fa_name == utf8(FA_NAME), 2);
+        assert!(fa_symbol == utf8(FA_SYMBOL), 3);
 
         // Constants from launchpad (10% LP, 10% vesting, 80% contract)
         let total_supply: u64 = 1_000_000_000_000_000_000; // 1B * 10^9

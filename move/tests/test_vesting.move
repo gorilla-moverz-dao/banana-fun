@@ -1,6 +1,6 @@
 #[test_only]
 module deployment_addr::test_vesting {
-    use std::string;
+    use std::string::{utf8};
     use aptos_std::debug;
 
     use aptos_framework::account;
@@ -54,7 +54,7 @@ module deployment_addr::test_vesting {
         let total_fee =
             test_end_to_end::get_total_mint_fee(
                 collection_obj,
-                string::utf8(STAGE_NAME_PUBLIC),
+                utf8(STAGE_NAME_PUBLIC),
                 MAX_SUPPLY
             );
         test_end_to_end::mint(user1_addr, total_fee);
@@ -98,7 +98,7 @@ module deployment_addr::test_vesting {
         let total_fee =
             test_end_to_end::get_total_mint_fee(
                 collection_obj,
-                string::utf8(STAGE_NAME_PUBLIC),
+                utf8(STAGE_NAME_PUBLIC),
                 MAX_SUPPLY
             );
         test_end_to_end::mint(user1_addr, total_fee);
@@ -173,7 +173,7 @@ module deployment_addr::test_vesting {
         let total_fee =
             test_end_to_end::get_total_mint_fee(
                 collection_obj,
-                string::utf8(STAGE_NAME_PUBLIC),
+                utf8(STAGE_NAME_PUBLIC),
                 MAX_SUPPLY
             );
         test_end_to_end::mint(user1_addr, total_fee);
@@ -249,7 +249,7 @@ module deployment_addr::test_vesting {
         let total_fee =
             test_end_to_end::get_total_mint_fee(
                 collection_obj,
-                string::utf8(STAGE_NAME_PUBLIC),
+                utf8(STAGE_NAME_PUBLIC),
                 MAX_SUPPLY
             );
         test_end_to_end::mint(user1_addr, total_fee);

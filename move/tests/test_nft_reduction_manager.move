@@ -2,7 +2,7 @@
 module deployment_addr::test_nft_reduction_manager {
     use std::option;
     use std::signer;
-    use std::string;
+    use std::string::{utf8};
     use std::vector;
 
     use aptos_framework::account;
@@ -85,7 +85,7 @@ module deployment_addr::test_nft_reduction_manager {
     }
 
     fun create_test_collection(owner: &signer): object::Object<collection::Collection> {
-        let stage_names = vector[string::utf8(b"Public Stage")];
+        let stage_names = vector[utf8(b"Public Stage")];
         let stage_types = vector[nft_launchpad::get_stage_type_public()];
         let allowlist_addresses = vector[option::none<vector<address>>()];
         let allowlist_mint_limit_per_addr = vector[option::none<vector<u64>>()];
@@ -96,11 +96,11 @@ module deployment_addr::test_nft_reduction_manager {
 
         nft_launchpad::create_collection(
             owner,
-            string::utf8(COLLECTION_DESCRIPTION),
-            string::utf8(COLLECTION_NAME),
-            string::utf8(COLLECTION_URI),
+            utf8(COLLECTION_DESCRIPTION),
+            utf8(COLLECTION_NAME),
+            utf8(COLLECTION_URI),
             1000, // max_supply
-            string::utf8(PLACEHOLDER_URI),
+            utf8(PLACEHOLDER_URI),
             signer::address_of(owner), // mint_fee_collector_addr
             signer::address_of(owner), // royalty_address
             option::some(10u64), // royalty_percentage (0.1% = 10 basis points)

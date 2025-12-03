@@ -252,7 +252,7 @@ module deployment_addr::nft_launchpad {
 
     #[view]
     fun get_all_settings(): vector<String> {
-        vector[string::utf8(SETTING_SOULBOUND)]
+        vector[utf8(SETTING_SOULBOUND)]
     }
 
     fun validate_settings(settings: vector<String>) {
@@ -1486,12 +1486,12 @@ module deployment_addr::nft_launchpad {
             num_str
         } else {
             let padding_needed = target_length - current_length;
-            let padded_str = &mut string::utf8(b"");
+            let padded_str = &mut utf8(b"");
 
             // Add leading zeros
             let i = 0;
             while (i < padding_needed) {
-                string::append(padded_str, string::utf8(b"0"));
+                string::append(padded_str, utf8(b"0"));
                 i += 1;
             };
 
@@ -1516,7 +1516,7 @@ module deployment_addr::nft_launchpad {
         let max_supply = collection_config.max_supply;
         let target_length = string::length(&string_utils::to_string(&max_supply));
 
-        string::append(name, string::utf8(b" #"));
+        string::append(name, utf8(b" #"));
         string::append(name, pad_number_with_zeros(next_nft_id, target_length));
 
         let placeholder_uri = collection_config.placeholder_uri;
@@ -1545,7 +1545,7 @@ module deployment_addr::nft_launchpad {
         object::transfer(collection_owner_obj_signer, nft_obj, sender_addr);
 
         if (is_soulbound(collection_obj)) {
-            debug::print(&string::utf8(b"Freezing transfer"));
+            debug::print(&utf8(b"Freezing transfer"));
             token_components::freeze_transfer(collection_owner_obj_signer, nft_obj);
         };
 
@@ -1558,10 +1558,9 @@ module deployment_addr::nft_launchpad {
             &mut string::sub_string(
                 collection_uri,
                 0,
-                string::length(collection_uri)
-                    - string::length(&string::utf8(b"collection.json"))
+                string::length(collection_uri) - string::length(&utf8(b"collection.json"))
             );
-        let nft_metadata_filename = string::utf8(b"placeholder.png");
+        let nft_metadata_filename = utf8(b"placeholder.png");
         string::append(nft_metadata_uri, nft_metadata_filename);
         *nft_metadata_uri
     }
@@ -1727,7 +1726,7 @@ module deployment_addr::nft_launchpad {
     #[view]
     /// Check if a collection is soulbound (contains "soulbound" setting)
     public fun is_soulbound(collection_obj: Object<Collection>): bool acquires CollectionConfig {
-        has_setting(collection_obj, string::utf8(SETTING_SOULBOUND))
+        has_setting(collection_obj, utf8(SETTING_SOULBOUND))
     }
 
     #[view]
