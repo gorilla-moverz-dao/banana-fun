@@ -3,7 +3,6 @@ module deployment_addr::test_end_to_end {
     use std::option;
     use std::signer;
     use std::string::{Self, utf8};
-    use std::vector;
     use aptos_std::debug;
 
     use aptos_framework::aptos_coin::{Self, AptosCoin};
@@ -131,7 +130,7 @@ module deployment_addr::test_end_to_end {
         );
 
         let registry = nft_launchpad::get_registry();
-        registry[vector::length(&registry) - 1]
+        registry[registry.length() - 1]
     }
 
     /// Helper function to create a simple public-only collection
@@ -318,7 +317,7 @@ module deployment_addr::test_end_to_end {
             VESTING_DURATION
         );
         let registry = nft_launchpad::get_registry();
-        let collection_1 = registry[vector::length(&registry) - 1];
+        let collection_1 = registry[registry.length() - 1];
         assert!(collection::count(collection_1) == option::some(0), 1);
 
         let total_fee = get_total_mint_fee(collection_1, utf8(STAGE_NAME_ALLOWLIST), 1);
@@ -549,7 +548,7 @@ module deployment_addr::test_end_to_end {
         );
 
         let registry = nft_launchpad::get_registry();
-        let collection = registry[vector::length(&registry) - 1];
+        let collection = registry[registry.length() - 1];
 
         // Test FCFS allowlist stage
         let total_fee = get_total_mint_fee(collection, utf8(STAGE_NAME_ALLOWLIST), 1);
@@ -1170,7 +1169,7 @@ module deployment_addr::test_end_to_end {
 
         // Initially, get_listed_collections should return empty vector
         let listed_collections = nft_launchpad::get_listed_collections();
-        assert!(vector::length(&listed_collections) == 0, 2);
+        assert!(listed_collections.length() == 0, 2);
 
         // Enable listing for first collection
         nft_launchpad::update_listing_enabled(admin, collection_1, true);
@@ -1179,7 +1178,7 @@ module deployment_addr::test_end_to_end {
 
         // get_listed_collections should now return only collection_1
         let listed_collections = nft_launchpad::get_listed_collections();
-        assert!(vector::length(&listed_collections) == 1, 5);
+        assert!(listed_collections.length() == 1, 5);
         let first_listed = listed_collections[0];
         assert!(first_listed == collection_1, 6);
 
@@ -1190,7 +1189,7 @@ module deployment_addr::test_end_to_end {
 
         // get_listed_collections should now return both collections
         let listed_collections = nft_launchpad::get_listed_collections();
-        assert!(vector::length(&listed_collections) == 2, 9);
+        assert!(listed_collections.length() == 2, 9);
 
         // Disable listing for first collection
         nft_launchpad::update_listing_enabled(admin, collection_1, false);
@@ -1199,7 +1198,7 @@ module deployment_addr::test_end_to_end {
 
         // get_listed_collections should now return only collection_2
         let listed_collections = nft_launchpad::get_listed_collections();
-        assert!(vector::length(&listed_collections) == 1, 12);
+        assert!(listed_collections.length() == 1, 12);
         let first_listed = listed_collections[0];
         assert!(first_listed == collection_2, 13);
 
@@ -1210,7 +1209,7 @@ module deployment_addr::test_end_to_end {
 
         // get_listed_collections should now return empty vector again
         let listed_collections = nft_launchpad::get_listed_collections();
-        assert!(vector::length(&listed_collections) == 0, 16);
+        assert!(listed_collections.length() == 0, 16);
     }
 
     #[test(
@@ -1602,7 +1601,7 @@ module deployment_addr::test_end_to_end {
         );
 
         let registry = nft_launchpad::get_registry();
-        let collection_obj = registry[vector::length(&registry) - 1];
+        let collection_obj = registry[registry.length() - 1];
 
         // Mint all NFTs to reach max_supply
         let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), MAX_SUPPLY);
@@ -1684,7 +1683,7 @@ module deployment_addr::test_end_to_end {
         );
 
         let registry = nft_launchpad::get_registry();
-        let collection_obj = registry[vector::length(&registry) - 1];
+        let collection_obj = registry[registry.length() - 1];
 
         // Mint only 3 NFTs (below max_supply of 10)
         let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 3);
@@ -1758,7 +1757,7 @@ module deployment_addr::test_end_to_end {
         );
 
         let registry = nft_launchpad::get_registry();
-        let collection_obj = registry[vector::length(&registry) - 1];
+        let collection_obj = registry[registry.length() - 1];
 
         // Mint 3 NFTs (below max_supply of 10) and track them
         let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 3);
@@ -1897,7 +1896,7 @@ module deployment_addr::test_end_to_end {
         );
 
         let registry = nft_launchpad::get_registry();
-        let collection_obj = registry[vector::length(&registry) - 1];
+        let collection_obj = registry[registry.length() - 1];
 
         // User1 mints 2 NFTs (with payment for refund testing)
         let total_fee_1 = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 2);
