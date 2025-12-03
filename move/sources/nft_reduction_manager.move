@@ -82,9 +82,9 @@ module deployment_addr::nft_reduction_manager {
         let total_reduction = 0u64;
         let collection_addresses = vector::empty<address>();
 
-        let nfts_len = vector::length(reduction_nfts);
+        let nfts_len = reduction_nfts.length();
         for (i in 0..nfts_len) {
-            let nft = *vector::borrow(reduction_nfts, i);
+            let nft = reduction_nfts[i];
 
             // Verify ownership
             assert!(verify_nft_ownership(nft, sender), ENFT_NOT_OWNED);
@@ -93,22 +93,20 @@ module deployment_addr::nft_reduction_manager {
 
             // Check for duplicates
             assert!(
-                !vector::contains(&collection_addresses, &collection_addr),
+                !collection_addresses.contains(&collection_addr),
                 EDUPLICATE_COLLECTION
             );
-            vector::push_back(&mut collection_addresses, collection_addr);
+            collection_addresses.push_back(collection_addr);
 
             // Get reduction percentage for this collection
-            if (simple_map::contains_key(&config.collection_reductions, &collection_addr)) {
-                let reduction = *simple_map::borrow(
-                    &config.collection_reductions, &collection_addr
-                );
-                total_reduction = total_reduction + reduction;
+            if (config.collection_reductions.contains_key(&collection_addr)) {
+                let reduction = *config.collection_reductions.borrow(&collection_addr);
+                total_reduction += reduction;
             };
         };
 
         // Cap at 100% maximum reduction
-        if (total_reduction > 100) { 
+        if (total_reduction > 100) {
             total_reduction = 100
         };
         total_reduction
@@ -133,7 +131,7 @@ module deployment_addr::nft_reduction_manager {
     ): (u64, u64, vector<Object<Token>>) acquires ProtocolFeeReductionConfig {
         let config = borrow_global<ProtocolFeeReductionConfig>(@deployment_addr);
 
-        if (!config.enabled || vector::length(&reduction_nfts) == 0) {
+        if (!config.enabled || reduction_nfts.length() == 0) {
             return (original_protocol_fee, 0, reduction_nfts)
         };
 
@@ -155,9 +153,7 @@ module deployment_addr::nft_reduction_manager {
         assert!(is_admin(config, sender_addr), EONLY_ADMIN_CAN_UPDATE_REDUCTION);
         assert!(reduction_percentage <= 100, EINVALID_REDUCTION_PERCENTAGE);
 
-        simple_map::upsert(
-            &mut config.collection_reductions, collection_address, reduction_percentage
-        );
+        config.collection_reductions.upsert(collection_address, reduction_percentage);
 
         event::emit(
             ProtocolFeeReductionConfigUpdatedEvent {
@@ -176,11 +172,11 @@ module deployment_addr::nft_reduction_manager {
         let config = borrow_global_mut<ProtocolFeeReductionConfig>(@deployment_addr);
         assert!(is_admin(config, sender_addr), EONLY_ADMIN_CAN_UPDATE_REDUCTION);
         assert!(
-            simple_map::contains_key(&config.collection_reductions, &collection_address),
+            config.collection_reductions.contains_key(&collection_address),
             ECOLLECTION_NOT_FOUND
         );
 
-        simple_map::remove(&mut config.collection_reductions, &collection_address);
+        config.collection_reductions.remove(&collection_address);
 
         event::emit(
             ProtocolFeeReductionConfigUpdatedEvent {
@@ -219,8 +215,8 @@ module deployment_addr::nft_reduction_manager {
         collection_address: address
     ): u64 acquires ProtocolFeeReductionConfig {
         let config = borrow_global<ProtocolFeeReductionConfig>(@deployment_addr);
-        if (simple_map::contains_key(&config.collection_reductions, &collection_address)) {
-            *simple_map::borrow(&config.collection_reductions, &collection_address)
+        if (config.collection_reductions.contains_key(&collection_address)) {
+            *config.collection_reductions.borrow(&collection_address)
         } else { 0 }
     }
 
@@ -242,7 +238,7 @@ module deployment_addr::nft_reduction_manager {
     /// Get all collection protocol fee reductions
     public fun get_all_collection_protocol_fee_reductions(): vector<address> acquires ProtocolFeeReductionConfig {
         let config = borrow_global<ProtocolFeeReductionConfig>(@deployment_addr);
-        simple_map::keys(&config.collection_reductions)
+        config.collection_reductions.keys()
     }
 
     // ================================= Test Functions ================================= //
