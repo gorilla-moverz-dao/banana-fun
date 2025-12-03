@@ -51,10 +51,6 @@ module deployment_addr::test_end_to_end {
     const DURATION_LONG: u64 = 500u64;
     const DURATION_XLONG: u64 = 900u64;
     const DURATION_XXLONG: u64 = 1000u64;
-    const PREMINT_AMOUNT_SMALL: u64 = 2u64;
-    const PREMINT_AMOUNT_MEDIUM: u64 = 3u64;
-    const PREMINT_AMOUNT_LARGE: u64 = 5u64;
-    const PREMINT_AMOUNT_ZERO: u64 = 0u64;
 
     // Sale configuration constants
     const LP_WALLET: address = @0x400;
@@ -103,8 +99,7 @@ module deployment_addr::test_end_to_end {
         start_times: vector<u64>,
         end_times: vector<u64>,
         mint_fees_per_nft: vector<u64>,
-        mint_limits_per_addr: vector<option::Option<u64>>,
-        premint_amount: u64
+        mint_limits_per_addr: vector<option::Option<u64>>
     ): object::Object<collection::Collection> {
         nft_launchpad::create_collection(
             sender,
@@ -116,7 +111,6 @@ module deployment_addr::test_end_to_end {
             signer::address_of(sender),
             signer::address_of(royalty_user),
             option::some(ROYALTY_PERCENTAGE),
-            option::some(premint_amount), // premint amount
             stage_names,
             stage_types,
             allowlist_addresses,
@@ -167,8 +161,7 @@ module deployment_addr::test_end_to_end {
             start_times,
             end_times,
             mint_fees_per_nft,
-            mint_limits_per_addr,
-            0
+            mint_limits_per_addr
         )
     }
 
@@ -200,8 +193,7 @@ module deployment_addr::test_end_to_end {
             start_times,
             end_times,
             mint_fees_per_nft,
-            mint_limits_per_addr,
-            0 // default premint amount
+            mint_limits_per_addr
         )
     }
 
@@ -215,8 +207,7 @@ module deployment_addr::test_end_to_end {
         public_mint_fee: u64,
         public_mint_limit: u64,
         allowlist_duration: u64,
-        public_duration: u64,
-        premint_amount: u64
+        public_duration: u64
     ): object::Object<collection::Collection> {
         let stage_names = vector[string::utf8(STAGE_NAME_ALLOWLIST), string::utf8(STAGE_NAME_PUBLIC)];
         let stage_types = vector[STAGE_TYPE_ALLOWLIST, STAGE_TYPE_PUBLIC];
@@ -241,8 +232,7 @@ module deployment_addr::test_end_to_end {
             start_times,
             end_times,
             mint_fees_per_nft,
-            mint_limits_per_addr,
-            premint_amount
+            mint_limits_per_addr
         )
     }
 
@@ -309,7 +299,6 @@ module deployment_addr::test_end_to_end {
             signer::address_of(royalty_user),
             signer::address_of(sender),
             option::some(ROYALTY_PERCENTAGE),
-            option::some(PREMINT_AMOUNT_MEDIUM),
             stage_names,
             stage_types,
             allowlist_addresses,
@@ -330,7 +319,7 @@ module deployment_addr::test_end_to_end {
         );
         let registry = nft_launchpad::get_registry();
         let collection_1 = registry[vector::length(&registry) - 1];
-        assert!(collection::count(collection_1) == option::some(3), 1);
+        assert!(collection::count(collection_1) == option::some(0), 1);
 
         let total_fee = get_total_mint_fee(collection_1, string::utf8(STAGE_NAME_ALLOWLIST), 1);
         mint(user1_addr, total_fee);
@@ -405,8 +394,7 @@ module deployment_addr::test_end_to_end {
                 MINT_FEE_LARGE, // public_mint_fee
                 MINT_LIMIT_MEDIUM, // public_mint_limit
                 DURATION_SHORT, // allowlist_duration
-                DURATION_SHORT, // public_duration
-                PREMINT_AMOUNT_MEDIUM // premint_amount
+                DURATION_SHORT // public_duration
             );
 
         assert!(nft_launchpad::is_mint_enabled(collection_1), 1);
@@ -444,8 +432,7 @@ module deployment_addr::test_end_to_end {
                 MINT_FEE_LARGE, // public_mint_fee
                 MINT_LIMIT_MEDIUM, // public_mint_limit
                 DURATION_SHORT, // allowlist_duration
-                DURATION_SHORT, // public_duration
-                PREMINT_AMOUNT_MEDIUM // premint_amount
+                DURATION_SHORT // public_duration
             );
 
         assert!(nft_launchpad::is_mint_enabled(collection_1), 1);
@@ -542,7 +529,6 @@ module deployment_addr::test_end_to_end {
             signer::address_of(royalty_user),
             signer::address_of(sender),
             option::some(ROYALTY_PERCENTAGE),
-            option::some(PREMINT_AMOUNT_MEDIUM),
             stage_names,
             stage_types,
             allowlist_addresses,
@@ -569,7 +555,7 @@ module deployment_addr::test_end_to_end {
         let total_fee = get_total_mint_fee(collection, string::utf8(STAGE_NAME_ALLOWLIST), 1);
         mint(user1_addr, total_fee);
         nft_launchpad::mint_nft(user1, collection, 1, vector[]);
-        assert!(collection::count(collection) == option::some(4), 1);
+        assert!(collection::count(collection) == option::some(1), 1);
 
         // Move to public stage
         timestamp::update_global_time_for_test_secs(250);
@@ -577,7 +563,7 @@ module deployment_addr::test_end_to_end {
         mint(user2_addr, total_fee);
         nft_launchpad::mint_nft(user2, collection, 1, vector[]);
         debug::print(&collection::count(collection));
-        assert!(collection::count(collection) == option::some(5), 2);
+        assert!(collection::count(collection) == option::some(2), 2);
 
     }
 
@@ -606,8 +592,7 @@ module deployment_addr::test_end_to_end {
                 MINT_FEE_SMALL, // public_mint_fee
                 MINT_FEE_LARGE, // public_mint_limit
                 DURATION_SHORT, // allowlist_duration
-                DURATION_SHORT, // public_duration
-                PREMINT_AMOUNT_MEDIUM // premint_amount
+                DURATION_SHORT // public_duration
             );
 
         // Verify initial mint fee
@@ -646,8 +631,7 @@ module deployment_addr::test_end_to_end {
                 MINT_FEE_SMALL, // public_mint_fee
                 MINT_FEE_LARGE, // public_mint_limit
                 DURATION_XLONG, // allowlist_duration (1000 - 100)
-                DURATION_XXLONG, // public_duration (2000 - 1000)
-                PREMINT_AMOUNT_ZERO // premint_amount
+                DURATION_XXLONG // public_duration (2000 - 1000)
             );
 
         // Verify initial mint times
@@ -703,8 +687,7 @@ module deployment_addr::test_end_to_end {
                 MINT_FEE_SMALL, // public_mint_fee
                 MINT_FEE_LARGE, // public_mint_limit
                 DURATION_XXLONG, // allowlist_duration
-                DURATION_XXLONG, // public_duration
-                PREMINT_AMOUNT_ZERO // premint_amount
+                DURATION_XXLONG // public_duration
             );
 
         // Try to update mint times as non-admin (should fail)
@@ -996,114 +979,6 @@ module deployment_addr::test_end_to_end {
     #[test(
         aptos_framework = @0x1, admin = @deployment_addr, user1 = @0x200, royalty_user = @0x300
     )]
-    fun test_premint_nft_success(
-        aptos_framework: &signer,
-        admin: &signer,
-        user1: &signer,
-        royalty_user: &signer
-    ) {
-        setup_test_env(aptos_framework, user1, admin);
-
-        let collection_obj =
-            create_public_only_collection(
-                admin,
-                royalty_user,
-                MINT_FEE_SMALL, // mint_fee
-                MINT_LIMIT_LARGE, // mint_limit
-                DURATION_SHORT // duration
-            );
-
-        // Verify initial collection count (should be 0 since no pre-mint during creation)
-        assert!(collection::count(collection_obj) == option::some(0), 0);
-
-        // Premint 3 NFTs as the collection creator
-        nft_launchpad::premint_nft(admin, collection_obj, PREMINT_AMOUNT_MEDIUM);
-
-        // Verify collection count increased by 3
-        assert!(collection::count(collection_obj) == option::some(PREMINT_AMOUNT_MEDIUM), 1);
-    }
-
-    #[test(
-        aptos_framework = @0x1, admin = @deployment_addr, user1 = @0x200, royalty_user = @0x300
-    )]
-    #[expected_failure(abort_code = 24, location = nft_launchpad)]
-    fun test_premint_nft_non_creator(
-        aptos_framework: &signer,
-        admin: &signer,
-        user1: &signer,
-        royalty_user: &signer
-    ) {
-        setup_test_env(aptos_framework, user1, admin);
-
-        let collection_obj =
-            create_public_only_collection(
-                admin,
-                royalty_user,
-                MINT_FEE_SMALL, // mint_fee
-                MINT_LIMIT_LARGE, // mint_limit
-                DURATION_SHORT // duration
-            );
-
-        // Try to premint as non-creator (should fail)
-        nft_launchpad::premint_nft(user1, collection_obj, MINT_LIMIT_SMALL);
-    }
-
-    #[test(
-        aptos_framework = @0x1, admin = @deployment_addr, user1 = @0x200, royalty_user = @0x300
-    )]
-    #[expected_failure(abort_code = 13, location = nft_launchpad)]
-    fun test_premint_nft_zero_amount(
-        aptos_framework: &signer,
-        admin: &signer,
-        user1: &signer,
-        royalty_user: &signer
-    ) {
-        setup_test_env(aptos_framework, user1, admin);
-
-        let collection_obj =
-            create_public_only_collection(
-                admin,
-                royalty_user,
-                MINT_FEE_SMALL, // mint_fee
-                MINT_LIMIT_LARGE, // mint_limit
-                DURATION_SHORT // duration
-            );
-
-        // Try to premint 0 NFTs (should fail)
-        nft_launchpad::premint_nft(admin, collection_obj, 0);
-    }
-
-    #[test(
-        aptos_framework = @0x1, admin = @deployment_addr, user1 = @0x200, royalty_user = @0x300
-    )]
-    #[expected_failure(abort_code = 12, location = nft_launchpad)]
-    fun test_premint_nft_mint_disabled(
-        aptos_framework: &signer,
-        admin: &signer,
-        user1: &signer,
-        royalty_user: &signer
-    ) {
-        setup_test_env(aptos_framework, user1, admin);
-
-        let collection_obj =
-            create_public_only_collection(
-                admin,
-                royalty_user,
-                MINT_FEE_SMALL, // mint_fee
-                MINT_LIMIT_LARGE, // mint_limit
-                DURATION_SHORT // duration
-            );
-
-        // Disable minting
-        nft_launchpad::update_mint_enabled(admin, collection_obj, false);
-
-        // Try to premint when mint is disabled (should fail)
-        nft_launchpad::premint_nft(admin, collection_obj, MINT_LIMIT_SMALL);
-    }
-
-    #[test(
-        aptos_framework = @0x1, admin = @deployment_addr, user1 = @0x200, royalty_user = @0x300
-    )]
     fun test_protocol_percentage_fee_mint(
         aptos_framework: &signer,
         admin: &signer,
@@ -1269,41 +1144,6 @@ module deployment_addr::test_end_to_end {
         nft_launchpad::update_protocol_percentage_fee_for_collection(
             user1, collection_obj, PROTOCOL_PERCENTAGE_FEE_SMALL
         );
-    }
-
-    #[test(
-        aptos_framework = @0x1, admin = @deployment_addr, user1 = @0x200, royalty_user = @0x300
-    )]
-    fun test_premint_tracking(
-        aptos_framework: &signer,
-        admin: &signer,
-        user1: &signer,
-        royalty_user: &signer
-    ) {
-        setup_test_env(aptos_framework, user1, admin);
-
-        let collection_obj =
-            create_public_only_collection(
-                admin,
-                royalty_user,
-                MINT_FEE_SMALL, // mint_fee
-                MINT_LIMIT_LARGE, // mint_limit
-                DURATION_SHORT // duration
-            );
-
-        // Initially, premint_amount should be 0
-        let premint_amt = nft_launchpad::get_premint_amount(collection_obj);
-        assert!(premint_amt == 0, 0);
-
-        // Premint 2 NFTs
-        nft_launchpad::premint_nft(admin, collection_obj, PREMINT_AMOUNT_SMALL);
-        let premint_amt = nft_launchpad::get_premint_amount(collection_obj);
-        assert!(premint_amt == PREMINT_AMOUNT_SMALL, 1);
-
-        // Premint 3 more NFTs
-        nft_launchpad::premint_nft(admin, collection_obj, PREMINT_AMOUNT_MEDIUM);
-        let premint_amt = nft_launchpad::get_premint_amount(collection_obj);
-        assert!(premint_amt == PREMINT_AMOUNT_LARGE, 2);
     }
 
     #[test(
@@ -1755,7 +1595,6 @@ module deployment_addr::test_end_to_end {
             signer::address_of(admin),
             signer::address_of(royalty_user),
             option::some(ROYALTY_PERCENTAGE),
-            option::none(), // no premint
             stage_names,
             stage_types,
             allowlist_addresses,
@@ -1839,7 +1678,6 @@ module deployment_addr::test_end_to_end {
             signer::address_of(admin),
             signer::address_of(royalty_user),
             option::some(ROYALTY_PERCENTAGE),
-            option::none(), // no premint
             stage_names,
             stage_types,
             allowlist_addresses,
@@ -1914,7 +1752,6 @@ module deployment_addr::test_end_to_end {
             signer::address_of(admin),
             signer::address_of(royalty_user),
             option::some(ROYALTY_PERCENTAGE),
-            option::none(), // no premint
             stage_names,
             stage_types,
             allowlist_addresses,
@@ -2054,7 +1891,6 @@ module deployment_addr::test_end_to_end {
             signer::address_of(admin),
             signer::address_of(royalty_user),
             option::some(ROYALTY_PERCENTAGE),
-            option::none(), // no premint
             stage_names,
             stage_types,
             allowlist_addresses,

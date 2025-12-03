@@ -70,8 +70,6 @@ module deployment_addr::nft_launchpad {
     const EONLY_COLLECTION_CREATOR_CAN_REVEAL_COLLECTION: u64 = 18;
     /// Only collection creator can modify allowlist
     const EONLY_COLLECTION_CREATOR_CAN_MODIFY_ALLOWLIST: u64 = 17;
-    /// Only collection creator can premint NFT
-    const EONLY_COLLECTION_CREATOR_CAN_PREMINT_NFT: u64 = 24;
     /// Only collection creator can update max supply
     const EONLY_COLLECTION_CREATOR_CAN_UPDATE_MAX_SUPPLY: u64 = 26;
     /// Invalid max supply
@@ -129,7 +127,6 @@ module deployment_addr::nft_launchpad {
         name: String,
         description: String,
         uri: String,
-        pre_mint_amount: Option<u64>,
         stage_names: vector<String>,
         stage_types: vector<u8>,
         allowlist_addresses: vector<Option<vector<address>>>,
@@ -146,13 +143,6 @@ module deployment_addr::nft_launchpad {
         nft_objs: vector<Object<Token>>,
         recipient_addr: address,
         total_mint_fee: u64
-    }
-
-    #[event]
-    struct BatchPreMintNftsEvent has store, drop {
-        collection_obj: Object<Collection>,
-        nft_objs: vector<Object<Token>>,
-        recipient_addr: address
     }
 
     #[event]
@@ -207,7 +197,6 @@ module deployment_addr::nft_launchpad {
         extend_ref: object::ExtendRef,
         protocol_base_fee: u64,
         protocol_percentage_fee: u64,
-        premint_amount: u64,
         max_supply: u64,
         // Extensible collection settings stored as string array
         // This allows for future extensibility without changing the struct
@@ -480,8 +469,6 @@ module deployment_addr::nft_launchpad {
         mint_fee_collector_addr: address,
         royalty_address: address,
         royalty_percentage: Option<u64>,
-        // Pre mint amount to creator
-        pre_mint_amount: Option<u64>,
         // Stage configurations
         stage_names: vector<String>,
         stage_types: vector<u8>,
@@ -505,7 +492,7 @@ module deployment_addr::nft_launchpad {
         // Vesting configuration
         vesting_cliff: u64, // Cliff period in seconds before claims allowed
         vesting_duration: u64 // Total vesting duration in seconds
-    ) acquires Config, Registry, CollectionConfig, CollectionOwnerObjConfig {
+    ) acquires Config, Registry, CollectionConfig {
         let sender_addr = signer::address_of(sender);
 
         let royalty = royalty(&mut royalty_percentage, royalty_address);
@@ -557,7 +544,6 @@ module deployment_addr::nft_launchpad {
                 collection_owner_obj,
                 protocol_base_fee: config.default_protocol_base_fee,
                 protocol_percentage_fee: config.default_protocol_percentage_fee,
-                premint_amount: 0,
                 max_supply,
                 collection_settings,
                 lp_wallet_addr,
@@ -646,7 +632,6 @@ module deployment_addr::nft_launchpad {
                 name,
                 description,
                 uri,
-                pre_mint_amount,
                 stage_names,
                 stage_types,
                 allowlist_addresses,
@@ -657,36 +642,6 @@ module deployment_addr::nft_launchpad {
                 mint_limits_per_addr
             }
         );
-
-        if (option::is_some(&pre_mint_amount) && *option::borrow(&pre_mint_amount) > 0) {
-            premint_nft(sender, collection_obj, *option::borrow(&pre_mint_amount));
-        }
-    }
-
-    public entry fun premint_nft(
-        sender: &signer, collection_obj: Object<Collection>, amount: u64
-    ) acquires CollectionConfig, CollectionOwnerObjConfig {
-        assert!(amount > 0, ECANNOT_MINT_ZERO);
-        assert!(is_mint_enabled(collection_obj), EMINT_IS_DISABLED);
-        // Check that premint can only be triggered by the collection creator
-        verify_collection_creator(
-            sender, &collection_obj, EONLY_COLLECTION_CREATOR_CAN_PREMINT_NFT
-        );
-
-        let sender_addr = signer::address_of(sender);
-
-        let nft_objs = vector[];
-        for (i in 0..amount) {
-            // Preminted NFTs have 0 mint fee (not eligible for refund)
-            let nft_obj = mint_single_nft_internal(sender_addr, collection_obj, 0);
-            vector::push_back(&mut nft_objs, nft_obj);
-        };
-
-        event::emit(BatchPreMintNftsEvent { recipient_addr: sender_addr, collection_obj, nft_objs });
-
-        let collection_config =
-            borrow_global_mut<CollectionConfig>(object::object_address(&collection_obj));
-        collection_config.premint_amount += amount;
     }
 
     /// Mint NFT, anyone with enough mint fee and has not reached mint limit can mint FA
@@ -1757,14 +1712,6 @@ module deployment_addr::nft_launchpad {
     public fun get_default_protocol_percentage_fee(): u64 acquires Config {
         let config = borrow_global<Config>(@deployment_addr);
         config.default_protocol_percentage_fee
-    }
-
-    #[view]
-    /// Get premint amount for a specific collection
-    public fun get_premint_amount(collection_obj: Object<Collection>): u64 acquires CollectionConfig {
-        let collection_config =
-            borrow_global<CollectionConfig>(object::object_address(&collection_obj));
-        collection_config.premint_amount
     }
 
     #[view]

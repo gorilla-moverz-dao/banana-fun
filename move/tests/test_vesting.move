@@ -16,14 +16,14 @@ module deployment_addr::test_vesting {
     use aptos_framework::fungible_asset;
 
     // Test constants (reused from test_end_to_end)
-    const MINT_FEE_SMALL: u64 = 2u64;
-    const MINT_LIMIT_XLARGE: u64 = 20u64;
-    const DURATION_MEDIUM: u64 = 200u64;
-    const MAX_SUPPLY: u64 = 10u64;
-    const SALE_DEADLINE_OFFSET: u64 = 10000u64;
+    const MINT_FEE_SMALL: u64 = 2;
+    const MINT_LIMIT_XLARGE: u64 = 20;
+    const DURATION_MEDIUM: u64 = 200;
+    const MAX_SUPPLY: u64 = 10;
+    const SALE_DEADLINE_OFFSET: u64 = 10000;
     const FA_SYMBOL: vector<u8> = b"BANANA";
-    const VESTING_CLIFF: u64 = 100u64;
-    const VESTING_DURATION: u64 = 1000u64;
+    const VESTING_CLIFF: u64 = 100;
+    const VESTING_DURATION: u64 = 1000;
     const STAGE_NAME_PUBLIC: vector<u8> = b"Public mint stage";
 
     // ================================= Vesting Tests ================================= //

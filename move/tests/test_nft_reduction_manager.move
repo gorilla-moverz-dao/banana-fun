@@ -104,7 +104,6 @@ module deployment_addr::test_nft_reduction_manager {
             signer::address_of(owner), // mint_fee_collector_addr
             signer::address_of(owner), // royalty_address
             option::some(10u64), // royalty_percentage (0.1% = 10 basis points)
-            option::none(), // pre_mint_amount
             stage_names,
             stage_types,
             allowlist_addresses,
