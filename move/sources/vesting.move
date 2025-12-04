@@ -9,8 +9,6 @@ module deployment_addr::vesting {
     use aptos_token_objects::collection::Collection;
     use aptos_token_objects::token::{Self, Token};
 
-    friend deployment_addr::nft_launchpad;
-
     // ================================= Errors ================================= //
 
     /// Cliff period has not passed yet
@@ -68,11 +66,11 @@ module deployment_addr::vesting {
         total_claimed: u64
     }
 
-    // ================================= Friend Functions ================================= //
+    // ================================= Package Functions ================================= //
 
     /// Initialize vesting for a collection (called by launchpad on sale completion)
     /// The FA tokens are transferred to this module's vault and held until claimed
-    public(friend) fun init_vesting(
+    public(package) fun init_vesting(
         collection_signer: &signer,
         collection_obj: Object<Collection>,
         fa_metadata: Object<Metadata>,

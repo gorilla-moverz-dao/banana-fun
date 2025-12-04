@@ -145,7 +145,7 @@ module deployment_addr::test_nft_reduction_manager {
 
         // Verify protocol fee reduction was set
         let reduction = nft_reduction_manager::get_collection_protocol_fee_reduction(COLLECTION1);
-        assert!(reduction == REDUCTION_25, 0);
+        assert!(reduction == REDUCTION_25);
     }
 
     #[test(aptos_framework = @0x1, admin = @deployment_addr)]
@@ -166,7 +166,7 @@ module deployment_addr::test_nft_reduction_manager {
 
         // Verify protocol fee reduction was updated
         let reduction = nft_reduction_manager::get_collection_protocol_fee_reduction(COLLECTION1);
-        assert!(reduction == REDUCTION_50, 0);
+        assert!(reduction == REDUCTION_50);
     }
 
     #[test(aptos_framework = @0x1, admin = @deployment_addr)]
@@ -211,7 +211,7 @@ module deployment_addr::test_nft_reduction_manager {
 
         // Verify protocol fee reduction was removed
         let reduction = nft_reduction_manager::get_collection_protocol_fee_reduction(COLLECTION1);
-        assert!(reduction == 0, 0);
+        assert!(reduction == 0);
     }
 
     #[test(aptos_framework = @0x1, admin = @deployment_addr)]
@@ -293,7 +293,7 @@ module deployment_addr::test_nft_reduction_manager {
         // Verify the protocol fee reduction was set
         let reduction =
             nft_reduction_manager::get_collection_protocol_fee_reduction(collection_addr);
-        assert!(reduction == REDUCTION_25, 0);
+        assert!(reduction == REDUCTION_25);
     }
 
     #[test(aptos_framework = @0x1, admin = @deployment_addr)]
@@ -311,7 +311,7 @@ module deployment_addr::test_nft_reduction_manager {
     fun test_apply_protocol_fee_reduction_zero_percentage() {
         let reduced_protocol_fee =
             nft_reduction_manager::test_calculate_protocol_fee_reduction(ORIGINAL_FEE, 0);
-        assert!(reduced_protocol_fee == ORIGINAL_FEE, 0);
+        assert!(reduced_protocol_fee == ORIGINAL_FEE);
     }
 
     #[test]
@@ -320,7 +320,7 @@ module deployment_addr::test_nft_reduction_manager {
             nft_reduction_manager::test_calculate_protocol_fee_reduction(
                 ORIGINAL_FEE, REDUCTION_10
             );
-        assert!(reduced_protocol_fee == 900000, 0); // 1000000 - (1000000 * 10 / 100) = 900000
+        assert!(reduced_protocol_fee == 900000); // 1000000 - (1000000 * 10 / 100) = 900000
     }
 
     #[test]
@@ -329,7 +329,7 @@ module deployment_addr::test_nft_reduction_manager {
             nft_reduction_manager::test_calculate_protocol_fee_reduction(
                 ORIGINAL_FEE, REDUCTION_25
             );
-        assert!(reduced_protocol_fee == 750000, 0); // 1000000 - (1000000 * 25 / 100) = 750000
+        assert!(reduced_protocol_fee == 750000); // 1000000 - (1000000 * 25 / 100) = 750000
     }
 
     #[test]
@@ -338,7 +338,7 @@ module deployment_addr::test_nft_reduction_manager {
             nft_reduction_manager::test_calculate_protocol_fee_reduction(
                 ORIGINAL_FEE, REDUCTION_50
             );
-        assert!(reduced_protocol_fee == 500000, 0); // 1000000 - (1000000 * 50 / 100) = 500000
+        assert!(reduced_protocol_fee == 500000); // 1000000 - (1000000 * 50 / 100) = 500000
     }
 
     #[test]
@@ -347,7 +347,7 @@ module deployment_addr::test_nft_reduction_manager {
             nft_reduction_manager::test_calculate_protocol_fee_reduction(
                 ORIGINAL_FEE, REDUCTION_100
             );
-        assert!(reduced_protocol_fee == 0, 0); // 1000000 - (1000000 * 100 / 100) = 0
+        assert!(reduced_protocol_fee == 0); // 1000000 - (1000000 * 100 / 100) = 0
     }
 
     // ================================= Minting with Reduction Tests ================================= //
@@ -365,9 +365,9 @@ module deployment_addr::test_nft_reduction_manager {
                 ORIGINAL_FEE, reduction_nfts, USER1
             );
 
-        assert!(reduced_protocol_fee == ORIGINAL_FEE, 0);
-        assert!(reduction_percentage == 0, 0);
-        assert!(returned_nfts.length() == 0, 0);
+        assert!(reduced_protocol_fee == ORIGINAL_FEE);
+        assert!(reduction_percentage == 0);
+        assert!(returned_nfts.length() == 0);
     }
 
     #[test(aptos_framework = @0x1, admin = @deployment_addr)]
@@ -397,9 +397,9 @@ module deployment_addr::test_nft_reduction_manager {
             );
 
         // Without reduction NFTs, should return original protocol fee
-        assert!(reduced_protocol_fee == ORIGINAL_FEE, 0);
-        assert!(reduction_percentage == 0, 0);
-        assert!(returned_nfts.length() == 0, 0);
+        assert!(reduced_protocol_fee == ORIGINAL_FEE);
+        assert!(reduction_percentage == 0);
+        assert!(returned_nfts.length() == 0);
     }
 
     #[test(aptos_framework = @0x1, admin = @deployment_addr)]
@@ -428,9 +428,9 @@ module deployment_addr::test_nft_reduction_manager {
             );
 
         // Should return original protocol fee when system is disabled
-        assert!(reduced_protocol_fee == ORIGINAL_FEE, 0);
-        assert!(reduction_percentage == 0, 0);
-        assert!(returned_nfts.length() == 0, 0);
+        assert!(reduced_protocol_fee == ORIGINAL_FEE);
+        assert!(reduction_percentage == 0);
+        assert!(returned_nfts.length() == 0);
     }
 
     // ================================= Integration Tests ================================= //
@@ -498,21 +498,21 @@ module deployment_addr::test_nft_reduction_manager {
     fun test_protocol_fee_reduction_with_zero_fee() {
         let reduced_protocol_fee =
             nft_reduction_manager::test_calculate_protocol_fee_reduction(0, REDUCTION_25);
-        assert!(reduced_protocol_fee == 0, 0);
+        assert!(reduced_protocol_fee == 0);
     }
 
     #[test]
     fun test_protocol_fee_reduction_with_small_fee() {
         let reduced_protocol_fee =
             nft_reduction_manager::test_calculate_protocol_fee_reduction(100, REDUCTION_25);
-        assert!(reduced_protocol_fee == 75, 0); // 100 - (100 * 25 / 100) = 75
+        assert!(reduced_protocol_fee == 75); // 100 - (100 * 25 / 100) = 75
     }
 
     #[test]
     fun test_protocol_fee_reduction_with_odd_percentage() {
         let reduced_protocol_fee =
             nft_reduction_manager::test_calculate_protocol_fee_reduction(1000, 33);
-        assert!(reduced_protocol_fee == 670, 0); // 1000 - (1000 * 33 / 100) = 670
+        assert!(reduced_protocol_fee == 670); // 1000 - (1000 * 33 / 100) = 670
     }
 
     #[test(aptos_framework = @0x1, admin = @deployment_addr)]
@@ -613,9 +613,9 @@ module deployment_addr::test_nft_reduction_manager {
             );
 
         // Verify the protocol fee reduction was applied correctly
-        assert!(reduced_protocol_fee == 750000, 0); // 1000000 - (1000000 * 25 / 100) = 750000
-        assert!(reduction_percentage == REDUCTION_25, 0);
-        assert!(returned_nfts.length() == 1, 0);
+        assert!(reduced_protocol_fee == 750000); // 1000000 - (1000000 * 25 / 100) = 750000
+        assert!(reduction_percentage == REDUCTION_25);
+        assert!(returned_nfts.length() == 1);
     }
 
     #[test(aptos_framework = @0x1, admin = @deployment_addr)]
@@ -659,9 +659,9 @@ module deployment_addr::test_nft_reduction_manager {
             );
 
         // Should apply stacked protocol fee reduction (85%): 1000000 - (1000000 * 85 / 100) = 150000
-        assert!(reduced_protocol_fee == 150000, 0); // 1000000 - (1000000 * 85 / 100) = 150000
-        assert!(reduction_percentage == 85, 0);
-        assert!(returned_nfts.length() == 3, 0);
+        assert!(reduced_protocol_fee == 150000); // 1000000 - (1000000 * 85 / 100) = 150000
+        assert!(reduction_percentage == 85);
+        assert!(returned_nfts.length() == 3);
     }
 
     #[test(aptos_framework = @0x1, admin = @deployment_addr)]
@@ -689,9 +689,9 @@ module deployment_addr::test_nft_reduction_manager {
             );
 
         // Should result in 0 protocol fee
-        assert!(reduced_protocol_fee == 0, 0);
-        assert!(reduction_percentage == REDUCTION_100, 0);
-        assert!(returned_nfts.length() == 1, 0);
+        assert!(reduced_protocol_fee == 0);
+        assert!(reduction_percentage == REDUCTION_100);
+        assert!(returned_nfts.length() == 1);
     }
 
     #[test(aptos_framework = @0x1, admin = @deployment_addr)]
@@ -723,9 +723,9 @@ module deployment_addr::test_nft_reduction_manager {
             );
 
         // Should return original protocol fee when system is disabled
-        assert!(reduced_protocol_fee == ORIGINAL_FEE, 0);
-        assert!(reduction_percentage == 0, 0);
-        assert!(returned_nfts.length() == 1, 0);
+        assert!(reduced_protocol_fee == ORIGINAL_FEE);
+        assert!(reduction_percentage == 0);
+        assert!(returned_nfts.length() == 1);
 
         // Re-enable system
         nft_reduction_manager::set_protocol_fee_reduction_enabled(admin, true);
@@ -759,9 +759,9 @@ module deployment_addr::test_nft_reduction_manager {
             );
 
         // Should return 0 protocol fee
-        assert!(reduced_protocol_fee == 0, 0);
-        assert!(reduction_percentage == REDUCTION_25, 0);
-        assert!(returned_nfts.length() == 1, 0);
+        assert!(reduced_protocol_fee == 0);
+        assert!(reduction_percentage == REDUCTION_25);
+        assert!(returned_nfts.length() == 1);
     }
 
     #[test(aptos_framework = @0x1, admin = @deployment_addr)]
@@ -791,9 +791,9 @@ module deployment_addr::test_nft_reduction_manager {
             );
 
         // Should apply 25% reduction to small protocol fee
-        assert!(reduced_protocol_fee == 75, 0); // 100 - (100 * 25 / 100) = 75
-        assert!(reduction_percentage == REDUCTION_25, 0);
-        assert!(returned_nfts.length() == 1, 0);
+        assert!(reduced_protocol_fee == 75); // 100 - (100 * 25 / 100) = 75
+        assert!(reduction_percentage == REDUCTION_25);
+        assert!(returned_nfts.length() == 1);
     }
 
     // ================================= Advanced Integration Tests ================================= //
@@ -862,16 +862,16 @@ module deployment_addr::test_nft_reduction_manager {
         );
 
         // Verify the protocol fee reduction was applied correctly
-        assert!(reduced_protocol_fee == expected_reduced_protocol_fee, 0);
-        assert!(reduction_percentage == REDUCTION_25, 0);
-        assert!(returned_nfts.length() == 1, 0);
+        assert!(reduced_protocol_fee == expected_reduced_protocol_fee);
+        assert!(reduction_percentage == REDUCTION_25);
+        assert!(returned_nfts.length() == 1);
 
         // Step 8: Test that the protocol fee reduction calculation is correct
         let calculated_reduced_protocol_fee =
             nft_reduction_manager::test_calculate_protocol_fee_reduction(
                 expected_protocol_fee, REDUCTION_25
             );
-        assert!(calculated_reduced_protocol_fee == expected_reduced_protocol_fee, 0);
+        assert!(calculated_reduced_protocol_fee == expected_reduced_protocol_fee);
     }
 
     #[test(aptos_framework = @0x1, admin = @deployment_addr)]
@@ -914,15 +914,15 @@ module deployment_addr::test_nft_reduction_manager {
             );
 
         // All should apply the same protocol fee reduction
-        assert!(reduced_protocol_fee1 == 750000, 0);
-        assert!(reduced_protocol_fee2 == 750000, 0);
-        assert!(reduced_protocol_fee3 == 750000, 0);
-        assert!(reduction_percentage1 == REDUCTION_25, 0);
-        assert!(reduction_percentage2 == REDUCTION_25, 0);
-        assert!(reduction_percentage3 == REDUCTION_25, 0);
-        assert!(returned_nfts1.length() == 1, 0);
-        assert!(returned_nfts2.length() == 1, 0);
-        assert!(returned_nfts3.length() == 1, 0);
+        assert!(reduced_protocol_fee1 == 750000);
+        assert!(reduced_protocol_fee2 == 750000);
+        assert!(reduced_protocol_fee3 == 750000);
+        assert!(reduction_percentage1 == REDUCTION_25);
+        assert!(reduction_percentage2 == REDUCTION_25);
+        assert!(reduction_percentage3 == REDUCTION_25);
+        assert!(returned_nfts1.length() == 1);
+        assert!(returned_nfts2.length() == 1);
+        assert!(returned_nfts3.length() == 1);
     }
 
     #[test(aptos_framework = @0x1, admin = @deployment_addr)]
@@ -972,9 +972,9 @@ module deployment_addr::test_nft_reduction_manager {
             );
 
         // Should apply 10% reduction: 1000000 - (1000000 * 10 / 100) = 900000
-        assert!(reduced_protocol_fee_1 == 900000, 0);
-        assert!(reduction_percentage_1 == REDUCTION_10, 0);
-        assert!(returned_nfts_1.length() == 1, 0);
+        assert!(reduced_protocol_fee_1 == 900000);
+        assert!(reduction_percentage_1 == REDUCTION_10);
+        assert!(returned_nfts_1.length() == 1);
 
         // Test 2: Two NFTs (10% + 20% = 30% reduction)
         let reduction_nfts_2 = vector[nft_10, nft_20];
@@ -984,9 +984,9 @@ module deployment_addr::test_nft_reduction_manager {
             );
 
         // Should apply 30% reduction: 1000000 - (1000000 * 30 / 100) = 700000
-        assert!(reduced_protocol_fee_2 == 700000, 0);
-        assert!(reduction_percentage_2 == 30, 0);
-        assert!(returned_nfts_2.length() == 2, 0);
+        assert!(reduced_protocol_fee_2 == 700000);
+        assert!(reduction_percentage_2 == 30);
+        assert!(returned_nfts_2.length() == 2);
 
         // Test 3: Three NFTs (10% + 20% + 30% = 60% reduction)
         let reduction_nfts_3 = vector[nft_10, nft_20, nft_30];
@@ -996,9 +996,9 @@ module deployment_addr::test_nft_reduction_manager {
             );
 
         // Should apply 60% reduction: 1000000 - (1000000 * 60 / 100) = 400000
-        assert!(reduced_protocol_fee_3 == 400000, 0);
-        assert!(reduction_percentage_3 == 60, 0);
-        assert!(returned_nfts_3.length() == 3, 0);
+        assert!(reduced_protocol_fee_3 == 400000);
+        assert!(reduction_percentage_3 == 60);
+        assert!(returned_nfts_3.length() == 3);
 
         // Test 4: Four NFTs (10% + 20% + 30% + 50% = 110%, but capped at 100%)
         let reduction_nfts_4 = vector[nft_10, nft_20, nft_30, nft_50];
@@ -1008,9 +1008,9 @@ module deployment_addr::test_nft_reduction_manager {
             );
 
         // Should apply 100% reduction (capped): 1000000 - (1000000 * 100 / 100) = 0
-        assert!(reduced_protocol_fee_4 == 0, 0);
-        assert!(reduction_percentage_4 == 100, 0);
-        assert!(returned_nfts_4.length() == 4, 0);
+        assert!(reduced_protocol_fee_4 == 0);
+        assert!(reduction_percentage_4 == 100);
+        assert!(returned_nfts_4.length() == 4);
 
         // Test 5: Verify the protocol fee reduction calculation directly
         let expected_reduced_protocol_fee_1 =
@@ -1024,10 +1024,10 @@ module deployment_addr::test_nft_reduction_manager {
         let expected_reduced_protocol_fee_4 =
             nft_reduction_manager::test_calculate_protocol_fee_reduction(ORIGINAL_FEE, 100);
 
-        assert!(expected_reduced_protocol_fee_1 == 900000, 0);
-        assert!(expected_reduced_protocol_fee_2 == 700000, 0);
-        assert!(expected_reduced_protocol_fee_3 == 400000, 0);
-        assert!(expected_reduced_protocol_fee_4 == 0, 0);
+        assert!(expected_reduced_protocol_fee_1 == 900000);
+        assert!(expected_reduced_protocol_fee_2 == 700000);
+        assert!(expected_reduced_protocol_fee_3 == 400000);
+        assert!(expected_reduced_protocol_fee_4 == 0);
     }
 
     // ================================= Error Case Tests ================================= //
@@ -1114,16 +1114,16 @@ module deployment_addr::test_nft_reduction_manager {
             );
 
         // Should apply 25% reduction to large protocol fee
-        assert!(reduced_protocol_fee == 750000000000, 0); // 1000000000000 - (1000000000000 * 25 / 100) = 750000000000
-        assert!(reduction_percentage == REDUCTION_25, 0);
-        assert!(returned_nfts.length() == 1, 0);
+        assert!(reduced_protocol_fee == 750000000000); // 1000000000000 - (1000000000000 * 25 / 100) = 750000000000
+        assert!(reduction_percentage == REDUCTION_25);
+        assert!(returned_nfts.length() == 1);
 
         // Test the protocol fee reduction calculation directly
         let expected_reduced_protocol_fee =
             nft_reduction_manager::test_calculate_protocol_fee_reduction(
                 large_protocol_fee, REDUCTION_25
             );
-        assert!(expected_reduced_protocol_fee == 750000000000, 0); // 1000000000000 - (1000000000000 * 25 / 100) = 750000000000
+        assert!(expected_reduced_protocol_fee == 750000000000); // 1000000000000 - (1000000000000 * 25 / 100) = 750000000000
     }
 }
 

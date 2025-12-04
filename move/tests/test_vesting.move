@@ -121,7 +121,7 @@ module deployment_addr::test_vesting {
 
         // Check initial balance is 0
         let initial_balance = primary_fungible_store::balance(user1_addr, fa_metadata);
-        assert!(initial_balance == 0, 0);
+        assert!(initial_balance == 0);
 
         // Move time past cliff (VESTING_CLIFF = 100, so move to SALE_DEADLINE_OFFSET + 1 + 150)
         // This should vest ~15% of the amount (150/1000 duration)
@@ -133,7 +133,7 @@ module deployment_addr::test_vesting {
         // Check balance increased
         let final_balance = primary_fungible_store::balance(user1_addr, fa_metadata);
         debug::print(&final_balance);
-        assert!(final_balance > 0, 1);
+        assert!(final_balance > 0);
 
         // Calculate expected vested amount
         // Total vesting pool = 10% of 1B = 100M tokens
@@ -145,7 +145,7 @@ module deployment_addr::test_vesting {
         let amount_per_nft = vesting_pool / MAX_SUPPLY;
         let expected_vested = amount_per_nft * 150 / VESTING_DURATION;
         debug::print(&expected_vested);
-        assert!(final_balance == expected_vested, 2);
+        assert!(final_balance == expected_vested);
     }
 
     #[test(
@@ -211,7 +211,7 @@ module deployment_addr::test_vesting {
         let vesting_pool = total_supply * 10 / 100;
         let amount_per_nft = vesting_pool / MAX_SUPPLY;
         debug::print(&amount_per_nft);
-        assert!(final_balance == amount_per_nft, 1);
+        assert!(final_balance == amount_per_nft);
     }
 
     #[

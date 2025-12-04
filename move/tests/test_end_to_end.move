@@ -318,7 +318,7 @@ module deployment_addr::test_end_to_end {
         );
         let registry = nft_launchpad::get_registry();
         let collection_1 = registry[registry.length() - 1];
-        assert!(collection::count(collection_1) == option::some(0), 1);
+        assert!(collection::count(collection_1) == option::some(0));
 
         let total_fee = get_total_mint_fee(collection_1, utf8(STAGE_NAME_ALLOWLIST), 1);
         mint(user1_addr, total_fee);
@@ -326,38 +326,35 @@ module deployment_addr::test_end_to_end {
         nft_launchpad::mint_nft(user1, collection_1, 1, vector[]);
 
         let active_or_next_stage = nft_launchpad::get_active_or_next_mint_stage(collection_1);
-        assert!(
-            active_or_next_stage == option::some(utf8(STAGE_NAME_GUARANTEED_ALLOWLIST)),
-            3
-        );
+        assert!(active_or_next_stage == option::some(utf8(STAGE_NAME_GUARANTEED_ALLOWLIST)));
         let (start_time, end_time) =
             nft_launchpad::get_mint_stage_start_and_end_time(
                 collection_1, utf8(STAGE_NAME_GUARANTEED_ALLOWLIST)
             );
-        assert!(start_time == 0, 4);
-        assert!(end_time == DURATION_SHORT, 5);
+        assert!(start_time == 0);
+        assert!(end_time == DURATION_SHORT);
 
         // bump global timestamp to 150 so allowlist stage is over but public mint stage is not started yet
         timestamp::update_global_time_for_test_secs(350);
         let active_or_next_stage = nft_launchpad::get_active_or_next_mint_stage(collection_1);
-        assert!(active_or_next_stage == option::some(utf8(STAGE_NAME_PUBLIC)), 6);
+        assert!(active_or_next_stage == option::some(utf8(STAGE_NAME_PUBLIC)));
         let (start_time, end_time) =
             nft_launchpad::get_mint_stage_start_and_end_time(
                 collection_1, utf8(STAGE_NAME_PUBLIC)
             );
-        assert!(start_time == DURATION_LONG, 7);
-        assert!(end_time == DURATION_LONG + DURATION_SHORT, 8);
+        assert!(start_time == DURATION_LONG);
+        assert!(end_time == DURATION_LONG + DURATION_SHORT);
 
         // bump global timestamp to 550 so public mint stage is active
         timestamp::update_global_time_for_test_secs(550);
         let active_or_next_stage = nft_launchpad::get_active_or_next_mint_stage(collection_1);
-        assert!(active_or_next_stage == option::some(utf8(STAGE_NAME_PUBLIC)), 9);
+        assert!(active_or_next_stage == option::some(utf8(STAGE_NAME_PUBLIC)));
         let (start_time, end_time) =
             nft_launchpad::get_mint_stage_start_and_end_time(
                 collection_1, utf8(STAGE_NAME_PUBLIC)
             );
-        assert!(start_time == DURATION_LONG, 10);
-        assert!(end_time == DURATION_LONG + DURATION_SHORT, 11);
+        assert!(start_time == DURATION_LONG);
+        assert!(end_time == DURATION_LONG + DURATION_SHORT);
 
         let total_fee = get_total_mint_fee(collection_1, utf8(STAGE_NAME_PUBLIC), 1);
         mint(user1_addr, total_fee);
@@ -367,7 +364,7 @@ module deployment_addr::test_end_to_end {
         // bump global timestamp to 650 so public mint stage is over
         timestamp::update_global_time_for_test_secs(650);
         let active_or_next_stage = nft_launchpad::get_active_or_next_mint_stage(collection_1);
-        assert!(active_or_next_stage == option::none(), 12);
+        assert!(active_or_next_stage == option::none());
 
     }
 
@@ -396,7 +393,7 @@ module deployment_addr::test_end_to_end {
                 DURATION_SHORT // public_duration
             );
 
-        assert!(nft_launchpad::is_mint_enabled(collection_1), 1);
+        assert!(nft_launchpad::is_mint_enabled(collection_1));
 
         let total_fee = get_total_mint_fee(collection_1, utf8(STAGE_NAME_ALLOWLIST), 1);
         mint(user1_addr, total_fee);
@@ -404,7 +401,7 @@ module deployment_addr::test_end_to_end {
         nft_launchpad::mint_nft(user1, collection_1, 1, vector[]);
 
         nft_launchpad::update_mint_enabled(sender, collection_1, false);
-        assert!(!nft_launchpad::is_mint_enabled(collection_1), 2);
+        assert!(!nft_launchpad::is_mint_enabled(collection_1));
 
         nft_launchpad::mint_nft(user1, collection_1, 1, vector[]);
 
@@ -434,7 +431,7 @@ module deployment_addr::test_end_to_end {
                 DURATION_SHORT // public_duration
             );
 
-        assert!(nft_launchpad::is_mint_enabled(collection_1), 1);
+        assert!(nft_launchpad::is_mint_enabled(collection_1));
 
         let total_fee = get_total_mint_fee(collection_1, utf8(STAGE_NAME_ALLOWLIST), 1);
         mint(user1_addr, total_fee);
@@ -468,19 +465,12 @@ module deployment_addr::test_end_to_end {
         let token_name = &aptos_token_objects::token::name(refreshed_nft_obj);
         debug::print(token_name);
 
-        assert!(
-            aptos_token_objects::token::name(refreshed_nft_obj) == utf8(REVEALED_NAME),
-            2
-        );
+        assert!(aptos_token_objects::token::name(refreshed_nft_obj) == utf8(REVEALED_NAME));
         assert!(
             aptos_token_objects::token::description(refreshed_nft_obj)
-                == utf8(REVEALED_DESCRIPTION),
-            3
+                == utf8(REVEALED_DESCRIPTION)
         );
-        assert!(
-            aptos_token_objects::token::uri(refreshed_nft_obj) == utf8(REVEALED_URI),
-            4
-        );
+        assert!(aptos_token_objects::token::uri(refreshed_nft_obj) == utf8(REVEALED_URI));
 
     }
 
@@ -554,7 +544,7 @@ module deployment_addr::test_end_to_end {
         let total_fee = get_total_mint_fee(collection, utf8(STAGE_NAME_ALLOWLIST), 1);
         mint(user1_addr, total_fee);
         nft_launchpad::mint_nft(user1, collection, 1, vector[]);
-        assert!(collection::count(collection) == option::some(1), 1);
+        assert!(collection::count(collection) == option::some(1));
 
         // Move to public stage
         timestamp::update_global_time_for_test_secs(250);
@@ -562,7 +552,7 @@ module deployment_addr::test_end_to_end {
         mint(user2_addr, total_fee);
         nft_launchpad::mint_nft(user2, collection, 1, vector[]);
         debug::print(&collection::count(collection));
-        assert!(collection::count(collection) == option::some(2), 2);
+        assert!(collection::count(collection) == option::some(2));
 
     }
 
@@ -597,7 +587,7 @@ module deployment_addr::test_end_to_end {
         // Verify initial mint fee
         let initial_mint_fee =
             nft_launchpad::get_mint_fee(collection_1, utf8(STAGE_NAME_ALLOWLIST), 1);
-        assert!(initial_mint_fee == MINT_FEE_MEDIUM, 1);
+        assert!(initial_mint_fee == MINT_FEE_MEDIUM);
 
         // Update mint fee to 5
         nft_launchpad::update_mint_fee(
@@ -610,7 +600,7 @@ module deployment_addr::test_end_to_end {
         // Verify updated mint fee
         let updated_mint_fee =
             nft_launchpad::get_mint_fee(collection_1, utf8(STAGE_NAME_ALLOWLIST), 1);
-        assert!(updated_mint_fee == PROTOCOL_BASE_FEE, 2);
+        assert!(updated_mint_fee == PROTOCOL_BASE_FEE);
 
     }
 
@@ -638,8 +628,8 @@ module deployment_addr::test_end_to_end {
             nft_launchpad::get_mint_stage_start_and_end_time(
                 collection_obj, utf8(STAGE_NAME_ALLOWLIST)
             );
-        assert!(start_time == 0, 0); // Helper function starts at now_seconds() which is 0
-        assert!(end_time == DURATION_XLONG, 0); // allowlist_duration
+        assert!(start_time == 0); // Helper function starts at now_seconds() which is 0
+        assert!(end_time == DURATION_XLONG); // allowlist_duration
 
         // Update mint times as admin
         nft_launchpad::update_mint_times(
@@ -655,18 +645,18 @@ module deployment_addr::test_end_to_end {
             nft_launchpad::get_mint_stage_start_and_end_time(
                 collection_obj, utf8(STAGE_NAME_ALLOWLIST)
             );
-        assert!(new_start_time == 200, 0);
-        assert!(new_end_time == 1500, 0);
+        assert!(new_start_time == 200);
+        assert!(new_end_time == 1500);
 
         // Get next mint stage
         let next_mint_stage = nft_launchpad::get_active_or_next_mint_stage(collection_obj);
-        assert!(next_mint_stage == option::some(utf8(STAGE_NAME_ALLOWLIST)), 0);
+        assert!(next_mint_stage == option::some(utf8(STAGE_NAME_ALLOWLIST)));
 
         // Update test time
         timestamp::update_global_time_for_test_secs(1600);
 
         next_mint_stage = nft_launchpad::get_active_or_next_mint_stage(collection_obj);
-        assert!(next_mint_stage == option::some(utf8(STAGE_NAME_PUBLIC)), 0);
+        assert!(next_mint_stage == option::some(utf8(STAGE_NAME_PUBLIC)));
     }
 
     #[test(aptos_framework = @0x1, admin = @deployment_addr, user = @0x123)]
@@ -763,7 +753,7 @@ module deployment_addr::test_end_to_end {
         // Verify mint balance
         let mint_balance =
             nft_launchpad::get_mint_balance(collection_obj, utf8(STAGE_NAME_PUBLIC), user1_addr);
-        assert!(mint_balance == 3, 0); // 5 - 2 = 3 remaining
+        assert!(mint_balance == 3); // 5 - 2 = 3 remaining
     }
 
     #[test(
@@ -791,8 +781,7 @@ module deployment_addr::test_end_to_end {
         assert!(
             nft_launchpad::is_allowlisted(
                 collection_obj, utf8(STAGE_NAME_ALLOWLIST_ONLY), user1_addr
-            ),
-            0
+            )
         );
 
         // Mint coins for the user to cover mint fees
@@ -807,7 +796,7 @@ module deployment_addr::test_end_to_end {
             nft_launchpad::get_mint_balance(
                 collection_obj, utf8(STAGE_NAME_ALLOWLIST_ONLY), user1_addr
             );
-        assert!(mint_balance == 1, 0); // 3 - 2 = 1 remaining
+        assert!(mint_balance == 1); // 3 - 2 = 1 remaining
     }
 
     #[test(
@@ -832,7 +821,7 @@ module deployment_addr::test_end_to_end {
 
         // Verify initial protocol base fee is 0 (default)
         let initial_protocol_base_fee = nft_launchpad::get_protocol_base_fee(collection_obj);
-        assert!(initial_protocol_base_fee == 0, 0);
+        assert!(initial_protocol_base_fee == 0);
 
         // Update protocol base fee to 5
         nft_launchpad::update_protocol_base_fee_for_collection(
@@ -841,7 +830,7 @@ module deployment_addr::test_end_to_end {
 
         // Verify updated protocol base fee
         let updated_protocol_base_fee = nft_launchpad::get_protocol_base_fee(collection_obj);
-        assert!(updated_protocol_base_fee == PROTOCOL_BASE_FEE, 1);
+        assert!(updated_protocol_base_fee == PROTOCOL_BASE_FEE);
 
         // Mint coins for the user to cover mint fees + protocol base fee
         let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 1);
@@ -853,7 +842,7 @@ module deployment_addr::test_end_to_end {
         // Verify mint balance
         let mint_balance =
             nft_launchpad::get_mint_balance(collection_obj, utf8(STAGE_NAME_PUBLIC), user1_addr);
-        assert!(mint_balance == 4, 2); // 5 - 1 = 4 remaining
+        assert!(mint_balance == 4); // 5 - 1 = 4 remaining
     }
 
     #[test(
@@ -905,7 +894,7 @@ module deployment_addr::test_end_to_end {
 
         // Verify protocol base fee is 0
         let protocol_base_fee = nft_launchpad::get_protocol_base_fee(collection_obj);
-        assert!(protocol_base_fee == 0, 0);
+        assert!(protocol_base_fee == 0);
 
         // Mint coins for the user to cover only mint fees (no protocol base fee)
         let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 1);
@@ -917,7 +906,7 @@ module deployment_addr::test_end_to_end {
         // Verify mint balance
         let mint_balance =
             nft_launchpad::get_mint_balance(collection_obj, utf8(STAGE_NAME_PUBLIC), user1_addr);
-        assert!(mint_balance == 4, 1); // 5 - 1 = 4 remaining
+        assert!(mint_balance == 4); // 5 - 1 = 4 remaining
     }
 
     #[test(
@@ -933,14 +922,14 @@ module deployment_addr::test_end_to_end {
 
         // Verify initial default protocol base fee is 0
         let initial_default_fee = nft_launchpad::get_default_protocol_base_fee();
-        assert!(initial_default_fee == 0, 0);
+        assert!(initial_default_fee == 0);
 
         // Update default protocol base fee to 10
         nft_launchpad::update_default_protocol_base_fee(admin, PROTOCOL_BASE_FEE_LARGE);
 
         // Verify updated default protocol base fee
         let updated_default_fee = nft_launchpad::get_default_protocol_base_fee();
-        assert!(updated_default_fee == PROTOCOL_BASE_FEE_LARGE, 1);
+        assert!(updated_default_fee == PROTOCOL_BASE_FEE_LARGE);
 
         // Create a new collection and verify it inherits the new default fee
         let collection_obj =
@@ -954,7 +943,7 @@ module deployment_addr::test_end_to_end {
 
         // Verify the new collection has the updated default protocol base fee
         let collection_protocol_fee = nft_launchpad::get_protocol_base_fee(collection_obj);
-        assert!(collection_protocol_fee == PROTOCOL_BASE_FEE_LARGE, 2);
+        assert!(collection_protocol_fee == PROTOCOL_BASE_FEE_LARGE);
     }
 
     #[test(aptos_framework = @0x1, admin = @deployment_addr, user1 = @0x200)]
@@ -1001,7 +990,7 @@ module deployment_addr::test_end_to_end {
         // Verify updated protocol percentage fee
         let updated_protocol_percentage_fee =
             nft_launchpad::get_protocol_percentage_fee(collection_obj);
-        assert!(updated_protocol_percentage_fee == PROTOCOL_PERCENTAGE_FEE_SMALL, 1);
+        assert!(updated_protocol_percentage_fee == PROTOCOL_PERCENTAGE_FEE_SMALL);
 
         // Mint coins for the user to cover mint fees + protocol percentage fee
         // mint_fee = 100, protocol_percentage_fee = 2.5% => 2.5 APT (rounded down to 2)
@@ -1030,7 +1019,7 @@ module deployment_addr::test_end_to_end {
 
         // Verify initial default protocol percentage fee is 0
         let initial_default_fee = nft_launchpad::get_default_protocol_percentage_fee();
-        assert!(initial_default_fee == 0, 0);
+        assert!(initial_default_fee == 0);
 
         // Update default protocol percentage fee to 500 (5%)
         nft_launchpad::update_default_protocol_percentage_fee(
@@ -1039,7 +1028,7 @@ module deployment_addr::test_end_to_end {
 
         // Verify updated default protocol percentage fee
         let updated_default_fee = nft_launchpad::get_default_protocol_percentage_fee();
-        assert!(updated_default_fee == PROTOCOL_PERCENTAGE_FEE_MEDIUM, 1);
+        assert!(updated_default_fee == PROTOCOL_PERCENTAGE_FEE_MEDIUM);
 
         // Create a new collection and verify it inherits the new default fee
         let collection_obj =
@@ -1053,7 +1042,7 @@ module deployment_addr::test_end_to_end {
 
         // Verify the new collection has the updated default protocol percentage fee
         let collection_protocol_fee = nft_launchpad::get_protocol_percentage_fee(collection_obj);
-        assert!(collection_protocol_fee == PROTOCOL_PERCENTAGE_FEE_MEDIUM, 2);
+        assert!(collection_protocol_fee == PROTOCOL_PERCENTAGE_FEE_MEDIUM);
 
         // Mint coins for the user to cover mint fees + protocol percentage fee
         let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 1);
@@ -1065,7 +1054,7 @@ module deployment_addr::test_end_to_end {
         // Verify mint balance
         let mint_balance =
             nft_launchpad::get_mint_balance(collection_obj, utf8(STAGE_NAME_PUBLIC), user1_addr);
-        assert!(mint_balance == 4, 3); // 5 - 1 = 4 remaining
+        assert!(mint_balance == 4); // 5 - 1 = 4 remaining
     }
 
     #[test(
@@ -1102,7 +1091,7 @@ module deployment_addr::test_end_to_end {
         nft_launchpad::mint_nft(user1, collection_obj, 1, vector[]);
         let mint_balance =
             nft_launchpad::get_mint_balance(collection_obj, utf8(STAGE_NAME_PUBLIC), user1_addr);
-        assert!(mint_balance == 4, 4);
+        assert!(mint_balance == 4);
     }
 
     #[test(
@@ -1164,52 +1153,52 @@ module deployment_addr::test_end_to_end {
             );
 
         // Initially, both collections should have listing disabled (default)
-        assert!(!nft_launchpad::is_listing_enabled(collection_1), 0);
-        assert!(!nft_launchpad::is_listing_enabled(collection_2), 1);
+        assert!(!nft_launchpad::is_listing_enabled(collection_1));
+        assert!(!nft_launchpad::is_listing_enabled(collection_2));
 
         // Initially, get_listed_collections should return empty vector
         let listed_collections = nft_launchpad::get_listed_collections();
-        assert!(listed_collections.length() == 0, 2);
+        assert!(listed_collections.length() == 0);
 
         // Enable listing for first collection
         nft_launchpad::update_listing_enabled(admin, collection_1, true);
-        assert!(nft_launchpad::is_listing_enabled(collection_1), 3);
-        assert!(!nft_launchpad::is_listing_enabled(collection_2), 4);
+        assert!(nft_launchpad::is_listing_enabled(collection_1));
+        assert!(!nft_launchpad::is_listing_enabled(collection_2));
 
         // get_listed_collections should now return only collection_1
         let listed_collections = nft_launchpad::get_listed_collections();
-        assert!(listed_collections.length() == 1, 5);
+        assert!(listed_collections.length() == 1);
         let first_listed = listed_collections[0];
-        assert!(first_listed == collection_1, 6);
+        assert!(first_listed == collection_1);
 
         // Enable listing for second collection
         nft_launchpad::update_listing_enabled(admin, collection_2, true);
-        assert!(nft_launchpad::is_listing_enabled(collection_1), 7);
-        assert!(nft_launchpad::is_listing_enabled(collection_2), 8);
+        assert!(nft_launchpad::is_listing_enabled(collection_1));
+        assert!(nft_launchpad::is_listing_enabled(collection_2));
 
         // get_listed_collections should now return both collections
         let listed_collections = nft_launchpad::get_listed_collections();
-        assert!(listed_collections.length() == 2, 9);
+        assert!(listed_collections.length() == 2);
 
         // Disable listing for first collection
         nft_launchpad::update_listing_enabled(admin, collection_1, false);
-        assert!(!nft_launchpad::is_listing_enabled(collection_1), 10);
-        assert!(nft_launchpad::is_listing_enabled(collection_2), 11);
+        assert!(!nft_launchpad::is_listing_enabled(collection_1));
+        assert!(nft_launchpad::is_listing_enabled(collection_2));
 
         // get_listed_collections should now return only collection_2
         let listed_collections = nft_launchpad::get_listed_collections();
-        assert!(listed_collections.length() == 1, 12);
+        assert!(listed_collections.length() == 1);
         let first_listed = listed_collections[0];
-        assert!(first_listed == collection_2, 13);
+        assert!(first_listed == collection_2);
 
         // Disable listing for second collection
         nft_launchpad::update_listing_enabled(admin, collection_2, false);
-        assert!(!nft_launchpad::is_listing_enabled(collection_1), 14);
-        assert!(!nft_launchpad::is_listing_enabled(collection_2), 15);
+        assert!(!nft_launchpad::is_listing_enabled(collection_1));
+        assert!(!nft_launchpad::is_listing_enabled(collection_2));
 
         // get_listed_collections should now return empty vector again
         let listed_collections = nft_launchpad::get_listed_collections();
-        assert!(listed_collections.length() == 0, 16);
+        assert!(listed_collections.length() == 0);
     }
 
     #[test(
@@ -1260,7 +1249,7 @@ module deployment_addr::test_end_to_end {
         // Verify initial mint fee collector is the creator address
         let initial_mint_fee_collector =
             nft_launchpad::get_collection_mint_fee_collector_addr(collection_obj);
-        assert!(initial_mint_fee_collector == signer::address_of(admin), 0);
+        assert!(initial_mint_fee_collector == signer::address_of(admin));
 
         // Update mint fee collector to a different address
         let new_mint_fee_collector = @0x999;
@@ -1271,11 +1260,11 @@ module deployment_addr::test_end_to_end {
         // Verify updated mint fee collector
         let updated_mint_fee_collector =
             nft_launchpad::get_collection_mint_fee_collector_addr(collection_obj);
-        assert!(updated_mint_fee_collector == new_mint_fee_collector, 1);
+        assert!(updated_mint_fee_collector == new_mint_fee_collector);
 
         // Verify creator address remains unchanged
         let creator_addr = nft_launchpad::get_collection_creator_addr(collection_obj);
-        assert!(creator_addr == signer::address_of(admin), 2);
+        assert!(creator_addr == signer::address_of(admin));
     }
 
     #[test(
@@ -1333,7 +1322,7 @@ module deployment_addr::test_end_to_end {
 
         // Verify we can mint up to the new max supply
         let updated_count = collection::count(collection_obj);
-        assert!(updated_count == option::some(5), 1);
+        assert!(updated_count == option::some(5));
 
         // Try to mint more (should still work within new limit)
         let total_fee_2 = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 10);
@@ -1341,7 +1330,7 @@ module deployment_addr::test_end_to_end {
         nft_launchpad::mint_nft(user1, collection_obj, 10, vector[]);
 
         let final_count = collection::count(collection_obj);
-        assert!(final_count == option::some(15), 2); // 5 + 10 = 15
+        assert!(final_count == option::some(15)); // 5 + 10 = 15
     }
 
     #[test(
@@ -1522,7 +1511,7 @@ module deployment_addr::test_end_to_end {
 
         // Verify initial collected funds is 0
         let initial_funds = nft_launchpad::get_collected_funds(collection_obj);
-        assert!(initial_funds == 0, 0);
+        assert!(initial_funds == 0);
 
         // Mint coins for the user to cover mint fees
         let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 2);
@@ -1534,11 +1523,11 @@ module deployment_addr::test_end_to_end {
 
         // Verify funds are now collected
         let collected_funds = nft_launchpad::get_collected_funds(collection_obj);
-        assert!(collected_funds > 0, 1);
+        assert!(collected_funds > 0);
 
         // Verify refund amount is stored per NFT
         let refund_amount = nft_launchpad::get_nft_refund_amount(nft1);
-        assert!(refund_amount == MINT_FEE_SMALL, 2);
+        assert!(refund_amount == MINT_FEE_SMALL);
     }
 
     #[
@@ -1609,7 +1598,7 @@ module deployment_addr::test_end_to_end {
         nft_launchpad::mint_nft(user1, collection_obj, MAX_SUPPLY, vector[]);
 
         // Verify sale is not completed yet
-        assert!(!nft_launchpad::is_sale_completed(collection_obj), 0);
+        assert!(!nft_launchpad::is_sale_completed(collection_obj));
 
         // Move time past deadline
         timestamp::update_global_time_for_test_secs(DURATION_MEDIUM + 1);
@@ -1618,7 +1607,7 @@ module deployment_addr::test_end_to_end {
         nft_launchpad::check_and_complete_sale(collection_obj);
 
         // Verify sale is completed
-        assert!(nft_launchpad::is_sale_completed(collection_obj), 1);
+        assert!(nft_launchpad::is_sale_completed(collection_obj));
     }
 
     #[
@@ -1771,19 +1760,19 @@ module deployment_addr::test_end_to_end {
 
         // Verify refund amount is stored per NFT
         let refund_amount = nft_launchpad::get_nft_refund_amount(nft1);
-        assert!(refund_amount == MINT_FEE_SMALL, 0);
+        assert!(refund_amount == MINT_FEE_SMALL);
 
         // Move time past deadline
         timestamp::update_global_time_for_test_secs(DURATION_MEDIUM + 1);
 
         // User can now reclaim (sale failed because threshold not met)
-        assert!(nft_launchpad::can_reclaim(collection_obj, user1_addr), 1);
+        assert!(nft_launchpad::can_reclaim(collection_obj, user1_addr));
 
         // Reclaim funds by returning NFT1
         nft_launchpad::reclaim_funds(user1, collection_obj, nft1);
 
         // User can still reclaim with remaining NFTs
-        assert!(nft_launchpad::can_reclaim(collection_obj, user1_addr), 2);
+        assert!(nft_launchpad::can_reclaim(collection_obj, user1_addr));
 
         // Reclaim with NFT2 and NFT3
         nft_launchpad::reclaim_funds(user1, collection_obj, nft2);
@@ -1913,19 +1902,19 @@ module deployment_addr::test_end_to_end {
 
         // Verify refund amount is stored per NFT
         let refund_amount = nft_launchpad::get_nft_refund_amount(user1_nft1);
-        assert!(refund_amount == MINT_FEE_SMALL, 0);
+        assert!(refund_amount == MINT_FEE_SMALL);
 
         // Move time past deadline
         timestamp::update_global_time_for_test_secs(DURATION_MEDIUM + 1);
 
         // Both users can reclaim (sale failed)
-        assert!(nft_launchpad::can_reclaim(collection_obj, user1_addr), 1);
-        assert!(nft_launchpad::can_reclaim(collection_obj, user2_addr), 2);
+        assert!(nft_launchpad::can_reclaim(collection_obj, user1_addr));
+        assert!(nft_launchpad::can_reclaim(collection_obj, user2_addr));
 
         // User1 reclaims with first NFT
         nft_launchpad::reclaim_funds(user1, collection_obj, user1_nft1);
         // User1 can still reclaim with second NFT
-        assert!(nft_launchpad::can_reclaim(collection_obj, user1_addr), 3);
+        assert!(nft_launchpad::can_reclaim(collection_obj, user1_addr));
 
         // User1 reclaims with second NFT
         nft_launchpad::reclaim_funds(user1, collection_obj, user1_nft2);
@@ -1968,9 +1957,9 @@ module deployment_addr::test_end_to_end {
         let lp_wallet_from_contract = nft_launchpad::get_lp_wallet_addr(collection_obj);
         let is_completed = nft_launchpad::is_sale_completed(collection_obj);
 
-        assert!(sale_deadline == SALE_DEADLINE_OFFSET, 0);
-        assert!(lp_wallet_from_contract == LP_WALLET, 1);
-        assert!(!is_completed, 2);
+        assert!(sale_deadline == SALE_DEADLINE_OFFSET);
+        assert!(lp_wallet_from_contract == LP_WALLET);
+        assert!(!is_completed);
     }
 
     // ================================= Fungible Asset Creation Tests ================================= //
@@ -2005,7 +1994,7 @@ module deployment_addr::test_end_to_end {
         nft_launchpad::mint_nft(user1, collection_obj, MAX_SUPPLY, vector[]);
 
         // Verify sale is not completed yet
-        assert!(!nft_launchpad::is_sale_completed(collection_obj), 0);
+        assert!(!nft_launchpad::is_sale_completed(collection_obj));
 
         // Move time past deadline (helper uses SALE_DEADLINE_OFFSET)
         timestamp::update_global_time_for_test_secs(SALE_DEADLINE_OFFSET + 1);
@@ -2014,7 +2003,7 @@ module deployment_addr::test_end_to_end {
         nft_launchpad::check_and_complete_sale(collection_obj);
 
         // Verify sale is completed
-        assert!(nft_launchpad::is_sale_completed(collection_obj), 1);
+        assert!(nft_launchpad::is_sale_completed(collection_obj));
 
         // Get the FA metadata object address (it's created as a named object under collection owner)
         let collection_owner_obj = nft_launchpad::get_collection_owner_obj(collection_obj);
@@ -2025,8 +2014,8 @@ module deployment_addr::test_end_to_end {
         // Verify FA metadata
         let fa_name = fungible_asset::name(fa_metadata);
         let fa_symbol = fungible_asset::symbol(fa_metadata);
-        assert!(fa_name == utf8(FA_NAME), 2);
-        assert!(fa_symbol == utf8(FA_SYMBOL), 3);
+        assert!(fa_name == utf8(FA_NAME));
+        assert!(fa_symbol == utf8(FA_SYMBOL));
 
         // Constants from launchpad (10% LP, 10% vesting, 80% contract)
         let total_supply: u64 = 1_000_000_000_000_000_000; // 1B * 10^9
@@ -2040,21 +2029,21 @@ module deployment_addr::test_end_to_end {
         // Verify LP wallet received 10% of the FA
         let lp_fa_balance = primary_fungible_store::balance(LP_WALLET, fa_metadata);
         debug::print(&lp_fa_balance);
-        assert!(lp_fa_balance == expected_lp_amount, 4);
+        assert!(lp_fa_balance == expected_lp_amount);
 
         // Verify collection owner (contract) holds 80% of the FA
         let contract_fa_balance =
             primary_fungible_store::balance(collection_owner_addr, fa_metadata);
         debug::print(&contract_fa_balance);
-        assert!(contract_fa_balance == expected_contract_amount, 5);
+        assert!(contract_fa_balance == expected_contract_amount);
 
         // Verify vesting is initialized
-        assert!(vesting::is_vesting_initialized(collection_obj), 6);
+        assert!(vesting::is_vesting_initialized(collection_obj));
 
         // Verify vesting pool has 10% of FA
         let vesting_balance = vesting::get_remaining_vesting_tokens(collection_obj);
         debug::print(&vesting_balance);
-        assert!(vesting_balance == expected_vesting_amount, 7);
+        assert!(vesting_balance == expected_vesting_amount);
     }
 }
 
