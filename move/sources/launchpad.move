@@ -26,6 +26,8 @@ module deployment_addr::nft_launchpad {
     use deployment_addr::nft_reduction_manager;
     use deployment_addr::vesting;
 
+    use Yuzuswap::scripts;
+
     /// Only collection creator can update creator
     const EONLY_COLLECTION_CREATOR_CAN_UPDATE_CREATOR: u64 = 1;
     /// Only admin can set pending admin

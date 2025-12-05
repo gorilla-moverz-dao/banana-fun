@@ -1,0 +1,27 @@
+[package]
+name = "Yuzuswap"
+version = "1.0.0"
+authors = []
+
+[addresses]
+yuzuswap = "0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a"
+pool_admin = "0x10834a54f1c6064da9909e0f3cf4319cad8e08ca9a38f7fa19a851bf951fcbce"
+reward_admin = "0x10834a54f1c6064da9909e0f3cf4319cad8e08ca9a38f7fa19a851bf951fcbce"
+emergency_admin = "0x10834a54f1c6064da9909e0f3cf4319cad8e08ca9a38f7fa19a851bf951fcbce"
+treasury = "0xf5013610bc5abc7ecd151dd9fecf0def83fd5d44ad8d167a117491c5e1e8bac6"
+
+test_helpers = "0x123456"
+
+[dev-addresses]
+
+[dependencies.AptosFramework]
+git = "https://github.com/movementlabsxyz/aptos-core.git"
+rev = "movement"
+subdir = "aptos-move/framework/aptos-framework"
+
+[dependencies.AptosTokenObjects]
+git = "https://github.com/movementlabsxyz/aptos-core.git"
+rev = "movement"
+subdir = "aptos-move/framework/aptos-token-objects"
+
+[dev-dependencies]
