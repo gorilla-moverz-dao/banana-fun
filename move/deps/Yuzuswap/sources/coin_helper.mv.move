@@ -42,6 +42,10 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::coin_
         let _v2 = ResourceSignerCap{signer_cap: _v1};
         move_to<ResourceSignerCap>(p0, _v2);
     }
+    #[test_only]
+    public fun init_module_for_test(p0: &signer) {
+        init_module(p0);
+    }
     public fun paired_metadata_unchecked<T0>(): object::Object<fungible_asset::Metadata> {
         option::destroy_some<object::Object<fungible_asset::Metadata>>(coin::paired_metadata<T0>())
     }

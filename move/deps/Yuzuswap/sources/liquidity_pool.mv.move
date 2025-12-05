@@ -1217,6 +1217,10 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::liqui
         let _v3 = LiquidityPools{all_pools: vector::empty<object::Object<LiquidityPool>>()};
         move_to<LiquidityPools>(p0, _v3);
     }
+    #[test_only]
+    public fun init_module_for_test(p0: &signer) {
+        init_module(p0);
+    }
     friend fun initialize_reward(p0: &signer, p1: object::Object<LiquidityPool>, p2: object::Object<fungible_asset::Metadata>, p3: address)
         acquires LiquidityPool
     {

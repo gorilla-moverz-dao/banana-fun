@@ -49,4 +49,9 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::fee_t
         let _v1 = FeeTiers{fee_tiers: _v0};
         move_to<FeeTiers>(p0, _v1);
     }
+
+    #[test_only]
+    public fun init_module_for_test(p0: &signer) {
+        init_module(p0);
+    }
 }

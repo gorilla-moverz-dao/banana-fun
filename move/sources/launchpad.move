@@ -25,8 +25,7 @@ module deployment_addr::nft_launchpad {
     use minter::collection_components;
     use deployment_addr::nft_reduction_manager;
     use deployment_addr::vesting;
-
-    use Yuzuswap::scripts;
+    use deployment_addr::dex;
 
     /// Only collection creator can update creator
     const EONLY_COLLECTION_CREATOR_CAN_UPDATE_CREATOR: u64 = 1;
@@ -892,9 +891,10 @@ module deployment_addr::nft_launchpad {
         let vesting_amount = FA_TOTAL_SUPPLY * FA_VESTING_PERCENTAGE / 100;
         let contract_amount = FA_TOTAL_SUPPLY - lp_amount - vesting_amount;
 
-        // Extract LP portion and deposit to LP wallet
+        // Extract LP portion and deposit to collection owner (for Yuzuswap pool creation)
         let lp_fa = fungible_asset::extract(&mut minted_fa, lp_amount);
-        primary_fungible_store::deposit(lp_wallet_addr, lp_fa);
+        let collection_owner_addr = object::object_address(&collection_owner_obj);
+        primary_fungible_store::deposit(collection_owner_addr, lp_fa);
 
         // Extract vesting portion and store in VestingPool
         let vesting_fa = fungible_asset::extract(&mut minted_fa, vesting_amount);
@@ -917,13 +917,34 @@ module deployment_addr::nft_launchpad {
             vesting_duration
         );
 
+        // Create Yuzuswap LP pool only if there are funds to pair with
+        let token_a_metadata = fa_metadata; // The new FA token
+        let token_b_metadata = object::address_to_object<fungible_asset::Metadata>(@0xa); // Native MOVE metadata
+        let fee: u64 = 500; // 0.05% fee tier (tick_spacing = 10)
+        // Ticks must have abs_tick (distance from zero_tick=443636) divisible by tick_spacing
+        let tick_lower: u32 = 6; // 443636 - 443630, abs_tick=443630 divisible by 10
+        let tick_upper: u32 = 887266; // 443636 + 443630, abs_tick=443630 divisible by 10
+        let amount_a: u64 = lp_amount; // Amount of new FA token for LP
+        let amount_b: u64 = total_funds; // Amount of MOVE collected from sales
+
+        dex::create_pool_with_liquidity(
+            &collection_owner_signer,
+            token_a_metadata,
+            token_b_metadata,
+            fee,
+            tick_lower,
+            tick_upper,
+            amount_a,
+            amount_b
+        );
+
         // Store the rest in the collection owner (contract holds 80%)
-        let collection_owner_addr = object::object_address(&collection_owner_obj);
         primary_fungible_store::deposit(collection_owner_addr, minted_fa);
 
         // Transfer APT funds to LP wallet
         if (total_funds > 0) {
-            aptos_account::transfer(&collection_owner_signer, lp_wallet_addr, total_funds);
+            // TODO: Implement transfer to DEV Wallet
+            // aptos_account::transfer(&collection_owner_signer, lp_wallet_addr, total_funds);
         };
 
         // Emit sale completed event

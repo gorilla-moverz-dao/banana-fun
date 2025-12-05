@@ -16,6 +16,7 @@ module deployment_addr::test_end_to_end {
     use deployment_addr::nft_launchpad;
     use deployment_addr::nft_reduction_manager;
     use deployment_addr::vesting;
+    use deployment_addr::dex;
 
     use aptos_framework::primary_fungible_store;
     use aptos_framework::fungible_asset;
@@ -708,6 +709,10 @@ module deployment_addr::test_end_to_end {
 
         coin::destroy_burn_cap(burn_cap);
         coin::destroy_mint_cap(mint_cap);
+
+        // Initialize Yuzuswap modules for testing
+        let yuzuswap_signer = account::create_signer_for_test(@yuzuswap);
+        dex::setup_test_env(&yuzuswap_signer);
 
         (user1_addr)
     }

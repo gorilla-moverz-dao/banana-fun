@@ -15,13 +15,13 @@ test_helpers = "0x123456"
 [dev-addresses]
 
 [dependencies.AptosFramework]
-git = "https://github.com/movementlabsxyz/aptos-core.git"
-rev = "movement"
+git = "https://github.com/movementlabsxyz/aptos-core"
+rev = "l1-migration"
 subdir = "aptos-move/framework/aptos-framework"
 
 [dependencies.AptosTokenObjects]
-git = "https://github.com/movementlabsxyz/aptos-core.git"
-rev = "movement"
+git = "https://github.com/movementlabsxyz/aptos-core"
+rev = "l1-migration"
 subdir = "aptos-move/framework/aptos-token-objects"
 
 [dev-dependencies]
