@@ -1,4 +1,4 @@
-module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::i128 {
+module yuzuswap::i128 {
     struct I128 has copy, drop, store {
         value: u128,
         is_negative: bool,

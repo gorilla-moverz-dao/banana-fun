@@ -1,7 +1,7 @@
-module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::tick_math {
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::bit_math;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::fixed_point;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::tick;
+module yuzuswap::tick_math {
+    use yuzuswap::bit_math;
+    use yuzuswap::fixed_point;
+    use yuzuswap::tick;
     public fun get_sqrt_price_at_tick(p0: u32): u128 {
         let _v0;
         let _v1;

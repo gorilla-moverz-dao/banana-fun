@@ -1,4 +1,4 @@
-module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::coin_helper {
+module yuzuswap::coin_helper {
     use 0x1::account;
     use 0x1::coin;
     use 0x1::fungible_asset;
@@ -6,7 +6,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::coin_
     use 0x1::option;
     use 0x1::primary_fungible_store;
     use 0x1::signer;
-    friend 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::router;
+    friend yuzuswap::router;
     struct ResourceSignerCap has key {
         signer_cap: account::SignerCapability,
     }
@@ -35,7 +35,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::coin_
     fun get_acc_signer(): signer
         acquires ResourceSignerCap
     {
-        account::create_signer_with_capability(&borrow_global<ResourceSignerCap>(@0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a).signer_cap)
+        account::create_signer_with_capability(&borrow_global<ResourceSignerCap>(@yuzuswap).signer_cap)
     }
     fun init_module(p0: &signer) {
         let (_v0,_v1) = account::create_resource_account(p0, vector[99u8, 111u8, 105u8, 110u8, 95u8, 104u8, 101u8, 108u8, 112u8, 101u8, 114u8]);

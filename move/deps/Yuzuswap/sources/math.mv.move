@@ -1,4 +1,4 @@
-module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::math {
+module yuzuswap::math {
     use 0x1::error;
     public fun div_rounding_up_u128(p0: u128, p1: u128): u128 {
         let _v0 = p0 / p1;

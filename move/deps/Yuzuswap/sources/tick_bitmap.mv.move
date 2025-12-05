@@ -1,7 +1,7 @@
-module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::tick_bitmap {
+module yuzuswap::tick_bitmap {
     use 0x1::table;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::bit_math;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::tick;
+    use yuzuswap::bit_math;
+    use yuzuswap::tick;
     public fun flip_tick(p0: &mut table::Table<u16, u256>, p1: u32, p2: u32) {
         assert!(tick::is_spaced_tick(p1, p2), 1);
         let _v0 = tick::tick_adjustment(p2);

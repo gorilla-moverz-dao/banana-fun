@@ -1,7 +1,7 @@
-module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::emergency {
+module yuzuswap::emergency {
     use 0x1::account;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::config;
-    friend 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::liquidity_pool;
+    use yuzuswap::config;
+    friend yuzuswap::liquidity_pool;
     struct EmergencyAccountCap has key {
         signer_cap: account::SignerCapability
     }
@@ -20,7 +20,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::emerg
         let _v0 =
             account::create_signer_with_capability(
                 &borrow_global<EmergencyAccountCap>(
-                    @0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a
+                    @yuzuswap
                 ).signer_cap
             );
         let _v1 = &_v0;
@@ -31,7 +31,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::emerg
     fun get_emergency_account_address(): address acquires EmergencyAccountCap {
         account::get_signer_capability_address(
             &borrow_global<EmergencyAccountCap>(
-                @0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a
+                @yuzuswap
             ).signer_cap
         )
     }
@@ -66,7 +66,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::emerg
         let _v0 =
             account::create_signer_with_capability(
                 &borrow_global<EmergencyAccountCap>(
-                    @0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a
+                    @yuzuswap
                 ).signer_cap
             );
         let _v1 = &_v0;

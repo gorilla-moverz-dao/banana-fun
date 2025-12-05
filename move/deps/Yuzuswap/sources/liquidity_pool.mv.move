@@ -1,4 +1,4 @@
-module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::liquidity_pool {
+module yuzuswap::liquidity_pool {
     use 0x1::account;
     use 0x1::aptos_hash;
     use 0x1::bcs;
@@ -16,24 +16,24 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::liqui
     use 0x1::table;
     use 0x1::timestamp;
     use 0x1::vector;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::config;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::emergency;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::fa_helper;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::fee_tier;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::fixed_point;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::i128;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::i64;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::liquidity_math;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::math;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::oracle;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::sqrt_price_math;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::swap_math;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::tick;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::tick_bitmap;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::tick_math;
-    friend 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::position_nft_manager;
-    friend 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::reward_manager;
-    friend 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::router;
+    use yuzuswap::config;
+    use yuzuswap::emergency;
+    use yuzuswap::fa_helper;
+    use yuzuswap::fee_tier;
+    use yuzuswap::fixed_point;
+    use yuzuswap::i128;
+    use yuzuswap::i64;
+    use yuzuswap::liquidity_math;
+    use yuzuswap::math;
+    use yuzuswap::oracle;
+    use yuzuswap::sqrt_price_math;
+    use yuzuswap::swap_math;
+    use yuzuswap::tick;
+    use yuzuswap::tick_bitmap;
+    use yuzuswap::tick_math;
+    friend yuzuswap::position_nft_manager;
+    friend yuzuswap::reward_manager;
+    friend yuzuswap::router;
     struct AddLiquidityEvent has drop, store {
         user: address,
         pool: address,
@@ -650,7 +650,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::liqui
     public fun count_pool(): u64
         acquires LiquidityPools
     {
-        vector::length<object::Object<LiquidityPool>>(&borrow_global<LiquidityPools>(@0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a).all_pools)
+        vector::length<object::Object<LiquidityPool>>(&borrow_global<LiquidityPools>(@yuzuswap).all_pools)
     }
     fun create_oracle(p0: &signer) {
         let _v0 = vector::empty<oracle::Observation>();
@@ -677,7 +677,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::liqui
         assert!(fa_helper::is_sorted(p1, p2), 101);
         let _v0 = fee_tier::get_tick_spacing(p3);
         let _v1 = tick_math::get_tick_at_sqrt_price(p4);
-        let _v2 = account::create_signer_with_capability(&borrow_global<PoolAccountCap>(@0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a).signer_cap);
+        let _v2 = account::create_signer_with_capability(&borrow_global<PoolAccountCap>(@yuzuswap).signer_cap);
         let _v3 = p3;
         let _v4 = p2;
         let _v5 = p1;
@@ -711,7 +711,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::liqui
         let _v29 = LiquidityPool{token_0_reserve: _v20, token_1_reserve: _v22, current_tick: _v1, current_sqrt_price: p4, liquidity: 0u128, tick_bitmap: _v23, ticks: _v24, positions: _v25, next_position_id: 1, fee_growth_global_0_x64: 0u256, fee_growth_global_1_x64: 0u256, reward_infos: _v26, reward_last_updated_at_seconds: 0, fee_rate: p3, tick_spacing: _v0, max_liquidity_per_tick: _v27, unlocked: true, extend_ref: _v28};
         move_to<LiquidityPool>(_v18, _v29);
         create_oracle(_v18);
-        let _v30 = &mut borrow_global_mut<LiquidityPools>(@0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a).all_pools;
+        let _v30 = &mut borrow_global_mut<LiquidityPools>(@yuzuswap).all_pools;
         let _v31 = object::object_from_constructor_ref<LiquidityPool>(_v16);
         vector::push_back<object::Object<LiquidityPool>>(_v30, _v31);
         let _v32 = signer::address_of(p0);
@@ -754,7 +754,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::liqui
     public fun get_all_pools(): vector<object::Object<LiquidityPool>>
         acquires LiquidityPools
     {
-        *&borrow_global<LiquidityPools>(@0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a).all_pools
+        *&borrow_global<LiquidityPools>(@yuzuswap).all_pools
     }
     fun get_fee_growth_inside_tick(p0: &table::Table<u32, TickInfo>, p1: u32, p2: u32, p3: u32, p4: u256, p5: u256): (u256, u256) {
         let _v0;
@@ -831,12 +831,12 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::liqui
     fun get_pool_account_address(): address
         acquires PoolAccountCap
     {
-        account::get_signer_capability_address(&borrow_global<PoolAccountCap>(@0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a).signer_cap)
+        account::get_signer_capability_address(&borrow_global<PoolAccountCap>(@yuzuswap).signer_cap)
     }
     fun get_pool_account_signer(): signer
         acquires PoolAccountCap
     {
-        account::create_signer_with_capability(&borrow_global<PoolAccountCap>(@0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a).signer_cap)
+        account::create_signer_with_capability(&borrow_global<PoolAccountCap>(@yuzuswap).signer_cap)
     }
     public fun get_pool_address(p0: object::Object<fungible_asset::Metadata>, p1: object::Object<fungible_asset::Metadata>, p2: u64): address
         acquires PoolAccountCap
@@ -925,7 +925,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::liqui
     public fun get_pool_views(p0: u64, p1: u64): vector<LiquidityPoolView>
         acquires LiquidityPool, LiquidityPools
     {
-        let _v0 = &borrow_global<LiquidityPools>(@0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a).all_pools;
+        let _v0 = &borrow_global<LiquidityPools>(@yuzuswap).all_pools;
         let _v1 = vector::empty<LiquidityPoolView>();
         let _v2 = p0;
         let _v3 = false;

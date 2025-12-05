@@ -1,7 +1,7 @@
-module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::fee_tier {
+module yuzuswap::fee_tier {
     use 0x1::event;
     use 0x1::table;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::config;
+    use yuzuswap::config;
     struct AddFeeTierEvent has drop, store {
         fee: u64,
         tick_spacing: u64,
@@ -20,7 +20,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::fee_t
         assert!(p1 < _v0, 202);
         assert!(p2 > 0u32, 205);
         config::assert_pool_admin(p0);
-        let _v1 = &mut borrow_global_mut<FeeTiers>(@0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a).fee_tiers;
+        let _v1 = &mut borrow_global_mut<FeeTiers>(@yuzuswap).fee_tiers;
         assert!(!table::contains<u64,u32>(freeze(_v1), p1), 203);
         table::add<u64,u32>(_v1, p1, p2);
     }
@@ -28,7 +28,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::fee_t
         acquires FeeTiers
     {
         config::assert_pool_admin(p0);
-        let _v0 = &mut borrow_global_mut<FeeTiers>(@0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a).fee_tiers;
+        let _v0 = &mut borrow_global_mut<FeeTiers>(@yuzuswap).fee_tiers;
         assert!(table::contains<u64,u32>(freeze(_v0), p1), 204);
         let _v1 = table::remove<u64,u32>(_v0, p1);
         event::emit<DeleteFeeTierEvent>(DeleteFeeTierEvent{fee: p1});
@@ -36,7 +36,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::fee_t
     public fun get_tick_spacing(p0: u64): u32
         acquires FeeTiers
     {
-        let _v0 = &borrow_global<FeeTiers>(@0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a).fee_tiers;
+        let _v0 = &borrow_global<FeeTiers>(@yuzuswap).fee_tiers;
         assert!(table::contains<u64,u32>(_v0, p0), 204);
         *table::borrow<u64,u32>(_v0, p0)
     }

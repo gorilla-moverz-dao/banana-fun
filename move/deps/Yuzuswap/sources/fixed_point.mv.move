@@ -1,4 +1,4 @@
-module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::fixed_point {
+module yuzuswap::fixed_point {
     public fun q64(): u128 {
         18446744073709551616u128
     }

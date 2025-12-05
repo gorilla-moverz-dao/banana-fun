@@ -1,13 +1,13 @@
-module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::scripts {
+module yuzuswap::scripts {
     use 0x1::coin;
     use 0x1::fungible_asset;
     use 0x1::object;
     use 0x1::primary_fungible_store;
     use 0x1::signer;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::coin_helper;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::liquidity_pool;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::position_nft_manager;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::router;
+    use yuzuswap::coin_helper;
+    use yuzuswap::liquidity_pool;
+    use yuzuswap::position_nft_manager;
+    use yuzuswap::router;
     public entry fun add_liquidity(p0: &signer, p1: object::Object<liquidity_pool::LiquidityPool>, p2: u64, p3: u32, p4: u32, p5: u64, p6: u64, p7: u64, p8: u64) {
         let (_v0,_v1) = liquidity_pool::get_tokens(p1);
         let _v2 = primary_fungible_store::withdraw<fungible_asset::Metadata>(p0, _v0, p5);

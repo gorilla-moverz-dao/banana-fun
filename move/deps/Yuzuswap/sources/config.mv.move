@@ -1,4 +1,4 @@
-module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::config {
+module yuzuswap::config {
     use 0x1::signer;
     use 0x1::table;
     struct Config has key {
@@ -14,34 +14,34 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::confi
     }
 
     public fun pool_admin(): address acquires Config {
-        *&borrow_global<Config>(@0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a)
+        *&borrow_global<Config>(@yuzuswap)
             .pool_admin
     }
 
     public fun reward_admin(): address acquires Config {
-        *&borrow_global<Config>(@0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a)
+        *&borrow_global<Config>(@yuzuswap)
             .reward_admin
     }
 
     public fun emergency_admin(): address acquires Config {
-        *&borrow_global<Config>(@0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a)
+        *&borrow_global<Config>(@yuzuswap)
             .pool_admin
     }
 
     public fun treasury(): address acquires Config {
-        *&borrow_global<Config>(@0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a)
+        *&borrow_global<Config>(@yuzuswap)
             .treasury
     }
 
     public fun protocol_fee_rate(): u64 acquires Config {
-        *&borrow_global<Config>(@0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a)
+        *&borrow_global<Config>(@yuzuswap)
             .protocol_fee_rate
     }
 
     public fun assert_emergency_admin(p0: &signer) acquires Config {
         let _v0 =
             borrow_global<Config>(
-                @0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a
+                @yuzuswap
             );
         let _v1 = signer::address_of(p0);
         let _v2 = *&_v0.emergency_admin;
@@ -51,7 +51,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::confi
     public fun assert_pool_admin(p0: &signer) acquires Config {
         let _v0 =
             borrow_global<Config>(
-                @0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a
+                @yuzuswap
             );
         let _v1 = signer::address_of(p0);
         let _v2 = *&_v0.pool_admin;
@@ -61,7 +61,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::confi
     public fun assert_reward_admin(p0: &signer) acquires Config {
         let _v0 =
             borrow_global<Config>(
-                @0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a
+                @yuzuswap
             );
         let _v1 = signer::address_of(p0);
         let _v2 = *&_v0.reward_admin;
@@ -76,7 +76,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::confi
         let _v0;
         let _v1 =
             &borrow_global<TraderFeeMultipliers>(
-                @0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a
+                @yuzuswap
             ).values;
         if (table::contains<address, u64>(_v1, p0)) _v0 = *table::borrow<address, u64>(_v1, p0)
         else _v0 = 10000;
@@ -87,7 +87,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::confi
         let _v0;
         let _v1 =
             &borrow_global<TraderFeeMultipliers>(
-                @0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a
+                @yuzuswap
             ).values;
         if (table::contains<address, u64>(_v1, p0)) {
             let _v2 = *table::borrow<address, u64>(_v1, p0);
@@ -115,7 +115,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::confi
         assert_emergency_admin(p0);
         let _v0 =
             &mut borrow_global_mut<Config>(
-                @0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a
+                @yuzuswap
             ).emergency_admin;
         *_v0 = p1;
     }
@@ -124,7 +124,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::confi
         assert_pool_admin(p0);
         let _v0 =
             &mut borrow_global_mut<Config>(
-                @0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a
+                @yuzuswap
             ).pool_admin;
         *_v0 = p1;
     }
@@ -134,7 +134,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::confi
         assert!(p1 <= 1000000, 2);
         let _v0 =
             &mut borrow_global_mut<Config>(
-                @0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a
+                @yuzuswap
             ).protocol_fee_rate;
         *_v0 = p1;
     }
@@ -143,7 +143,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::confi
         assert_reward_admin(p0);
         let _v0 =
             &mut borrow_global_mut<Config>(
-                @0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a
+                @yuzuswap
             ).reward_admin;
         *_v0 = p1;
     }
@@ -157,7 +157,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::confi
         assert!(_v0 == _v1, 4);
         let _v2 =
             &mut borrow_global_mut<TraderFeeMultipliers>(
-                @0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a
+                @yuzuswap
             ).values;
         'l0: loop {
             loop {
@@ -182,7 +182,7 @@ module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::confi
         assert_pool_admin(p0);
         let _v0 =
             &mut borrow_global_mut<Config>(
-                @0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a
+                @yuzuswap
             ).treasury;
         *_v0 = p1;
     }

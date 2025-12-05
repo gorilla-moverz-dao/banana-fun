@@ -1,4 +1,4 @@
-module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::unsafe_math {
+module yuzuswap::unsafe_math {
     fun mul_div(p0: u256, p1: u256, p2: u256): u256 {
         p0 * p1 / p2
     }

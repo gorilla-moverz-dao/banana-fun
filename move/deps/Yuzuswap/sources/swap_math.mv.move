@@ -1,8 +1,8 @@
-module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::swap_math {
+module yuzuswap::swap_math {
     use 0x1::error;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::config;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::math;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::sqrt_price_math;
+    use yuzuswap::config;
+    use yuzuswap::math;
+    use yuzuswap::sqrt_price_math;
     public fun compute_swap_step(p0: u128, p1: u128, p2: u128, p3: u64, p4: bool, p5: u64): (u128, u64, u64, u64) {
         let _v0;
         let _v1;

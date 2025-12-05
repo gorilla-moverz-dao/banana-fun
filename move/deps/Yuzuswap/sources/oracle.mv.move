@@ -1,8 +1,8 @@
-module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::oracle {
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::i64;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::math;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::tick;
-    friend 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::liquidity_pool;
+module yuzuswap::oracle {
+    use yuzuswap::i64;
+    use yuzuswap::math;
+    use yuzuswap::tick;
+    friend yuzuswap::liquidity_pool;
     struct Observation has copy, drop, store {
         timestamp: u64,
         tick_cumulative: i64::I64,

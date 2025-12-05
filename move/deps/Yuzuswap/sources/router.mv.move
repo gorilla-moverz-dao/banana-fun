@@ -1,15 +1,15 @@
-module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::router {
+module yuzuswap::router {
     use 0x1::coin;
     use 0x1::fungible_asset;
     use 0x1::object;
     use 0x1::option;
     use 0x1::string;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::coin_helper;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::fa_helper;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::liquidity_pool;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::position_nft_manager;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::tick_math;
-    friend 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::scripts;
+    use yuzuswap::coin_helper;
+    use yuzuswap::fa_helper;
+    use yuzuswap::liquidity_pool;
+    use yuzuswap::position_nft_manager;
+    use yuzuswap::tick_math;
+    friend yuzuswap::scripts;
     public fun add_liquidity(p0: &signer, p1: object::Object<liquidity_pool::LiquidityPool>, p2: u64, p3: u32, p4: u32, p5: fungible_asset::FungibleAsset, p6: fungible_asset::FungibleAsset, p7: u64, p8: u64): (fungible_asset::FungibleAsset, fungible_asset::FungibleAsset) {
         let (_v0,_v1,_v2) = add_liquidity_with_position_id(p0, p1, p2, p3, p4, p5, p6, p7, p8);
         (_v1, _v2)

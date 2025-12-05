@@ -1,8 +1,8 @@
-module 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::liquidity_math {
+module yuzuswap::liquidity_math {
     use 0x1::error;
     use 0x1::math128;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::fixed_point;
-    use 0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a::sqrt_price_math;
+    use yuzuswap::fixed_point;
+    use yuzuswap::sqrt_price_math;
     public fun get_amounts_for_liquidity(p0: u128, p1: u128, p2: u128, p3: u128): (u64, u64) {
         if (p1 > p2) {
             let _v0 = p2;
