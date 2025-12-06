@@ -25,6 +25,7 @@ module deployment_addr::nft_launchpad {
     use minter::collection_components;
     use deployment_addr::nft_reduction_manager;
     use deployment_addr::vesting;
+    use deployment_addr::dex;
 
     /// Only collection creator can update creator
     const EONLY_COLLECTION_CREATOR_CAN_UPDATE_CREATOR: u64 = 1;
@@ -273,14 +274,10 @@ module deployment_addr::nft_launchpad {
     public entry fun update_creator(
         sender: &signer, collection_obj: Object<Collection>, new_creator: address
     ) acquires CollectionConfig {
-        let sender_addr = signer::address_of(sender);
-        let collection_obj_addr = object::object_address(&collection_obj);
-        let collection_config = borrow_global_mut<CollectionConfig>(collection_obj_addr);
-        assert!(
-            is_collection_creator(collection_config, sender_addr),
-            EONLY_COLLECTION_CREATOR_CAN_UPDATE_CREATOR
+        verify_collection_creator(
+            sender, &collection_obj, EONLY_COLLECTION_CREATOR_CAN_UPDATE_CREATOR
         );
-        collection_config.creator_addr = new_creator;
+        borrow_collection_config_mut(&collection_obj).creator_addr = new_creator;
     }
 
     /// Set pending admin of the contract, then pending admin can call accept_admin to become admin
@@ -307,9 +304,7 @@ module deployment_addr::nft_launchpad {
         verify_collection_creator(
             sender, &collection_obj, EONLY_COLLECTION_CREATOR_CAN_UPDATE_MINT_ENABLED
         );
-        let collection_obj_addr = object::object_address(&collection_obj);
-        let collection_config = borrow_global_mut<CollectionConfig>(collection_obj_addr);
-        collection_config.mint_enabled = enabled;
+        borrow_collection_config_mut(&collection_obj).mint_enabled = enabled;
     }
 
     /// Update listing enabled
@@ -321,9 +316,7 @@ module deployment_addr::nft_launchpad {
             &collection_obj,
             EONLY_COLLECTION_CREATOR_CAN_UPDATE_LISTING_ENABLED
         );
-        let collection_obj_addr = object::object_address(&collection_obj);
-        let collection_config = borrow_global_mut<CollectionConfig>(collection_obj_addr);
-        collection_config.listing_enabled = enabled;
+        borrow_collection_config_mut(&collection_obj).listing_enabled = enabled;
     }
 
     /// Update max supply for a collection
@@ -334,14 +327,11 @@ module deployment_addr::nft_launchpad {
             sender, &collection_obj, EONLY_COLLECTION_CREATOR_CAN_UPDATE_MAX_SUPPLY
         );
 
-        let collection_obj_addr = object::object_address(&collection_obj);
-        let collection_config = borrow_global_mut<CollectionConfig>(collection_obj_addr);
-
         // Get current supply to ensure new max supply is not less than current supply
         let current_supply = collection::count(collection_obj);
         assert!(new_max_supply >= *current_supply.borrow(), EINVALID_MAX_SUPPLY);
 
-        collection_config.max_supply = new_max_supply;
+        borrow_collection_config_mut(&collection_obj).max_supply = new_max_supply;
 
         let collection_owner_obj_signer = &get_collection_owner_signer(&collection_obj);
         collection_components::set_collection_max_supply(
@@ -356,9 +346,8 @@ module deployment_addr::nft_launchpad {
         verify_collection_creator(
             sender, &collection_obj, EONLY_COLLECTION_CREATOR_CAN_UPDATE_MINT_ENABLED
         );
-        let collection_obj_addr = object::object_address(&collection_obj);
-        let collection_config = borrow_global_mut<CollectionConfig>(collection_obj_addr);
-        collection_config.mint_fee_collector_addr = new_mint_fee_collector;
+        borrow_collection_config_mut(&collection_obj).mint_fee_collector_addr =
+            new_mint_fee_collector;
     }
 
     /// Update protocol fee collector address
@@ -378,16 +367,14 @@ module deployment_addr::nft_launchpad {
         stage_name: String,
         new_mint_fee: u64
     ) acquires CollectionConfig {
-        let sender_addr = signer::address_of(sender);
-        let collection_obj_addr = object::object_address(&collection_obj);
-        let collection_config = borrow_global_mut<CollectionConfig>(collection_obj_addr);
-        assert!(
-            is_collection_creator(collection_config, sender_addr),
-            EONLY_COLLECTION_CREATOR_CAN_UPDATE_MINT_FEE
+        verify_collection_creator(
+            sender, &collection_obj, EONLY_COLLECTION_CREATOR_CAN_UPDATE_MINT_FEE
         );
 
         // Update the mint fee for the specified stage
-        collection_config.mint_fee_per_nft_by_stages.upsert(stage_name, new_mint_fee);
+        borrow_collection_config_mut(&collection_obj).mint_fee_per_nft_by_stages.upsert(
+            stage_name, new_mint_fee
+        );
     }
 
     /// Update protocol base fee for a specific collection (admin only)
@@ -398,9 +385,7 @@ module deployment_addr::nft_launchpad {
         let config = borrow_global<Config>(@deployment_addr);
         assert!(is_admin(config, sender_addr), EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
 
-        let collection_obj_addr = object::object_address(&collection_obj);
-        let collection_config = borrow_global_mut<CollectionConfig>(collection_obj_addr);
-        collection_config.protocol_base_fee = new_protocol_base_fee;
+        borrow_collection_config_mut(&collection_obj).protocol_base_fee = new_protocol_base_fee;
     }
 
     /// Update default protocol base fee (admin only)
@@ -421,9 +406,8 @@ module deployment_addr::nft_launchpad {
         let sender_addr = signer::address_of(sender);
         let config = borrow_global<Config>(@deployment_addr);
         assert!(is_admin(config, sender_addr), EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
-        let collection_obj_addr = object::object_address(&collection_obj);
-        let collection_config = borrow_global_mut<CollectionConfig>(collection_obj_addr);
-        collection_config.protocol_percentage_fee = new_protocol_percentage_fee;
+        borrow_collection_config_mut(&collection_obj).protocol_percentage_fee =
+            new_protocol_percentage_fee;
     }
 
     /// Update default protocol percentage fee (admin only)
@@ -441,19 +425,13 @@ module deployment_addr::nft_launchpad {
     public entry fun update_collection_settings(
         sender: &signer, collection_obj: Object<Collection>, new_settings: vector<String>
     ) acquires CollectionConfig {
-        let sender_addr = signer::address_of(sender);
-        let collection_obj_addr = object::object_address(&collection_obj);
-        let collection_config = borrow_global_mut<CollectionConfig>(collection_obj_addr);
-
-        // Only the collection creator can update settings
-        assert!(
-            is_collection_creator(collection_config, sender_addr),
-            EONLY_COLLECTION_CREATOR_CAN_UPDATE_SETTINGS
+        verify_collection_creator(
+            sender, &collection_obj, EONLY_COLLECTION_CREATOR_CAN_UPDATE_SETTINGS
         );
 
         validate_settings(new_settings);
 
-        collection_config.collection_settings = new_settings;
+        borrow_collection_config_mut(&collection_obj).collection_settings = new_settings;
     }
 
     /// Create a collection, anyone can create collection
@@ -829,8 +807,7 @@ module deployment_addr::nft_launchpad {
     public entry fun check_and_complete_sale(
         collection_obj: Object<Collection>
     ) acquires CollectionConfig, CollectionOwnerObjConfig {
-        let collection_obj_addr = object::object_address(&collection_obj);
-        let collection_config = borrow_global_mut<CollectionConfig>(collection_obj_addr);
+        let collection_config = borrow_collection_config_mut(&collection_obj);
 
         // Ensure sale is not already completed
         assert!(!collection_config.sale_completed, ESALE_ALREADY_COMPLETED);
@@ -890,9 +867,10 @@ module deployment_addr::nft_launchpad {
         let vesting_amount = FA_TOTAL_SUPPLY * FA_VESTING_PERCENTAGE / 100;
         let contract_amount = FA_TOTAL_SUPPLY - lp_amount - vesting_amount;
 
-        // Extract LP portion and deposit to LP wallet
+        // Extract LP portion and deposit to collection owner (for Yuzuswap pool creation)
         let lp_fa = fungible_asset::extract(&mut minted_fa, lp_amount);
-        primary_fungible_store::deposit(lp_wallet_addr, lp_fa);
+        let collection_owner_addr = object::object_address(&collection_owner_obj);
+        primary_fungible_store::deposit(collection_owner_addr, lp_fa);
 
         // Extract vesting portion and store in VestingPool
         let vesting_fa = fungible_asset::extract(&mut minted_fa, vesting_amount);
@@ -915,13 +893,35 @@ module deployment_addr::nft_launchpad {
             vesting_duration
         );
 
+        // Create Yuzuswap LP pool only if there are funds to pair with
+        let token_a_metadata = fa_metadata; // The new FA token
+        let token_b_metadata = object::address_to_object<fungible_asset::Metadata>(@0xa); // Native MOVE metadata
+        let fee: u64 = 10000; // 1% fee tier (tick_spacing = 200)
+        // Ticks must satisfy abs_tick(tick) % tick_spacing == 0, zero_tick = 443636
+        // Valid ticks: 36, 236, ..., 443636, ..., 887236
+        let tick_lower: u32 = 36; // abs_tick = 443600, divisible by 200
+        let tick_upper: u32 = 887236; // abs_tick = 443600, divisible by 200
+        let amount_a: u64 = lp_amount; // Amount of new FA token for LP
+        let amount_b: u64 = total_funds; // Amount of MOVE collected from sales
+
+        dex::create_pool_with_liquidity(
+            &collection_owner_signer,
+            token_a_metadata,
+            token_b_metadata,
+            fee,
+            tick_lower,
+            tick_upper,
+            amount_a,
+            amount_b
+        );
+
         // Store the rest in the collection owner (contract holds 80%)
-        let collection_owner_addr = object::object_address(&collection_owner_obj);
         primary_fungible_store::deposit(collection_owner_addr, minted_fa);
 
         // Transfer APT funds to LP wallet
         if (total_funds > 0) {
-            aptos_account::transfer(&collection_owner_signer, lp_wallet_addr, total_funds);
+            // TODO: Implement transfer to DEV Wallet
+            // aptos_account::transfer(&collection_owner_signer, lp_wallet_addr, total_funds);
         };
 
         // Emit sale completed event
@@ -951,8 +951,7 @@ module deployment_addr::nft_launchpad {
         sender: &signer, collection_obj: Object<Collection>, nft_obj: Object<Token>
     ) acquires CollectionConfig, CollectionOwnerObjConfig, TokenMintInfo {
         let sender_addr = signer::address_of(sender);
-        let collection_obj_addr = object::object_address(&collection_obj);
-        let collection_config = borrow_global_mut<CollectionConfig>(collection_obj_addr);
+        let collection_config = borrow_collection_config_mut(&collection_obj);
 
         // Ensure sale is not completed (threshold was met)
         assert!(!collection_config.sale_completed, ESALE_ALREADY_COMPLETED);
@@ -1015,9 +1014,7 @@ module deployment_addr::nft_launchpad {
     #[view]
     /// Get creator for a specific collection
     public fun get_creator(collection_obj: Object<Collection>): address acquires CollectionConfig {
-        let collection_obj_addr = object::object_address(&collection_obj);
-        let collection_config = borrow_global<CollectionConfig>(collection_obj_addr);
-        collection_config.creator_addr
+        borrow_collection_config(&collection_obj).creator_addr
     }
 
     #[view]
@@ -1046,9 +1043,7 @@ module deployment_addr::nft_launchpad {
     public fun get_collection_creator_addr(
         collection_obj: Object<Collection>
     ): address acquires CollectionConfig {
-        let collection_addr = object::object_address(&collection_obj);
-        let collection_config = borrow_global<CollectionConfig>(collection_addr);
-        collection_config.creator_addr
+        borrow_collection_config(&collection_obj).creator_addr
     }
 
     #[view]
@@ -1056,9 +1051,7 @@ module deployment_addr::nft_launchpad {
     public fun get_collection_mint_fee_collector_addr(
         collection_obj: Object<Collection>
     ): address acquires CollectionConfig {
-        let collection_addr = object::object_address(&collection_obj);
-        let collection_config = borrow_global<CollectionConfig>(collection_addr);
-        collection_config.mint_fee_collector_addr
+        borrow_collection_config(&collection_obj).mint_fee_collector_addr
     }
 
     #[view]
@@ -1092,17 +1085,13 @@ module deployment_addr::nft_launchpad {
     #[view]
     /// Is mint enabled for the collection
     public fun is_mint_enabled(collection_obj: Object<Collection>): bool acquires CollectionConfig {
-        let collection_addr = object::object_address(&collection_obj);
-        let collection_config = borrow_global<CollectionConfig>(collection_addr);
-        collection_config.mint_enabled
+        borrow_collection_config(&collection_obj).mint_enabled
     }
 
     #[view]
     /// Is listing enabled for the collection
     public fun is_listing_enabled(collection_obj: Object<Collection>): bool acquires CollectionConfig {
-        let collection_addr = object::object_address(&collection_obj);
-        let collection_config = borrow_global<CollectionConfig>(collection_addr);
-        collection_config.listing_enabled
+        borrow_collection_config(&collection_obj).listing_enabled
     }
 
     #[view]
@@ -1110,18 +1099,17 @@ module deployment_addr::nft_launchpad {
     public fun get_mint_fee(
         collection_obj: Object<Collection>, stage_name: String, amount: u64
     ): u64 acquires CollectionConfig {
-        let collection_config =
-            borrow_global<CollectionConfig>(object::object_address(&collection_obj));
-        let fee = *collection_config.mint_fee_per_nft_by_stages.borrow(&stage_name);
+        let fee =
+            *borrow_collection_config(&collection_obj).mint_fee_per_nft_by_stages.borrow(
+                &stage_name
+            );
         amount * fee
     }
 
     #[view]
     /// Get protocol base fee for a specific collection
     public fun get_protocol_base_fee(collection_obj: Object<Collection>): u64 acquires CollectionConfig {
-        let collection_config =
-            borrow_global<CollectionConfig>(object::object_address(&collection_obj));
-        collection_config.protocol_base_fee
+        borrow_collection_config(&collection_obj).protocol_base_fee
     }
 
     #[view]
@@ -1196,9 +1184,7 @@ module deployment_addr::nft_launchpad {
     #[view]
     /// Get total funds collected for a collection
     public fun get_collected_funds(collection_obj: Object<Collection>): u64 acquires CollectionConfig {
-        let collection_config =
-            borrow_global<CollectionConfig>(object::object_address(&collection_obj));
-        collection_config.total_funds_collected
+        borrow_collection_config(&collection_obj).total_funds_collected
     }
 
     #[view]
@@ -1215,9 +1201,7 @@ module deployment_addr::nft_launchpad {
     #[view]
     /// Check if sale is completed for a collection
     public fun is_sale_completed(collection_obj: Object<Collection>): bool acquires CollectionConfig {
-        let collection_config =
-            borrow_global<CollectionConfig>(object::object_address(&collection_obj));
-        collection_config.sale_completed
+        borrow_collection_config(&collection_obj).sale_completed
     }
 
     #[view]
@@ -1227,22 +1211,21 @@ module deployment_addr::nft_launchpad {
     public fun can_reclaim(
         collection_obj: Object<Collection>, _user_addr: address
     ): bool acquires CollectionConfig {
-        let collection_config =
-            borrow_global<CollectionConfig>(object::object_address(&collection_obj));
+        let config = borrow_collection_config(&collection_obj);
 
         // Cannot reclaim if sale is completed
-        if (collection_config.sale_completed) {
+        if (config.sale_completed) {
             return false
         };
 
         // Cannot reclaim if deadline hasn't passed
-        if (timestamp::now_seconds() < collection_config.sale_deadline) {
+        if (timestamp::now_seconds() < config.sale_deadline) {
             return false
         };
 
         // Cannot reclaim if max_supply was reached
         let minted_count = *collection::count(collection_obj).borrow();
-        if (minted_count >= collection_config.max_supply) {
+        if (minted_count >= config.max_supply) {
             return false
         };
 
@@ -1253,17 +1236,13 @@ module deployment_addr::nft_launchpad {
     #[view]
     /// Get sale deadline for a collection
     public fun get_sale_deadline(collection_obj: Object<Collection>): u64 acquires CollectionConfig {
-        let collection_config =
-            borrow_global<CollectionConfig>(object::object_address(&collection_obj));
-        collection_config.sale_deadline
+        borrow_collection_config(&collection_obj).sale_deadline
     }
 
     #[view]
     /// Get LP wallet address for a collection
     public fun get_lp_wallet_addr(collection_obj: Object<Collection>): address acquires CollectionConfig {
-        let collection_config =
-            borrow_global<CollectionConfig>(object::object_address(&collection_obj));
-        collection_config.lp_wallet_addr
+        borrow_collection_config(&collection_obj).lp_wallet_addr
     }
 
     #[view]
@@ -1271,12 +1250,20 @@ module deployment_addr::nft_launchpad {
     public fun get_collection_owner_obj(
         collection_obj: Object<Collection>
     ): Object<CollectionOwnerObjConfig> acquires CollectionConfig {
-        let collection_config =
-            borrow_global<CollectionConfig>(object::object_address(&collection_obj));
-        collection_config.collection_owner_obj
+        borrow_collection_config(&collection_obj).collection_owner_obj
     }
 
     // ================================= Helpers ================================= //
+
+    /// Helper to borrow CollectionConfig immutably from a collection object
+    inline fun borrow_collection_config(collection_obj: &Object<Collection>): &CollectionConfig {
+        borrow_global<CollectionConfig>(object::object_address(collection_obj))
+    }
+
+    /// Helper to borrow CollectionConfig mutably from a collection object
+    inline fun borrow_collection_config_mut(collection_obj: &Object<Collection>): &mut CollectionConfig {
+        borrow_global_mut<CollectionConfig>(object::object_address(collection_obj))
+    }
 
     /// Check if sender is admin or owner of the object when package is published to object
     fun is_admin(config: &Config, sender: address): bool {
@@ -1301,8 +1288,7 @@ module deployment_addr::nft_launchpad {
         sender: &signer, collection_obj: &Object<Collection>, error_code: u64
     ) acquires CollectionConfig {
         let sender_addr = signer::address_of(sender);
-        let collection_obj_addr = object::object_address(collection_obj);
-        let collection_config = borrow_global<CollectionConfig>(collection_obj_addr);
+        let collection_config = borrow_collection_config(collection_obj);
         assert!(is_collection_creator(collection_config, sender_addr), error_code);
     }
 
@@ -1310,9 +1296,7 @@ module deployment_addr::nft_launchpad {
     fun get_collection_owner_signer(
         collection_obj: &Object<Collection>
     ): signer acquires CollectionConfig, CollectionOwnerObjConfig {
-        let collection_config =
-            borrow_global<CollectionConfig>(object::object_address(collection_obj));
-        let collection_owner_obj = collection_config.collection_owner_obj;
+        let collection_owner_obj = borrow_collection_config(collection_obj).collection_owner_obj;
         let collection_owner_config =
             borrow_global<CollectionOwnerObjConfig>(
                 object::object_address(&collection_owner_obj)
@@ -1416,20 +1400,17 @@ module deployment_addr::nft_launchpad {
 
         // Transfer funds to the collection's fund store (held until sale completion)
         if (total_fee > 0) {
-            // Get collection config to store funds
-            let collection_obj_addr = object::object_address(&collection_obj);
-            let collection_config = borrow_global_mut<CollectionConfig>(collection_obj_addr);
+            let config = borrow_collection_config_mut(&collection_obj);
 
             // Ensure sale is not already completed
-            assert!(!collection_config.sale_completed, ESALE_ALREADY_COMPLETED);
+            assert!(!config.sale_completed, ESALE_ALREADY_COMPLETED);
 
             // Transfer funds to the collection owner object address (acts as escrow)
-            let collection_owner_addr =
-                object::object_address(&collection_config.collection_owner_obj);
+            let collection_owner_addr = object::object_address(&config.collection_owner_obj);
             aptos_account::transfer(sender, collection_owner_addr, total_fee);
 
             // Update total funds collected (only NFT cost, not protocol fees)
-            collection_config.total_funds_collected += nft_mint_fee;
+            config.total_funds_collected += nft_mint_fee;
         };
 
         total_fee
@@ -1439,10 +1420,9 @@ module deployment_addr::nft_launchpad {
     public fun get_protocol_fee(
         collection_obj: Object<Collection>, mint_fee: u64, amount: u64
     ): u64 acquires CollectionConfig {
-        let collection_config =
-            borrow_global<CollectionConfig>(object::object_address(&collection_obj));
-        let protocol_base_fee = collection_config.protocol_base_fee;
-        let protocol_percentage_fee = collection_config.protocol_percentage_fee;
+        let config = borrow_collection_config(&collection_obj);
+        let protocol_base_fee = config.protocol_base_fee;
+        let protocol_percentage_fee = config.protocol_percentage_fee;
 
         let base_fee =
             if (protocol_base_fee > 0) {
@@ -1495,19 +1475,18 @@ module deployment_addr::nft_launchpad {
         sender_addr: address, collection_obj: Object<Collection>, mint_fee_paid: u64
     ): Object<Token> acquires CollectionConfig, CollectionOwnerObjConfig {
         let collection_owner_obj_signer = &get_collection_owner_signer(&collection_obj);
-        let collection_config =
-            borrow_global<CollectionConfig>(object::object_address(&collection_obj));
+        let config = borrow_collection_config(&collection_obj);
 
         let next_nft_id = *collection::count(collection_obj).borrow() + 1;
 
         let name = &mut collection::name(collection_obj);
-        let max_supply = collection_config.max_supply;
+        let max_supply = config.max_supply;
         let target_length = string_utils::to_string(&max_supply).length();
 
         name.append(utf8(b" #"));
         name.append(pad_number_with_zeros(next_nft_id, target_length));
 
-        let placeholder_uri = collection_config.placeholder_uri;
+        let placeholder_uri = config.placeholder_uri;
 
         let nft_obj_constructor_ref =
             &token::create(
@@ -1686,9 +1665,7 @@ module deployment_addr::nft_launchpad {
     #[view]
     /// Get protocol percentage fee for a specific collection
     public fun get_protocol_percentage_fee(collection_obj: Object<Collection>): u64 acquires CollectionConfig {
-        let collection_config =
-            borrow_global<CollectionConfig>(object::object_address(&collection_obj));
-        collection_config.protocol_percentage_fee
+        borrow_collection_config(&collection_obj).protocol_percentage_fee
     }
 
     #[view]
@@ -1703,9 +1680,7 @@ module deployment_addr::nft_launchpad {
     public fun get_collection_settings(
         collection_obj: Object<Collection>
     ): vector<String> acquires CollectionConfig {
-        let collection_config =
-            borrow_global<CollectionConfig>(object::object_address(&collection_obj));
-        collection_config.collection_settings
+        borrow_collection_config(&collection_obj).collection_settings
     }
 
     #[view]

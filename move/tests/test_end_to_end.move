@@ -16,6 +16,7 @@ module deployment_addr::test_end_to_end {
     use deployment_addr::nft_launchpad;
     use deployment_addr::nft_reduction_manager;
     use deployment_addr::vesting;
+    use deployment_addr::dex;
 
     use aptos_framework::primary_fungible_store;
     use aptos_framework::fungible_asset;
@@ -708,6 +709,10 @@ module deployment_addr::test_end_to_end {
 
         coin::destroy_burn_cap(burn_cap);
         coin::destroy_mint_cap(mint_cap);
+
+        // Initialize Yuzuswap modules for testing
+        let yuzuswap_signer = account::create_signer_for_test(@yuzuswap);
+        dex::setup_test_env(&yuzuswap_signer);
 
         (user1_addr)
     }
@@ -1968,8 +1973,9 @@ module deployment_addr::test_end_to_end {
         aptos_framework = @0x1, admin = @deployment_addr, user1 = @0x200, royalty_user = @0x300
     )]
     /// Test that completing a sale creates a fungible asset and distributes it correctly:
-    /// - 10% goes to LP wallet
-    /// - 90% stays in the contract (collection owner)
+    /// - 10% goes to Vesting contract
+    /// - 10% goes to DEX pool
+    /// - 80% stays in the contract (collection owner)
     fun test_sale_completion_creates_fungible_asset(
         aptos_framework: &signer,
         admin: &signer,
@@ -1983,7 +1989,7 @@ module deployment_addr::test_end_to_end {
             create_public_only_collection(
                 admin,
                 royalty_user,
-                MINT_FEE_SMALL,
+                10000000000,
                 MINT_LIMIT_XLARGE,
                 DURATION_MEDIUM
             );
@@ -2026,16 +2032,21 @@ module deployment_addr::test_end_to_end {
         let expected_contract_amount = total_supply - expected_lp_amount
             - expected_vesting_amount;
 
-        // Verify LP wallet received 10% of the FA
-        let lp_fa_balance = primary_fungible_store::balance(LP_WALLET, fa_metadata);
-        debug::print(&lp_fa_balance);
-        assert!(lp_fa_balance == expected_lp_amount);
-
-        // Verify collection owner (contract) holds 80% of the FA
+        // Verify collection owner (contract) holds ~80% of the FA
+        // Note: Due to YuzuSwap tick/price rounding, not all LP tokens may be consumed,
+        // so we allow a small tolerance (0.1% of expected amount)
         let contract_fa_balance =
             primary_fungible_store::balance(collection_owner_addr, fa_metadata);
+        debug::print(&string::utf8(b"contract_fa_balance: "));
         debug::print(&contract_fa_balance);
-        assert!(contract_fa_balance == expected_contract_amount);
+        let tolerance = expected_contract_amount / 1000; // 0.1% tolerance
+        let diff =
+            if (contract_fa_balance > expected_contract_amount) {
+                contract_fa_balance - expected_contract_amount
+            } else {
+                expected_contract_amount - contract_fa_balance
+            };
+        assert!(diff <= tolerance);
 
         // Verify vesting is initialized
         assert!(vesting::is_vesting_initialized(collection_obj));

@@ -6,10 +6,12 @@ version = '1.0.0'
 AptosFramework = { git = "https://github.com/movementlabsxyz/aptos-core", rev = "l1-migration", subdir = "aptos-move/framework/aptos-framework" }
 AptosTokenObjects = { git = "https://github.com/movementlabsxyz/aptos-core", rev = "l1-migration", subdir = "aptos-move/framework/aptos-token-objects" }
 TokenMinter = { git = "https://github.com/gorilla-moverz-dao/token-minter-movement", rev = "l1-migration", subdir = "token-minter" }
-                                                                                                                                                                             
+Yuzuswap = { local = "deps/Yuzuswap/" }
+
 [addresses]
 deployment_addr='_'
 minter='_'
+yuzuswap='0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a'
 
 [dev-addresses]
 deployment_addr='0x100'
