@@ -341,7 +341,7 @@ module deployment_addr::vesting {
         let claimable = vested - config.claimed_amount;
         assert!(claimable > 0, ENOTHING_TO_CLAIM);
 
-        config.claimed_amount = config.claimed_amount + claimable;
+        config.claimed_amount += claimable;
 
         withdraw_and_transfer(
             config.vault_obj,
