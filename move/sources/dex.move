@@ -1,5 +1,7 @@
 module deployment_addr::dex {
+    use yuzuswap::fa_helper;
     use yuzuswap::scripts;
+    use yuzuswap::tick_math;
     use std::object;
     use std::fungible_asset;
     use std::debug;
@@ -20,32 +22,47 @@ module deployment_addr::dex {
         amount_a: u64,
         amount_b: u64
     ) {
-        // Calculate sqrt_price from amounts: sqrt_price = sqrt(move_supply / supply) * 2^64
-        // = sqrt(move_supply) * 2^64 / sqrt(supply)
-        let sqrt_move = math64::sqrt(amount_a);
-        let sqrt_supply = math64::sqrt(amount_b);
-        let initial_sqrt_price = ((sqrt_move as u128) << 64) / (sqrt_supply as u128);
+        // Align price and amounts with Yuzuswap token ordering:
+        // price = token_1 / token_0, sqrt_price = sqrt(price) * 2^64
+        let is_sorted = fa_helper::is_sorted(token_a_metadata, token_b_metadata);
+        let (token0_metadata, token1_metadata, amount0, amount1) =
+            if (is_sorted) {
+                (token_a_metadata, token_b_metadata, amount_a, amount_b)
+            } else {
+                (token_b_metadata, token_a_metadata, amount_b, amount_a)
+            };
+        let sqrt_token0 = math64::sqrt(amount0);
+        let sqrt_token1 = math64::sqrt(amount1);
+        // YuzuSwap uses Q48.80 format: sqrt_price = sqrt(price) * 2^80
+        let raw_sqrt_price = ((sqrt_token1 as u128) << 80) / (sqrt_token0 as u128);
+        // Clamp price into tick range to ensure both sides are usable.
+        let raw_tick = tick_math::get_tick_at_sqrt_price(raw_sqrt_price);
+        let clamped_tick =
+            if (raw_tick < tick_lower) tick_lower
+            else if (raw_tick > tick_upper) tick_upper
+            else raw_tick;
+        let initial_sqrt_price = tick_math::get_sqrt_price_at_tick(clamped_tick);
 
         debug::print(signer);
-        debug::print(&token_a_metadata);
-        debug::print(&token_b_metadata);
+        debug::print(&token0_metadata);
+        debug::print(&token1_metadata);
         debug::print(&fee);
         debug::print(&initial_sqrt_price);
         debug::print(&tick_lower);
         debug::print(&tick_upper);
-        debug::print(&amount_a);
-        debug::print(&amount_b);
+        debug::print(&amount0);
+        debug::print(&amount1);
 
         scripts::create_pool_with_liquidity(
             signer,
-            token_a_metadata,
-            token_b_metadata,
+            token0_metadata,
+            token1_metadata,
             fee,
             initial_sqrt_price,
             tick_lower,
             tick_upper,
-            amount_a,
-            amount_b
+            amount0,
+            amount1
         );
     }
 

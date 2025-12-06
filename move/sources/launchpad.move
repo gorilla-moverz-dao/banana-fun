@@ -896,10 +896,11 @@ module deployment_addr::nft_launchpad {
         // Create Yuzuswap LP pool only if there are funds to pair with
         let token_a_metadata = fa_metadata; // The new FA token
         let token_b_metadata = object::address_to_object<fungible_asset::Metadata>(@0xa); // Native MOVE metadata
-        let fee: u64 = 500; // 0.05% fee tier (tick_spacing = 10)
-        // Ticks must have abs_tick (distance from zero_tick=443636) divisible by tick_spacing
-        let tick_lower: u32 = 6; // 443636 - 443630, abs_tick=443630 divisible by 10
-        let tick_upper: u32 = 887266; // 443636 + 443630, abs_tick=443630 divisible by 10
+        let fee: u64 = 10000; // 1% fee tier (tick_spacing = 200)
+        // Ticks must satisfy abs_tick(tick) % tick_spacing == 0, zero_tick = 443636
+        // Valid ticks: 36, 236, ..., 443636, ..., 887236
+        let tick_lower: u32 = 36; // abs_tick = 443600, divisible by 200
+        let tick_upper: u32 = 887236; // abs_tick = 443600, divisible by 200
         let amount_a: u64 = lp_amount; // Amount of new FA token for LP
         let amount_b: u64 = total_funds; // Amount of MOVE collected from sales
 
