@@ -105,7 +105,10 @@ module deployment_addr::test_nft_reduction_manager {
             b"https://example.com/banana.png", // fa_icon_uri
             b"https://banana.fun", // fa_project_uri
             100, // vesting_cliff
-            1000 // vesting_duration
+            1000, // vesting_duration
+            @0x500, // creator_vesting_wallet_addr
+            200, // creator_vesting_cliff
+            2000 // creator_vesting_duration
         );
 
         // Get the collection from registry (get the last one, which is the newly created one)

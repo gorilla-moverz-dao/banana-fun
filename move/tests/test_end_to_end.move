@@ -62,9 +62,14 @@ module deployment_addr::test_end_to_end {
     const FA_ICON_URI: vector<u8> = b"https://example.com/banana.png";
     const FA_PROJECT_URI: vector<u8> = b"https://banana.fun";
 
-    // Vesting configuration
+    // NFT holder vesting configuration
     const VESTING_CLIFF: u64 = 100u64; // 100 seconds cliff
     const VESTING_DURATION: u64 = 1000u64; // 1000 seconds total duration
+
+    // Creator vesting configuration
+    const CREATOR_VESTING_WALLET: address = @0x500;
+    const CREATOR_VESTING_CLIFF: u64 = 200u64; // 200 seconds cliff
+    const CREATOR_VESTING_DURATION: u64 = 2000u64; // 2000 seconds total duration
 
     // Stage types
     const STAGE_TYPE_ALLOWLIST: u8 = 1u8;
@@ -127,7 +132,10 @@ module deployment_addr::test_end_to_end {
             FA_ICON_URI,
             FA_PROJECT_URI,
             VESTING_CLIFF,
-            VESTING_DURATION
+            VESTING_DURATION,
+            CREATOR_VESTING_WALLET,
+            CREATOR_VESTING_CLIFF,
+            CREATOR_VESTING_DURATION
         );
 
         let registry = nft_launchpad::get_registry();
@@ -315,7 +323,10 @@ module deployment_addr::test_end_to_end {
             FA_ICON_URI,
             FA_PROJECT_URI,
             VESTING_CLIFF,
-            VESTING_DURATION
+            VESTING_DURATION,
+            CREATOR_VESTING_WALLET,
+            CREATOR_VESTING_CLIFF,
+            CREATOR_VESTING_DURATION
         );
         let registry = nft_launchpad::get_registry();
         let collection_1 = registry[registry.length() - 1];
@@ -535,7 +546,10 @@ module deployment_addr::test_end_to_end {
             FA_ICON_URI,
             FA_PROJECT_URI,
             VESTING_CLIFF,
-            VESTING_DURATION
+            VESTING_DURATION,
+            CREATOR_VESTING_WALLET,
+            CREATOR_VESTING_CLIFF,
+            CREATOR_VESTING_DURATION
         );
 
         let registry = nft_launchpad::get_registry();
@@ -1591,7 +1605,10 @@ module deployment_addr::test_end_to_end {
             FA_ICON_URI,
             FA_PROJECT_URI,
             VESTING_CLIFF,
-            VESTING_DURATION
+            VESTING_DURATION,
+            CREATOR_VESTING_WALLET,
+            CREATOR_VESTING_CLIFF,
+            CREATOR_VESTING_DURATION
         );
 
         let registry = nft_launchpad::get_registry();
@@ -1673,7 +1690,10 @@ module deployment_addr::test_end_to_end {
             FA_ICON_URI,
             FA_PROJECT_URI,
             VESTING_CLIFF,
-            VESTING_DURATION
+            VESTING_DURATION,
+            CREATOR_VESTING_WALLET,
+            CREATOR_VESTING_CLIFF,
+            CREATOR_VESTING_DURATION
         );
 
         let registry = nft_launchpad::get_registry();
@@ -1747,7 +1767,10 @@ module deployment_addr::test_end_to_end {
             FA_ICON_URI,
             FA_PROJECT_URI,
             VESTING_CLIFF,
-            VESTING_DURATION
+            VESTING_DURATION,
+            CREATOR_VESTING_WALLET,
+            CREATOR_VESTING_CLIFF,
+            CREATOR_VESTING_DURATION
         );
 
         let registry = nft_launchpad::get_registry();
@@ -1886,7 +1909,10 @@ module deployment_addr::test_end_to_end {
             FA_ICON_URI,
             FA_PROJECT_URI,
             VESTING_CLIFF,
-            VESTING_DURATION
+            VESTING_DURATION,
+            CREATOR_VESTING_WALLET,
+            CREATOR_VESTING_CLIFF,
+            CREATOR_VESTING_DURATION
         );
 
         let registry = nft_launchpad::get_registry();
@@ -2024,35 +2050,31 @@ module deployment_addr::test_end_to_end {
         assert!(fa_name == utf8(FA_NAME));
         assert!(fa_symbol == utf8(FA_SYMBOL));
 
-        // Constants from launchpad (10% LP, 10% vesting, 80% contract)
+        // Constants from launchpad (50% LP, 10% NFT vesting, 10% dev wallet, 30% creator vesting)
         let total_supply: u64 = 1_000_000_000_000_000_000; // 1B * 10^9
-        let lp_percentage: u64 = 10;
+        let lp_percentage: u64 = 50;
         let vesting_percentage: u64 = 10;
         let dev_wallet_percentage: u64 = 10;
-        let expected_lp_amount = total_supply * lp_percentage / 100;
-        let expected_vesting_amount = total_supply * vesting_percentage / 100;
-        let expected_dev_wallet_amount = total_supply * dev_wallet_percentage / 100;
-        let expected_contract_amount =
-            total_supply - expected_lp_amount - expected_vesting_amount
-                - expected_dev_wallet_amount;
+        let creator_vesting_percentage: u64 = 30;
+        // Use u128 for intermediate calculation to avoid overflow
+        let expected_lp_amount = ((total_supply as u128) * (lp_percentage as u128) / 100 as u64);
+        let expected_vesting_amount = ((total_supply as u128) * (vesting_percentage as u128) / 100 as u64);
+        let expected_dev_wallet_amount =
+            ((total_supply as u128) * (dev_wallet_percentage as u128) / 100 as u64);
+        let expected_creator_vesting_amount =
+            ((total_supply as u128) * (creator_vesting_percentage as u128) / 100 as u64);
 
-        // Verify collection owner (contract) holds ~70% of the FA
-        // Note: Due to YuzuSwap tick/price rounding, not all LP tokens may be consumed,
-        // so we allow a small tolerance (0.1% of expected amount)
+        // Verify collection owner has remaining tokens (rounding dust from LP creation)
+        // Most LP tokens should be consumed, so contract balance should be small
         let contract_fa_balance =
             primary_fungible_store::balance(collection_owner_addr, fa_metadata);
         debug::print(&string::utf8(b"contract_fa_balance: "));
         debug::print(&contract_fa_balance);
-        let tolerance = expected_contract_amount / 1000; // 0.1% tolerance
-        let diff =
-            if (contract_fa_balance > expected_contract_amount) {
-                contract_fa_balance - expected_contract_amount
-            } else {
-                expected_contract_amount - contract_fa_balance
-            };
-        assert!(diff <= tolerance);
+        // Contract should only have rounding dust from LP creation (well under 1% of LP amount)
+        let max_rounding_dust = expected_lp_amount / 100; // 1% of LP amount max
+        assert!(contract_fa_balance <= max_rounding_dust);
 
-        // Verify vesting is initialized
+        // Verify NFT holder vesting is initialized
         assert!(vesting::is_vesting_initialized(collection_obj));
 
         // Verify dev wallet has 10% of FA
@@ -2060,10 +2082,18 @@ module deployment_addr::test_end_to_end {
         debug::print(&dev_wallet_balance);
         assert!(dev_wallet_balance == expected_dev_wallet_amount);
 
-        // Verify vesting pool has 10% of FA
+        // Verify NFT holder vesting pool has 10% of FA
         let vesting_balance = vesting::get_remaining_vesting_tokens(collection_obj);
         debug::print(&vesting_balance);
         assert!(vesting_balance == expected_vesting_amount);
+
+        // Verify creator vesting is initialized
+        assert!(vesting::is_creator_vesting_initialized(collection_obj));
+
+        // Verify creator vesting pool has 30% of FA
+        let creator_vesting_balance = vesting::get_remaining_creator_vesting_tokens(collection_obj);
+        debug::print(&creator_vesting_balance);
+        assert!(creator_vesting_balance == expected_creator_vesting_amount);
     }
 }
 
