@@ -58,18 +58,6 @@ module deployment_addr::test_nft_reduction_manager {
 
         timestamp::set_time_has_started_for_testing(aptos_framework);
 
-        // Initialize AptosCoin for testing
-        let (burn_cap, mint_cap) =
-            aptos_framework::aptos_coin::initialize_for_test(aptos_framework);
-
-        // Register coin for users
-        aptos_framework::coin::register<aptos_framework::aptos_coin::AptosCoin>(&user1);
-        aptos_framework::coin::register<aptos_framework::aptos_coin::AptosCoin>(&user2);
-        aptos_framework::coin::register<aptos_framework::aptos_coin::AptosCoin>(&user3);
-        aptos_framework::coin::register<aptos_framework::aptos_coin::AptosCoin>(
-            &collection_owner
-        );
-
         // Mint APT to users for minting
         primary_fungible_store::deposit(USER1, mint_apt_fa_for_test(INITIAL_BALANCE));
 
@@ -78,9 +66,6 @@ module deployment_addr::test_nft_reduction_manager {
         nft_reduction_manager::init_module_for_test(admin);
 
         // Destroy capabilities immediately since we don't need them for most tests
-        aptos_framework::coin::destroy_burn_cap(burn_cap);
-        aptos_framework::coin::destroy_mint_cap(mint_cap);
-
         (user1, user2, user3, collection_owner)
     }
 
@@ -113,7 +98,7 @@ module deployment_addr::test_nft_reduction_manager {
             mint_fees_per_nft,
             mint_limits_per_addr,
             vector[],
-            @0x400, // lp_wallet_addr
+            @0x400, // dev_wallet_addr
             timestamp::now_seconds() + 10000, // sale_deadline
             b"BANANA", // fa_symbol
             b"Banana Token", // fa_name

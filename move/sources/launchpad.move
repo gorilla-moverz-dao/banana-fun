@@ -150,13 +150,14 @@ module deployment_addr::nft_launchpad {
     struct SaleCompletedEvent has store, drop {
         collection_obj: Object<Collection>,
         total_funds: u64,
-        lp_wallet_addr: address,
+        dev_wallet_addr: address,
         minted_count: u64,
         // Fungible asset info
         fa_metadata_addr: address,
         fa_total_minted: u64,
         fa_lp_amount: u64,
         fa_vesting_amount: u64,
+        fa_dev_wallet_amount: u64,
         fa_contract_amount: u64
     }
 
@@ -202,8 +203,8 @@ module deployment_addr::nft_launchpad {
         // Extensible collection settings stored as string array
         // This allows for future extensibility without changing the struct
         collection_settings: vector<String>,
-        // LP wallet address for fund transfer after successful sale
-        lp_wallet_addr: address,
+        // Dev wallet address for fund transfer after successful sale
+        dev_wallet_addr: address,
         // Sale deadline timestamp
         sale_deadline: u64,
         // Whether sale has been completed
@@ -456,8 +457,8 @@ module deployment_addr::nft_launchpad {
         mint_limits_per_addr: vector<Option<u64>>,
         // Extensible collection settings (e.g., soulbound token, reveal type, etc.)
         collection_settings: vector<String>,
-        // LP wallet address for fund transfer after successful sale
-        lp_wallet_addr: address,
+        // Dev wallet address for fund transfer after successful sale
+        dev_wallet_addr: address,
         // Sale deadline timestamp
         sale_deadline: u64,
         // Fungible asset configuration
@@ -522,7 +523,7 @@ module deployment_addr::nft_launchpad {
                 protocol_percentage_fee: config.default_protocol_percentage_fee,
                 max_supply,
                 collection_settings,
-                lp_wallet_addr,
+                dev_wallet_addr,
                 sale_deadline,
                 sale_completed: false,
                 total_funds_collected: 0,
@@ -799,7 +800,8 @@ module deployment_addr::nft_launchpad {
     const FA_LP_PERCENTAGE: u64 = 10;
     // Percentage reserved for NFT holder vesting (10%)
     const FA_VESTING_PERCENTAGE: u64 = 10;
-    // Remaining 80% stays in contract
+    // Percentage to send to dev wallet (10%)
+    const FA_DEV_WALLET_PERCENTAGE: u64 = 10;
 
     /// Check and complete sale if conditions are met
     /// Conditions: deadline reached AND threshold met
@@ -826,7 +828,7 @@ module deployment_addr::nft_launchpad {
         collection_config.sale_completed = true;
 
         let total_funds = collection_config.total_funds_collected;
-        let lp_wallet_addr = collection_config.lp_wallet_addr;
+        let dev_wallet_addr = collection_config.dev_wallet_addr;
 
         // Get FA config from collection
         let fa_symbol = collection_config.fa_symbol;
@@ -862,10 +864,11 @@ module deployment_addr::nft_launchpad {
         // Mint the total supply
         let minted_fa = fungible_asset::mint(&mint_ref, FA_TOTAL_SUPPLY);
 
-        // Calculate distribution: 10% LP, 10% vesting, 80% contract
+        // Calculate distribution: 10% LP, 10% vesting, 10% dev wallet, 70% contract
         let lp_amount = FA_TOTAL_SUPPLY * FA_LP_PERCENTAGE / 100;
         let vesting_amount = FA_TOTAL_SUPPLY * FA_VESTING_PERCENTAGE / 100;
-        let contract_amount = FA_TOTAL_SUPPLY - lp_amount - vesting_amount;
+        let dev_wallet_amount = FA_TOTAL_SUPPLY * FA_DEV_WALLET_PERCENTAGE / 100;
+        let contract_amount = FA_TOTAL_SUPPLY - lp_amount - vesting_amount - dev_wallet_amount;
 
         // Extract LP portion and deposit to collection owner (for Yuzuswap pool creation)
         let lp_fa = fungible_asset::extract(&mut minted_fa, lp_amount);
@@ -874,6 +877,10 @@ module deployment_addr::nft_launchpad {
 
         // Extract vesting portion and store in VestingPool
         let vesting_fa = fungible_asset::extract(&mut minted_fa, vesting_amount);
+
+        // Extract dev wallet portion and deposit to dev wallet
+        let dev_wallet_fa = fungible_asset::extract(&mut minted_fa, dev_wallet_amount);
+        primary_fungible_store::deposit(dev_wallet_addr, dev_wallet_fa);
 
         // Get vesting config from collection
         let vesting_cliff = collection_config.vesting_cliff;
@@ -915,26 +922,21 @@ module deployment_addr::nft_launchpad {
             amount_b
         );
 
-        // Store the rest in the collection owner (contract holds 80%)
+        // Store the rest in the collection owner (contract holds 70%)
         primary_fungible_store::deposit(collection_owner_addr, minted_fa);
-
-        // Transfer APT funds to LP wallet
-        if (total_funds > 0) {
-            // TODO: Implement transfer to DEV Wallet
-            // aptos_account::transfer(&collection_owner_signer, lp_wallet_addr, total_funds);
-        };
 
         // Emit sale completed event
         event::emit(
             SaleCompletedEvent {
                 collection_obj,
                 total_funds,
-                lp_wallet_addr,
+                dev_wallet_addr,
                 minted_count,
                 fa_metadata_addr: object::object_address(&fa_metadata),
                 fa_total_minted: FA_TOTAL_SUPPLY,
                 fa_lp_amount: lp_amount,
                 fa_vesting_amount: vesting_amount,
+                fa_dev_wallet_amount: dev_wallet_amount,
                 fa_contract_amount: contract_amount
             }
         );
@@ -1240,9 +1242,9 @@ module deployment_addr::nft_launchpad {
     }
 
     #[view]
-    /// Get LP wallet address for a collection
-    public fun get_lp_wallet_addr(collection_obj: Object<Collection>): address acquires CollectionConfig {
-        borrow_collection_config(&collection_obj).lp_wallet_addr
+    /// Get dev wallet address for a collection
+    public fun get_dev_wallet_addr(collection_obj: Object<Collection>): address acquires CollectionConfig {
+        borrow_collection_config(&collection_obj).dev_wallet_addr
     }
 
     #[view]
