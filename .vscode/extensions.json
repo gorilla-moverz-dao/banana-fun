@@ -1,5 +1,3 @@
 {
-    "recommendations": [
-        "aptoslabs.move-on-aptos"
-    ]
+	"recommendations": ["aptoslabs.move-on-aptos"]
 }

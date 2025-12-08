@@ -1,4 +1,5 @@
 import { Buffer } from "buffer";
+
 globalThis.Buffer = Buffer;
 
 import { createRouter, RouterProvider } from "@tanstack/react-router";

@@ -6,11 +6,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
 	return (
 		<AptosWalletAdapterProvider
 			autoConnect={true}
-			optInWallets={[
-				"Nightly",
-				"Razor Wallet" as AvailableWallets,
-				"Leap Wallet" as AvailableWallets,
-			]}
+			optInWallets={["Nightly", "Razor Wallet" as AvailableWallets, "Leap Wallet" as AvailableWallets]}
 			onError={(error) => {
 				console.log("error", error);
 			}}

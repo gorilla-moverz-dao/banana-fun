@@ -20,12 +20,13 @@ export const useTransaction = ({ showError = true }: { showError?: boolean } = {
 				tx,
 				result,
 			};
-		} catch (err: any) {
+		} catch (err) {
+			const error = err as Error;
 			if (showError) {
-				toast.error(err?.message || String(err));
+				toast.error(error.message || String(error));
 			}
-			setError(err);
-			throw err;
+			setError(error);
+			throw error;
 		} finally {
 			setTransactionInProgress(false);
 		}

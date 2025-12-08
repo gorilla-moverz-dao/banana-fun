@@ -4,16 +4,16 @@ import { aptos } from "@/lib/aptos";
 import { oaptToApt } from "@/lib/utils";
 
 export const useGetAccountNativeBalance = (address?: string) => {
-  const { account } = useWallet();
+	const { account } = useWallet();
 
-  const accountAddress = address || account?.address;
+	const accountAddress = address || account?.address;
 
-  return useQuery({
-    queryKey: ["nativeBalance", accountAddress],
-    queryFn: async () => {
-      if (!accountAddress) return null;
-      const nativeBalance = await aptos.getAccountAPTAmount({ accountAddress });
-      return { nativeBalance, balance: oaptToApt(nativeBalance) };
-    },
-  });
+	return useQuery({
+		queryKey: ["nativeBalance", accountAddress],
+		queryFn: async () => {
+			if (!accountAddress) return null;
+			const nativeBalance = await aptos.getAccountAPTAmount({ accountAddress });
+			return { nativeBalance, balance: oaptToApt(nativeBalance) };
+		},
+	});
 };

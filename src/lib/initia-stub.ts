@@ -3,17 +3,13 @@
 
 // Export empty objects/functions for the commonly used exports
 export const bcs = {
-  // Add any bcs methods that might be used
+	// Add any bcs methods that might be used
 };
 
-export const MsgExecute = class {
-  constructor() {
-    // Empty implementation
-  }
-};
+export const MsgExecute = class {};
 
 // Add other exports as needed based on what @thalalabs/surf uses
 export default {
-  bcs,
-  MsgExecute,
+	bcs,
+	MsgExecute,
 };

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useClients } from "@/hooks/useClients";
-import { useCollectionSearch } from "@/hooks/useCollectionSearch";
+import { type CollectionSearch, useCollectionSearch } from "@/hooks/useCollectionSearch";
 
 export function CollectionFilters() {
 	const { search, clearAllFilters, handleSearchChange, handleSortChange, handleViewChange, handleFilterChange } =
@@ -45,7 +45,7 @@ export function CollectionFilters() {
 				{/* Sort + View Toggle (mobile: same row) */}
 				<div className="flex items-center gap-2 w-full md:w-auto">
 					<div className="flex-1 md:flex-none md:w-48">
-						<Select value={search.sort} onValueChange={(value) => handleSortChange(value as any)}>
+						<Select value={search.sort} onValueChange={(value) => handleSortChange(value as CollectionSearch["sort"])}>
 							<SelectTrigger className="w-full">
 								<SelectValue />
 							</SelectTrigger>
@@ -80,7 +80,10 @@ export function CollectionFilters() {
 
 				{/* Filter Dropdown */}
 				{address && (
-					<Select value={search.filter} onValueChange={(value) => handleFilterChange(value as any)}>
+					<Select
+						value={search.filter}
+						onValueChange={(value) => handleFilterChange(value as CollectionSearch["filter"])}
+					>
 						<SelectTrigger className="w-full md:w-48">
 							<SelectValue />
 						</SelectTrigger>

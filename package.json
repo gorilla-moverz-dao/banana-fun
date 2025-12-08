@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"vite --port 3000\" \"bun run graphql-codegen:watch\"",
-    "build": "vite build && tsc",
+    "build": "bun run lint && vite build && tsc",
     "serve": "vite preview",
     "test": "vitest run",
     "build-abi": "bun run scripts/build-abi.ts",
