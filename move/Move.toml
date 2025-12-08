@@ -16,3 +16,4 @@ yuzuswap='_'
 [dev-addresses]
 deployment_addr='0x100'
 minter='0x101'
+yuzuswap='0x102'

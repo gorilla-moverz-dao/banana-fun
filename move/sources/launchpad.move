@@ -19,6 +19,8 @@ module deployment_addr::nft_launchpad {
 
     use aptos_framework::primary_fungible_store;
     use aptos_framework::fungible_asset;
+    use aptos_framework::coin;
+    use aptos_framework::aptos_coin::AptosCoin;
 
     use minter::token_components;
     use minter::mint_stage;
@@ -827,12 +829,6 @@ module deployment_addr::nft_launchpad {
         // Ensure sale is not already completed
         assert!(!collection_config.sale_completed, ESALE_ALREADY_COMPLETED);
 
-        // Check if deadline has passed
-        assert!(
-            timestamp::now_seconds() >= collection_config.sale_deadline,
-            EDEADLINE_NOT_PASSED
-        );
-
         // Check if all NFTs are sold (max_supply reached)
         let minted_count = *collection::count(collection_obj).borrow();
         assert!(minted_count >= collection_config.max_supply, ESALE_THRESHOLD_NOT_MET);
@@ -945,6 +941,18 @@ module deployment_addr::nft_launchpad {
         let tick_upper: u32 = 887236; // abs_tick = 443600, divisible by 200
         let amount_a: u64 = lp_amount; // Amount of new FA token for LP
         let amount_b: u64 = total_funds; // Amount of MOVE collected from sales
+
+        // Ensure MOVE coins are converted to fungible assets for the pool
+        // First, ensure the fungible asset metadata exists for MOVE
+        let move_metadata_option = coin::paired_metadata<AptosCoin>();
+        if (option::is_none(&move_metadata_option)) {
+            coin::migrate_to_fungible_store<AptosCoin>(&collection_owner_signer);
+        };
+
+        // Withdraw MOVE coins and convert to fungible assets
+        let move_coins = coin::withdraw<AptosCoin>(&collection_owner_signer, total_funds);
+        let move_fa = coin::coin_to_fungible_asset<AptosCoin>(move_coins);
+        primary_fungible_store::deposit(collection_owner_addr, move_fa);
 
         dex::create_pool_with_liquidity(
             &collection_owner_signer,

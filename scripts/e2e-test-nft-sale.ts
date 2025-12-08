@@ -25,16 +25,16 @@ const MOVEMENT_CONFIG_PATH = `${MOVE_DIR}.movement/config.yaml`;
 
 // Collection configuration for testing
 const TEST_COLLECTION_CONFIG = {
-  name: "BF 1 Collection",
-  description: "BF 1 Collection for testing the NFT launchpad",
+  name: "BF Collection",
+  description: "BF Collection for testing the NFT launchpad",
   uri: "https://banana-fun.gorilla-moverz.xyz/favicon.png",
   maxSupply: 10,
   placeholderUri: "https://banana-fun.gorilla-moverz.xyz/favicon.png",
   mintFeePerNFT: 100_000_000, // 0.1 MOVE (8 decimals)
   royaltyPercentage: 5,
   // Fungible asset config
-  faSymbol: "BF_1",
-  faName: "BF 1 Token",
+  faSymbol: "BF_",
+  faName: "BF Token",
   faIconUri: "https://banana-fun.gorilla-moverz.xyz/favicon.png",
   faProjectUri: "https://banana-fun.gorilla-moverz.xyz",
   // Vesting config
@@ -359,7 +359,7 @@ async function testReclaimFunds(
   }
 }
 
-async function getRegisteredCollections(): Promise<void> {
+async function getRegisteredCollections(): Promise<`0x${string}`[]> {
   console.log("\n📋 Registered Collections:");
 
   try {
@@ -372,8 +372,11 @@ async function getRegisteredCollections(): Promise<void> {
     for (const col of collections) {
       console.log(`   - ${col}`);
     }
+
+    return collections.map((col) => col.inner as `0x${string}`);
   } catch (error) {
     console.log(`   Error: ${(error as Error).message}`);
+    throw error;
   }
 }
 
@@ -397,10 +400,18 @@ async function main() {
   }
 
   // Get registered collections
-  await getRegisteredCollections();
+  const collections = await getRegisteredCollections();
+  const numberOfCollections = collections.length;
 
   // Create a new collection
-  const { collectionId } = await createCollection(admin, TEST_COLLECTION_CONFIG);
+  const config = {
+    ...TEST_COLLECTION_CONFIG, 
+    name: `${TEST_COLLECTION_CONFIG.name} ${numberOfCollections + 1}`,
+    faSymbol: `${TEST_COLLECTION_CONFIG.faSymbol}${numberOfCollections + 1}`,
+    faName: `${TEST_COLLECTION_CONFIG.faName} ${numberOfCollections + 1}`
+  };
+
+  const { collectionId } = await createCollection(admin, config);
 
   // Wait a bit for indexer to catch up
   await sleep(2000);
