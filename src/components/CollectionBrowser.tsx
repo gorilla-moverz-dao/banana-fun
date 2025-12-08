@@ -1,12 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { useMintingCollections } from "@/hooks/useMintingCollections";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { GlassCard } from "./GlassCard";
 
 export function CollectionBrowser({ path }: { path: "mint" | "collections" }) {
-	const { data, isLoading, error } = useMintingCollections();
+	const data = useQuery(api.collections.getMintingCollections);
 
-	if (isLoading) return <div>Loading collections...</div>;
-	if (error) return <div>Error loading collections.</div>;
+	if (data === undefined) return <div>Loading collections...</div>;
 	if (!data || data.length === 0) return <div>No collections found.</div>;
 
 	return (

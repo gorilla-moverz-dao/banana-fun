@@ -945,7 +945,7 @@ module deployment_addr::nft_launchpad {
         // Ensure MOVE coins are converted to fungible assets for the pool
         // First, ensure the fungible asset metadata exists for MOVE
         let move_metadata_option = coin::paired_metadata<AptosCoin>();
-        if (option::is_none(&move_metadata_option)) {
+        if (move_metadata_option.is_none()) {
             coin::migrate_to_fungible_store<AptosCoin>(&collection_owner_signer);
         };
 

@@ -12,6 +12,7 @@ import * as TanStackQueryProvider from "./integrations/tanstack-query/root-provi
 import { routeTree } from "./routeTree.gen";
 
 import "./styles.css";
+import { ConvexProvider, convexClient } from "./lib/convex.ts";
 import { WalletProvider } from "./providers/WalletProvider.tsx";
 import reportWebVitals from "./reportWebVitals.ts";
 
@@ -42,11 +43,13 @@ if (rootElement && !rootElement.innerHTML) {
 	const root = ReactDOM.createRoot(rootElement);
 	root.render(
 		<StrictMode>
-			<TanStackQueryProvider.Provider {...TanStackQueryProviderContext}>
-				<WalletProvider>
-					<RouterProvider router={router} />
-				</WalletProvider>
-			</TanStackQueryProvider.Provider>
+			<ConvexProvider client={convexClient}>
+				<TanStackQueryProvider.Provider {...TanStackQueryProviderContext}>
+					<WalletProvider>
+						<RouterProvider router={router} />
+					</WalletProvider>
+				</TanStackQueryProvider.Provider>
+			</ConvexProvider>
 		</StrictMode>,
 	);
 }

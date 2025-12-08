@@ -1,0 +1,82 @@
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+
+export default defineSchema({
+	collections: defineTable({
+		// Basic collection info (from indexer/DAS)
+		collectionId: v.string(), // Object address of the collection
+		collectionName: v.string(),
+		description: v.optional(v.string()),
+		uri: v.optional(v.string()),
+		placeholderUri: v.optional(v.string()),
+		creatorAddress: v.string(),
+		royaltyAddress: v.optional(v.string()),
+		royaltyPercentage: v.optional(v.number()),
+		maxSupply: v.number(),
+		currentSupply: v.number(), // Updated from indexer
+		mintEnabled: v.boolean(),
+
+		// Mint fee configuration
+		mintFeeCollectorAddress: v.optional(v.string()),
+		mintFeePerNFT: v.optional(v.number()), // In smallest unit (8 decimals)
+
+		// Sale configuration
+		saleDeadline: v.optional(v.number()), // Unix timestamp in seconds
+		saleCompleted: v.boolean(),
+		totalFundsCollected: v.optional(v.number()), // In smallest unit (8 decimals)
+		devWalletAddress: v.optional(v.string()),
+
+		// Fungible Asset (FA) configuration
+		// These are set when collection is created
+		faSymbol: v.optional(v.string()),
+		faName: v.optional(v.string()),
+		faIconUri: v.optional(v.string()),
+		faProjectUri: v.optional(v.string()),
+
+		// FA information (set when sale is completed)
+		faMetadataAddress: v.optional(v.string()), // Object address of FA metadata
+		faTotalMinted: v.optional(v.number()), // Total FA tokens minted (1B * 10^9)
+		faLpAmount: v.optional(v.number()), // Amount allocated to liquidity pool (50%)
+		faVestingAmount: v.optional(v.number()), // Amount for NFT holder vesting (10%)
+		faDevWalletAmount: v.optional(v.number()), // Amount sent to dev wallet (10%)
+		faCreatorVestingAmount: v.optional(v.number()), // Amount for creator vesting (30%)
+
+		// NFT Holder Vesting configuration
+		vestingCliff: v.optional(v.number()), // Cliff period in seconds
+		vestingDuration: v.optional(v.number()), // Total vesting duration in seconds
+
+		// Creator Vesting configuration
+		creatorVestingWalletAddress: v.optional(v.string()),
+		creatorVestingCliff: v.optional(v.number()), // Cliff period in seconds
+		creatorVestingDuration: v.optional(v.number()), // Total vesting duration in seconds
+
+		// Collection settings
+		collectionSettings: v.optional(v.array(v.string())), // e.g., ["SOULBOUND"]
+
+		// Protocol fees
+		protocolBaseFee: v.optional(v.number()),
+		protocolPercentageFee: v.optional(v.number()),
+
+		// Mint stages (array of stage configurations)
+		mintStages: v.optional(
+			v.array(
+				v.object({
+					name: v.string(),
+					mintFee: v.number(), // Base mint fee per NFT (in smallest unit)
+					startTime: v.number(), // Unix timestamp in seconds
+					endTime: v.number(), // Unix timestamp in seconds
+					stageType: v.number(), // 1 = allowlist, 2 = public
+					mintLimitPerAddr: v.optional(v.number()), // Max mints per address for this stage
+				}),
+			),
+		),
+
+		// Timestamps
+		createdAt: v.number(), // When collection was created
+		updatedAt: v.number(), // Last update timestamp
+	})
+		.index("by_collection_id", ["collectionId"])
+		.index("by_creator", ["creatorAddress"])
+		.index("by_sale_completed", ["saleCompleted"])
+		.index("by_mint_enabled", ["mintEnabled"]),
+});

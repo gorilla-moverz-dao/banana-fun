@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "convex/react";
 import { ExternalLinkIcon } from "lucide-react";
 import { useState } from "react";
 import { AssetDetailDialog } from "@/components/AssetDetailDialog";
@@ -9,13 +10,14 @@ import { NFTThumbnail } from "@/components/NFTThumbnail";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { MOVE_NETWORK } from "@/constants";
+import type { Collection } from "@/fragments/collection";
 import type { NFT } from "@/fragments/nft";
 import { useClients } from "@/hooks/useClients";
-import { useCollectionData } from "@/hooks/useCollectionData";
 import { useCollectionNFTs } from "@/hooks/useCollectionNFTs";
 import { useMintBalance } from "@/hooks/useMintBalance";
 import { useMintStages } from "@/hooks/useMintStages";
 import { toShortAddress } from "@/lib/utils";
+import { api } from "../../convex/_generated/api";
 
 export const Route = createFileRoute("/mint/$collectionId")({
 	component: RouteComponent,
@@ -31,20 +33,31 @@ function RouteComponent() {
 
 	const collectionIdTyped = collectionId as `0x${string}`;
 
+	// Get collection data from Convex
+	const convexCollectionData = useQuery(api.collections.getCollection, {
+		collectionId: collectionIdTyped,
+	});
+
+	// Mint stages and balance still need on-chain calls for user-specific reduction calculations
 	const { data: stages = [], isFetched: isFetchedStages } = useMintStages(
 		address?.toString() as `0x${string}`,
 		collectionIdTyped,
 	);
 	const { data: mintBalance, isFetched: isFetchedMintBalance } = useMintBalance(collectionIdTyped);
-	const { data: collectionData, isFetched: isFetchedCollection } = useCollectionData(collectionIdTyped);
 	const { data: nfts, isFetched: isFetchedNFTs } = useCollectionNFTs({
 		onlyOwned: true,
 		collectionIds: [collectionIdTyped],
 	});
 
-	const isFetched = isFetchedStages && isFetchedMintBalance && isFetchedCollection;
+	const isFetched = convexCollectionData !== undefined && isFetchedStages && isFetchedMintBalance;
 	if (!isFetched) return <div>Loading...</div>;
-	if (!collectionData) return <div>Collection not found</div>;
+	if (!convexCollectionData) return <div>Collection not found</div>;
+
+	// Transform Convex data to match expected format
+	const collectionData = {
+		collection: convexCollectionData.collection as Collection,
+		ownerCount: convexCollectionData.ownerCount,
+	};
 
 	const minted = collectionData.collection.current_supply;
 	const total = collectionData.collection.max_supply;
