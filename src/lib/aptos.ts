@@ -3,6 +3,7 @@ import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
 import { createSurfClient } from "@thalalabs/surf";
 import { ABI as launchpadABI } from "@/abi/nft_launchpad";
 import { ABI as nftReductionManagerABI } from "@/abi/nft_reduction_manager";
+import { ABI as vestingABI } from "@/abi/vesting";
 import { LAUNCHPAD_MODULE_ADDRESS, MOVE_NETWORK } from "@/constants";
 
 // Network configuration
@@ -16,6 +17,7 @@ const config = new AptosConfig({
 // Initialize client
 export const aptos = new Aptos(config);
 export const launchpadClient = createSurfClient(aptos).useABI(launchpadABI, LAUNCHPAD_MODULE_ADDRESS);
+export const vestingClient = createSurfClient(aptos).useABI(vestingABI, LAUNCHPAD_MODULE_ADDRESS);
 export const nftReductionManagerClient = createSurfClient(aptos).useABI(
 	nftReductionManagerABI,
 	LAUNCHPAD_MODULE_ADDRESS,

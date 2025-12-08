@@ -8,7 +8,7 @@
     "serve": "vite preview",
     "test": "vitest run",
     "build-abi": "bun run scripts/build-abi.ts",
-    "e2e:nft-sale": "bun run scripts/e2e-test-nft-sale.ts",
+    "e2e:nft-sale": "bunx tsx scripts/e2e-test-nft-sale.ts",
     "format": "biome format",
     "lint": "biome lint",
     "check": "biome check",

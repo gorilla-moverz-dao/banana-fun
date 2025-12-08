@@ -12,19 +12,11 @@
 
 import {
   Account,
-  Aptos,
-  AptosConfig,
-  Ed25519PrivateKey,
-  Network,
 } from "@aptos-labs/ts-sdk";
 import type { UserTransactionResponse } from "@aptos-labs/ts-sdk";
-import { createSurfClient } from "@thalalabs/surf";
-import yaml from "js-yaml";
-import * as fs from "node:fs";
-
-import { ABI as launchpadABI } from "../src/abi/nft_launchpad";
-import { ABI as vestingABI } from "../src/abi/vesting";
-import { MOVE_NETWORK } from "@/constants";
+import { aptos, launchpadClient, vestingClient } from "@/lib/aptos";
+import { LAUNCHPAD_MODULE_ADDRESS, MOVE_NETWORK } from "@/constants";
+import { dateToSeconds, getSigner, sleep } from "./helper";
 
 // ================================= Configuration =================================
 
@@ -33,91 +25,24 @@ const MOVEMENT_CONFIG_PATH = `${MOVE_DIR}.movement/config.yaml`;
 
 // Collection configuration for testing
 const TEST_COLLECTION_CONFIG = {
-  name: "E2E Test Collection",
-  description: "Test collection for e2e testing of the NFT launchpad",
-  uri: "https://example.com/collection.json",
+  name: "BF 1 Collection",
+  description: "BF 1 Collection for testing the NFT launchpad",
+  uri: "https://banana-fun.gorilla-moverz.xyz/favicon.png",
   maxSupply: 10,
-  placeholderUri: "https://example.com/placeholder.png",
+  placeholderUri: "https://banana-fun.gorilla-moverz.xyz/favicon.png",
   mintFeePerNFT: 100_000_000, // 0.1 MOVE (8 decimals)
   royaltyPercentage: 5,
   // Fungible asset config
-  faSymbol: "TEST",
-  faName: "Test Token",
-  faIconUri: "https://example.com/icon.png",
-  faProjectUri: "https://example.com/project",
+  faSymbol: "BF_1",
+  faName: "BF 1 Token",
+  faIconUri: "https://banana-fun.gorilla-moverz.xyz/favicon.png",
+  faProjectUri: "https://banana-fun.gorilla-moverz.xyz",
   // Vesting config
   vestingCliff: 60, // 1 minute cliff
-  vestingDuration: 300, // 5 minutes duration
+  vestingDuration: 120, // 2 minutes duration
   creatorVestingCliff: 60,
-  creatorVestingDuration: 300,
+  creatorVestingDuration: 120,
 };
-
-// ================================= Helpers =================================
-
-interface YamlConfig {
-  profiles: {
-    default?: {
-      private_key: string;
-      account?: string;
-    };
-    testnet?: {
-      private_key: string;
-      account?: string;
-    };
-  };
-}
-
-function parsePrivateKey(filePath: string, profile = "default"): string | undefined {
-  try {
-    const fileContents = fs.readFileSync(filePath, "utf8");
-    const data = yaml.load(fileContents) as YamlConfig;
-
-    if (data?.profiles?.[profile as keyof YamlConfig["profiles"]]) {
-      return data.profiles[profile as keyof YamlConfig["profiles"]]?.private_key;
-    }
-    throw new Error("Invalid YAML structure");
-  } catch (error) {
-    console.error(`Error reading or parsing YAML file: ${(error as Error).message}`);
-    return undefined;
-  }
-}
-
-function getSigner(yamlPath: string, profile = "default"): Account {
-  const pk = parsePrivateKey(yamlPath, profile);
-  if (!pk) {
-    console.error("Error reading private key");
-    process.exit(1);
-  }
-
-  return Account.fromPrivateKey({ privateKey: new Ed25519PrivateKey(pk) });
-}
-
-function dateToSeconds(date: Date): number {
-  return Math.floor(+date / 1000);
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-// ================================= Setup Clients =================================
-
-const config = new AptosConfig({
-  network: Network.CUSTOM,
-  fullnode: MOVE_NETWORK.rpcUrl,
-  indexer: MOVE_NETWORK.indexerUrl,
-  faucet: MOVE_NETWORK.faucetUrl,
-});
-
-const aptos = new Aptos(config);
-const surfClient = createSurfClient(aptos);
-
-// Get module address from the deployed contract (read from constants or use the signer's address)
-// For testing, we'll get the module address from the ABI
-const MODULE_ADDRESS = launchpadABI.address as `0x${string}`;
-
-const launchpadClient = surfClient.useABI({ ...launchpadABI, address: MODULE_ADDRESS });
-const vestingClient = surfClient.useABI({ ...vestingABI, address: MODULE_ADDRESS });
 
 // ================================= Test Functions =================================
 
@@ -156,7 +81,6 @@ async function createCollection(
   console.log("\n📦 Creating collection...");
 
   const now = dateToSeconds(new Date());
-  const oneYearFromNow = now + 365 * 24 * 60 * 60;
   const saleDeadline = now + 7 * 24 * 60 * 60; // 1 week from now
 
   // Create a public mint stage
@@ -165,7 +89,7 @@ async function createCollection(
   const allowlistAddresses: (`0x${string}`[] | undefined)[] = [undefined];
   const allowlistMintLimits: (bigint[] | undefined)[] = [undefined];
   const startTimes = [BigInt(now)];
-  const endTimes = [BigInt(oneYearFromNow)];
+  const endTimes = [BigInt(saleDeadline)];
   const mintFeesPerNFT = [BigInt(config.mintFeePerNFT)];
   const mintLimitsPerAddr = [BigInt(config.maxSupply)]; // Allow minting up to max supply per user
 
@@ -177,11 +101,11 @@ async function createCollection(
       config.uri,
       BigInt(config.maxSupply),
       config.placeholderUri,
-      signer.accountAddress.toString() as `0x${string}`, // mint_fee_collector_addr
-      signer.accountAddress.toString() as `0x${string}`, // royalty_address
+      signer.accountAddress.toString(), // mint_fee_collector_addr
+      signer.accountAddress.toString(), // royalty_address
       BigInt(config.royaltyPercentage), // royalty_percentage
       stageNames,
-      new Uint8Array(stageTypes),
+      stageTypes,
       allowlistAddresses,
       allowlistMintLimits,
       startTimes,
@@ -189,15 +113,15 @@ async function createCollection(
       mintFeesPerNFT,
       mintLimitsPerAddr,
       [], // collection_settings (empty for non-soulbound)
-      signer.accountAddress.toString() as `0x${string}`, // dev_wallet_addr
+      signer.accountAddress.toString(), // dev_wallet_addr
       BigInt(saleDeadline),
-      new Uint8Array(new TextEncoder().encode(config.faSymbol)),
-      new Uint8Array(new TextEncoder().encode(config.faName)),
-      new Uint8Array(new TextEncoder().encode(config.faIconUri)),
-      new Uint8Array(new TextEncoder().encode(config.faProjectUri)),
+      config.faSymbol,
+      config.faName,
+      config.faIconUri,
+      config.faProjectUri,
       BigInt(config.vestingCliff),
       BigInt(config.vestingDuration),
-      signer.accountAddress.toString() as `0x${string}`, // creator_vesting_wallet_addr
+      signer.accountAddress.toString(), // creator_vesting_wallet_addr
       BigInt(config.creatorVestingCliff),
       BigInt(config.creatorVestingDuration),
     ],
@@ -457,7 +381,7 @@ async function getRegisteredCollections(): Promise<void> {
 
 async function main() {
   console.log("🚀 Starting NFT Sale E2E Test\n");
-  console.log(`Module Address: ${MODULE_ADDRESS}`);
+  console.log(`Module Address: ${LAUNCHPAD_MODULE_ADDRESS}`);
 
   // Get signer from config
   const admin = getSigner(MOVEMENT_CONFIG_PATH, "testnet");
