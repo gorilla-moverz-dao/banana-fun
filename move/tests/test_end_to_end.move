@@ -53,7 +53,7 @@ module deployment_addr::test_end_to_end {
     const DURATION_XXLONG: u64 = 1000u64;
 
     // Sale configuration constants
-    const LP_WALLET: address = @0x400;
+    const DEV_WALLET: address = @0x400;
     const SALE_DEADLINE_OFFSET: u64 = 10000u64; // 10000 seconds from now
 
     // Fungible asset configuration for tests
@@ -62,9 +62,14 @@ module deployment_addr::test_end_to_end {
     const FA_ICON_URI: vector<u8> = b"https://example.com/banana.png";
     const FA_PROJECT_URI: vector<u8> = b"https://banana.fun";
 
-    // Vesting configuration
+    // NFT holder vesting configuration
     const VESTING_CLIFF: u64 = 100u64; // 100 seconds cliff
     const VESTING_DURATION: u64 = 1000u64; // 1000 seconds total duration
+
+    // Creator vesting configuration
+    const CREATOR_VESTING_WALLET: address = @0x500;
+    const CREATOR_VESTING_CLIFF: u64 = 200u64; // 200 seconds cliff
+    const CREATOR_VESTING_DURATION: u64 = 2000u64; // 2000 seconds total duration
 
     // Stage types
     const STAGE_TYPE_ALLOWLIST: u8 = 1u8;
@@ -120,14 +125,17 @@ module deployment_addr::test_end_to_end {
             mint_fees_per_nft,
             mint_limits_per_addr,
             vector[],
-            LP_WALLET,
+            DEV_WALLET,
             timestamp::now_seconds() + SALE_DEADLINE_OFFSET,
             FA_SYMBOL,
             FA_NAME,
             FA_ICON_URI,
             FA_PROJECT_URI,
             VESTING_CLIFF,
-            VESTING_DURATION
+            VESTING_DURATION,
+            CREATOR_VESTING_WALLET,
+            CREATOR_VESTING_CLIFF,
+            CREATOR_VESTING_DURATION
         );
 
         let registry = nft_launchpad::get_registry();
@@ -308,14 +316,17 @@ module deployment_addr::test_end_to_end {
             mint_fees_per_nft,
             mint_limits_per_addr,
             vector[],
-            LP_WALLET,
+            DEV_WALLET,
             timestamp::now_seconds() + SALE_DEADLINE_OFFSET,
             FA_SYMBOL,
             FA_NAME,
             FA_ICON_URI,
             FA_PROJECT_URI,
             VESTING_CLIFF,
-            VESTING_DURATION
+            VESTING_DURATION,
+            CREATOR_VESTING_WALLET,
+            CREATOR_VESTING_CLIFF,
+            CREATOR_VESTING_DURATION
         );
         let registry = nft_launchpad::get_registry();
         let collection_1 = registry[registry.length() - 1];
@@ -528,14 +539,17 @@ module deployment_addr::test_end_to_end {
             mint_fees_per_nft,
             mint_limits_per_addr,
             vector[],
-            LP_WALLET,
+            DEV_WALLET,
             timestamp::now_seconds() + SALE_DEADLINE_OFFSET,
             FA_SYMBOL,
             FA_NAME,
             FA_ICON_URI,
             FA_PROJECT_URI,
             VESTING_CLIFF,
-            VESTING_DURATION
+            VESTING_DURATION,
+            CREATOR_VESTING_WALLET,
+            CREATOR_VESTING_CLIFF,
+            CREATOR_VESTING_DURATION
         );
 
         let registry = nft_launchpad::get_registry();
@@ -1492,7 +1506,7 @@ module deployment_addr::test_end_to_end {
             admin = @deployment_addr,
             user1 = @0x200,
             royalty_user = @0x300,
-            lp_wallet = @0x400
+            dev_wallet = @0x400
         )
     ]
     fun test_fund_collection_in_object(
@@ -1500,10 +1514,10 @@ module deployment_addr::test_end_to_end {
         admin: &signer,
         user1: &signer,
         royalty_user: &signer,
-        lp_wallet: &signer
+        dev_wallet: &signer
     ) {
         let user1_addr = setup_test_env(aptos_framework, user1, admin);
-        account::create_account_for_test(signer::address_of(lp_wallet));
+        account::create_account_for_test(signer::address_of(dev_wallet));
 
         let collection_obj =
             create_public_only_collection(
@@ -1541,7 +1555,7 @@ module deployment_addr::test_end_to_end {
             admin = @deployment_addr,
             user1 = @0x200,
             royalty_user = @0x300,
-            lp_wallet = @0x400
+            dev_wallet = @0x400
         )
     ]
     fun test_sale_completion_success(
@@ -1549,11 +1563,11 @@ module deployment_addr::test_end_to_end {
         admin: &signer,
         user1: &signer,
         royalty_user: &signer,
-        lp_wallet: &signer
+        dev_wallet: &signer
     ) {
         let user1_addr = setup_test_env(aptos_framework, user1, admin);
-        let lp_wallet_addr = signer::address_of(lp_wallet);
-        account::create_account_for_test(lp_wallet_addr);
+        let dev_wallet_addr = signer::address_of(dev_wallet);
+        account::create_account_for_test(dev_wallet_addr);
 
         // Create collection with max_supply of 10
         let stage_names = vector[utf8(STAGE_NAME_PUBLIC)];
@@ -1584,14 +1598,17 @@ module deployment_addr::test_end_to_end {
             mint_fees_per_nft,
             mint_limits_per_addr,
             vector[],
-            lp_wallet_addr,
+            dev_wallet_addr,
             timestamp::now_seconds() + DURATION_MEDIUM, // deadline
             FA_SYMBOL,
             FA_NAME,
             FA_ICON_URI,
             FA_PROJECT_URI,
             VESTING_CLIFF,
-            VESTING_DURATION
+            VESTING_DURATION,
+            CREATOR_VESTING_WALLET,
+            CREATOR_VESTING_CLIFF,
+            CREATOR_VESTING_DURATION
         );
 
         let registry = nft_launchpad::get_registry();
@@ -1621,7 +1638,7 @@ module deployment_addr::test_end_to_end {
             admin = @deployment_addr,
             user1 = @0x200,
             royalty_user = @0x300,
-            lp_wallet = @0x400
+            dev_wallet = @0x400
         )
     ]
     #[expected_failure(abort_code = 1010, location = nft_launchpad)]
@@ -1631,11 +1648,11 @@ module deployment_addr::test_end_to_end {
         admin: &signer,
         user1: &signer,
         royalty_user: &signer,
-        lp_wallet: &signer
+        dev_wallet: &signer
     ) {
         let user1_addr = setup_test_env(aptos_framework, user1, admin);
-        let lp_wallet_addr = signer::address_of(lp_wallet);
-        account::create_account_for_test(lp_wallet_addr);
+        let dev_wallet_addr = signer::address_of(dev_wallet);
+        account::create_account_for_test(dev_wallet_addr);
 
         // Create collection with max_supply of 10
         let stage_names = vector[utf8(STAGE_NAME_PUBLIC)];
@@ -1666,14 +1683,17 @@ module deployment_addr::test_end_to_end {
             mint_fees_per_nft,
             mint_limits_per_addr,
             vector[],
-            lp_wallet_addr,
+            dev_wallet_addr,
             timestamp::now_seconds() + DURATION_MEDIUM, // deadline
             FA_SYMBOL,
             FA_NAME,
             FA_ICON_URI,
             FA_PROJECT_URI,
             VESTING_CLIFF,
-            VESTING_DURATION
+            VESTING_DURATION,
+            CREATOR_VESTING_WALLET,
+            CREATOR_VESTING_CLIFF,
+            CREATOR_VESTING_DURATION
         );
 
         let registry = nft_launchpad::get_registry();
@@ -1697,7 +1717,7 @@ module deployment_addr::test_end_to_end {
             admin = @deployment_addr,
             user1 = @0x200,
             royalty_user = @0x300,
-            lp_wallet = @0x400
+            dev_wallet = @0x400
         )
     ]
     fun test_reclaim_after_deadline(
@@ -1705,11 +1725,11 @@ module deployment_addr::test_end_to_end {
         admin: &signer,
         user1: &signer,
         royalty_user: &signer,
-        lp_wallet: &signer
+        dev_wallet: &signer
     ) {
         let user1_addr = setup_test_env(aptos_framework, user1, admin);
-        let lp_wallet_addr = signer::address_of(lp_wallet);
-        account::create_account_for_test(lp_wallet_addr);
+        let dev_wallet_addr = signer::address_of(dev_wallet);
+        account::create_account_for_test(dev_wallet_addr);
 
         // Create collection with max_supply of 10
         let stage_names = vector[utf8(STAGE_NAME_PUBLIC)];
@@ -1740,14 +1760,17 @@ module deployment_addr::test_end_to_end {
             mint_fees_per_nft,
             mint_limits_per_addr,
             vector[],
-            lp_wallet_addr,
+            dev_wallet_addr,
             timestamp::now_seconds() + DURATION_MEDIUM, // deadline
             FA_SYMBOL,
             FA_NAME,
             FA_ICON_URI,
             FA_PROJECT_URI,
             VESTING_CLIFF,
-            VESTING_DURATION
+            VESTING_DURATION,
+            CREATOR_VESTING_WALLET,
+            CREATOR_VESTING_CLIFF,
+            CREATOR_VESTING_DURATION
         );
 
         let registry = nft_launchpad::get_registry();
@@ -1790,7 +1813,7 @@ module deployment_addr::test_end_to_end {
             admin = @deployment_addr,
             user1 = @0x200,
             royalty_user = @0x300,
-            lp_wallet = @0x400
+            dev_wallet = @0x400
         )
     ]
     #[expected_failure(abort_code = 1007, location = nft_launchpad)]
@@ -1800,11 +1823,11 @@ module deployment_addr::test_end_to_end {
         admin: &signer,
         user1: &signer,
         royalty_user: &signer,
-        lp_wallet: &signer
+        dev_wallet: &signer
     ) {
         let user1_addr = setup_test_env(aptos_framework, user1, admin);
-        let lp_wallet_addr = signer::address_of(lp_wallet);
-        account::create_account_for_test(lp_wallet_addr);
+        let dev_wallet_addr = signer::address_of(dev_wallet);
+        account::create_account_for_test(dev_wallet_addr);
 
         let collection_obj =
             create_public_only_collection(
@@ -1832,7 +1855,7 @@ module deployment_addr::test_end_to_end {
             user1 = @0x200,
             user2 = @0x201,
             royalty_user = @0x300,
-            lp_wallet = @0x400
+            dev_wallet = @0x400
         )
     ]
     fun test_multiple_users_reclaim(
@@ -1841,14 +1864,14 @@ module deployment_addr::test_end_to_end {
         user1: &signer,
         user2: &signer,
         royalty_user: &signer,
-        lp_wallet: &signer
+        dev_wallet: &signer
     ) {
         let user1_addr = setup_test_env(aptos_framework, user1, admin);
         let user2_addr = signer::address_of(user2);
         account::create_account_for_test(user2_addr);
         coin::register<AptosCoin>(user2);
-        let lp_wallet_addr = signer::address_of(lp_wallet);
-        account::create_account_for_test(lp_wallet_addr);
+        let dev_wallet_addr = signer::address_of(dev_wallet);
+        account::create_account_for_test(dev_wallet_addr);
 
         // Create collection with max_supply of 10
         let stage_names = vector[utf8(STAGE_NAME_PUBLIC)];
@@ -1879,14 +1902,17 @@ module deployment_addr::test_end_to_end {
             mint_fees_per_nft,
             mint_limits_per_addr,
             vector[],
-            lp_wallet_addr,
+            dev_wallet_addr,
             timestamp::now_seconds() + DURATION_MEDIUM, // deadline
             FA_SYMBOL,
             FA_NAME,
             FA_ICON_URI,
             FA_PROJECT_URI,
             VESTING_CLIFF,
-            VESTING_DURATION
+            VESTING_DURATION,
+            CREATOR_VESTING_WALLET,
+            CREATOR_VESTING_CLIFF,
+            CREATOR_VESTING_DURATION
         );
 
         let registry = nft_launchpad::get_registry();
@@ -1934,7 +1960,7 @@ module deployment_addr::test_end_to_end {
             admin = @deployment_addr,
             user1 = @0x200,
             royalty_user = @0x300,
-            lp_wallet = @0x400
+            dev_wallet = @0x400
         )
     ]
     fun test_get_sale_info(
@@ -1942,11 +1968,11 @@ module deployment_addr::test_end_to_end {
         admin: &signer,
         user1: &signer,
         royalty_user: &signer,
-        lp_wallet: &signer
+        dev_wallet: &signer
     ) {
         setup_test_env(aptos_framework, user1, admin);
-        let lp_wallet_addr = signer::address_of(lp_wallet);
-        account::create_account_for_test(lp_wallet_addr);
+        let dev_wallet_addr = signer::address_of(dev_wallet);
+        account::create_account_for_test(dev_wallet_addr);
 
         let collection_obj =
             create_public_only_collection(
@@ -1959,11 +1985,11 @@ module deployment_addr::test_end_to_end {
 
         // Verify sale info
         let sale_deadline = nft_launchpad::get_sale_deadline(collection_obj);
-        let lp_wallet_from_contract = nft_launchpad::get_lp_wallet_addr(collection_obj);
+        let dev_wallet_from_contract = nft_launchpad::get_dev_wallet_addr(collection_obj);
         let is_completed = nft_launchpad::is_sale_completed(collection_obj);
 
         assert!(sale_deadline == SALE_DEADLINE_OFFSET);
-        assert!(lp_wallet_from_contract == LP_WALLET);
+        assert!(dev_wallet_from_contract == DEV_WALLET);
         assert!(!is_completed);
     }
 
@@ -1975,7 +2001,8 @@ module deployment_addr::test_end_to_end {
     /// Test that completing a sale creates a fungible asset and distributes it correctly:
     /// - 10% goes to Vesting contract
     /// - 10% goes to DEX pool
-    /// - 80% stays in the contract (collection owner)
+    /// - 10% goes to dev wallet
+    /// - 70% stays in the contract (collection owner)
     fun test_sale_completion_creates_fungible_asset(
         aptos_framework: &signer,
         admin: &signer,
@@ -1984,7 +2011,7 @@ module deployment_addr::test_end_to_end {
     ) {
         let user1_addr = setup_test_env(aptos_framework, user1, admin);
 
-        // Create collection using helper (uses LP_WALLET = @0x400)
+        // Create collection using helper (uses DEV_WALLET = @0x400)
         let collection_obj =
             create_public_only_collection(
                 admin,
@@ -2023,38 +2050,50 @@ module deployment_addr::test_end_to_end {
         assert!(fa_name == utf8(FA_NAME));
         assert!(fa_symbol == utf8(FA_SYMBOL));
 
-        // Constants from launchpad (10% LP, 10% vesting, 80% contract)
+        // Constants from launchpad (50% LP, 10% NFT vesting, 10% dev wallet, 30% creator vesting)
         let total_supply: u64 = 1_000_000_000_000_000_000; // 1B * 10^9
-        let lp_percentage: u64 = 10;
+        let lp_percentage: u64 = 50;
         let vesting_percentage: u64 = 10;
-        let expected_lp_amount = total_supply * lp_percentage / 100;
-        let expected_vesting_amount = total_supply * vesting_percentage / 100;
-        let expected_contract_amount = total_supply - expected_lp_amount
-            - expected_vesting_amount;
+        let dev_wallet_percentage: u64 = 10;
+        let creator_vesting_percentage: u64 = 30;
+        // Use u128 for intermediate calculation to avoid overflow
+        let expected_lp_amount = ((total_supply as u128) * (lp_percentage as u128) / 100 as u64);
+        let expected_vesting_amount = ((total_supply as u128) * (vesting_percentage as u128) / 100 as u64);
+        let expected_dev_wallet_amount =
+            ((total_supply as u128) * (dev_wallet_percentage as u128) / 100 as u64);
+        let expected_creator_vesting_amount =
+            ((total_supply as u128) * (creator_vesting_percentage as u128) / 100 as u64);
 
-        // Verify collection owner (contract) holds ~80% of the FA
-        // Note: Due to YuzuSwap tick/price rounding, not all LP tokens may be consumed,
-        // so we allow a small tolerance (0.1% of expected amount)
+        // Verify collection owner has remaining tokens (rounding dust from LP creation)
+        // Most LP tokens should be consumed, so contract balance should be small
         let contract_fa_balance =
             primary_fungible_store::balance(collection_owner_addr, fa_metadata);
         debug::print(&string::utf8(b"contract_fa_balance: "));
         debug::print(&contract_fa_balance);
-        let tolerance = expected_contract_amount / 1000; // 0.1% tolerance
-        let diff =
-            if (contract_fa_balance > expected_contract_amount) {
-                contract_fa_balance - expected_contract_amount
-            } else {
-                expected_contract_amount - contract_fa_balance
-            };
-        assert!(diff <= tolerance);
+        // Contract should only have rounding dust from LP creation (well under 1% of LP amount)
+        let max_rounding_dust = expected_lp_amount / 100; // 1% of LP amount max
+        assert!(contract_fa_balance <= max_rounding_dust);
 
-        // Verify vesting is initialized
+        // Verify NFT holder vesting is initialized
         assert!(vesting::is_vesting_initialized(collection_obj));
 
-        // Verify vesting pool has 10% of FA
+        // Verify dev wallet has 10% of FA
+        let dev_wallet_balance = primary_fungible_store::balance(DEV_WALLET, fa_metadata);
+        debug::print(&dev_wallet_balance);
+        assert!(dev_wallet_balance == expected_dev_wallet_amount);
+
+        // Verify NFT holder vesting pool has 10% of FA
         let vesting_balance = vesting::get_remaining_vesting_tokens(collection_obj);
         debug::print(&vesting_balance);
         assert!(vesting_balance == expected_vesting_amount);
+
+        // Verify creator vesting is initialized
+        assert!(vesting::is_creator_vesting_initialized(collection_obj));
+
+        // Verify creator vesting pool has 30% of FA
+        let creator_vesting_balance = vesting::get_remaining_creator_vesting_tokens(collection_obj);
+        debug::print(&creator_vesting_balance);
+        assert!(creator_vesting_balance == expected_creator_vesting_amount);
     }
 }
 

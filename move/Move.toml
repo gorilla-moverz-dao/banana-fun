@@ -11,8 +11,9 @@ Yuzuswap = { local = "deps/Yuzuswap/" }
 [addresses]
 deployment_addr='_'
 minter='_'
-yuzuswap='0x46566b4a16a1261ab400ab5b9067de84ba152b5eb4016b217187f2a2ca980c5a'
+yuzuswap='_'
 
 [dev-addresses]
 deployment_addr='0x100'
 minter='0x101'
+yuzuswap='0x102'
