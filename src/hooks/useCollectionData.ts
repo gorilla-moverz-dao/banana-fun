@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { executeGraphQL } from "@/graphql/executeGraphQL";
 import { graphql } from "@/graphql/gql";
-import { launchpadClient } from "@/lib/aptos";
 
 const query = graphql(`
   query TokenQuery($collection_id: String) {
@@ -29,16 +28,10 @@ export function useCollectionData(collectionId: `0x${string}`) {
 				collection_id: collectionId,
 			});
 
-			const [premintAmount] = await launchpadClient.view.get_premint_amount({
-				typeArguments: [],
-				functionArguments: [collectionId],
-			});
-
 			return {
 				collection: res.current_collections_v2[0],
 				owner: res.current_collection_ownership_v2_view[0],
 				ownerCount: res.current_collection_ownership_v2_view_aggregate.aggregate?.count ?? 0,
-				premint_amount: premintAmount,
 			};
 		},
 	});
