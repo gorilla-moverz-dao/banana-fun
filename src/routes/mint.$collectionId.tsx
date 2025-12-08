@@ -48,7 +48,6 @@ function RouteComponent() {
 
 	const minted = collectionData.collection.current_supply;
 	const total = collectionData.collection.max_supply;
-	const reserved = collectionData.premint_amount;
 	const percent = Math.round((minted / total) * 100);
 
 	const handleNFTClick = (nft: NFT) => {
@@ -97,7 +96,6 @@ function RouteComponent() {
 								<span className="font-semibold text-lg">
 									{minted} / {total}
 								</span>
-								<span className="text-xs text-muted-foreground">({reserved} reserved for creator)</span>
 								<span className="ml-auto text-sm">{percent}%</span>
 							</div>
 							<Progress value={percent} className="h-3 mb-4 bg-muted/30" />
