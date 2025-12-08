@@ -15,7 +15,6 @@ import type { NFT } from "@/fragments/nft";
 import { useClients } from "@/hooks/useClients";
 import { useCollectionNFTs } from "@/hooks/useCollectionNFTs";
 import { useMintBalance } from "@/hooks/useMintBalance";
-import { useMintStages } from "@/hooks/useMintStages";
 import { toShortAddress } from "@/lib/utils";
 import { api } from "../../convex/_generated/api";
 
@@ -33,17 +32,16 @@ function RouteComponent() {
 
 	const collectionIdTyped = collectionId as `0x${string}`;
 
-	// Get collection data from Convex
+	// Get collection data from Convex (includes stages)
 	const convexCollectionData = useQuery(api.collections.getCollection, {
 		collectionId: collectionIdTyped,
 	});
 
-	// Mint stages and balance still need on-chain calls for user-specific reduction calculations
-	const { data: stages = [], isFetched: isFetchedStages } = useMintStages(
-		address?.toString() as `0x${string}`,
-		collectionIdTyped,
-	);
-	const { data: mintBalance, isFetched: isFetchedMintBalance } = useMintBalance(collectionIdTyped);
+	// Use stages from Convex - reduction fees are calculated on-chain when needed
+	const stages = convexCollectionData?.stages || [];
+	const isFetchedStages = convexCollectionData !== undefined;
+
+	const { data: mintBalance, isFetched: isFetchedMintBalance } = useMintBalance(collectionIdTyped, stages);
 	const { data: nfts, isFetched: isFetchedNFTs } = useCollectionNFTs({
 		onlyOwned: true,
 		collectionIds: [collectionIdTyped],

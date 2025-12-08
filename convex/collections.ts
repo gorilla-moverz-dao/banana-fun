@@ -1,4 +1,4 @@
-import { query } from "./_generated/server";
+import { internalMutation, internalQuery, query } from "./_generated/server";
 import { v } from "convex/values";
 
 /**
@@ -68,5 +68,53 @@ export const getCollection = query({
 			ownerCount: 0, // TODO: Calculate from NFT ownership data or sync separately
 			stages,
 		};
+	},
+});
+
+/**
+ * Internal query to get all collections that need syncing
+ */
+export const getCollectionsToSync = internalQuery({
+	args: {},
+	handler: async (ctx) => {
+		return await ctx.db.query("collections").collect();
+	},
+});
+
+/**
+ * Internal mutation to update collection data from blockchain
+ */
+export const updateCollectionFromBlockchain = internalMutation({
+	args: {
+		collectionId: v.id("collections"),
+		updates: v.object({
+			currentSupply: v.number(),
+			totalFundsCollected: v.optional(v.number()),
+			saleCompleted: v.optional(v.boolean()),
+			saleDeadline: v.optional(v.number()),
+			mintEnabled: v.optional(v.boolean()),
+			mintStages: v.optional(
+				v.array(
+					v.object({
+						name: v.string(),
+						mintFee: v.number(),
+						startTime: v.number(),
+						endTime: v.number(),
+						stageType: v.number(),
+					}),
+				),
+			),
+			updatedAt: v.number(),
+		}),
+	},
+	handler: async (ctx, args) => {
+		const existing = await ctx.db.get(args.collectionId);
+		if (!existing) {
+			console.error(`Collection ${args.collectionId} not found in database`);
+			return;
+		}
+
+		await ctx.db.patch(args.collectionId, args.updates);
+		console.log(`Updated collection ${args.collectionId} with mintStages: ${args.updates.mintStages?.length ?? 0} stages`);
 	},
 });

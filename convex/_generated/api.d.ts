@@ -8,7 +8,9 @@
  * @module
  */
 
+import type * as collectionSyncActions from "../collectionSyncActions.js";
 import type * as collections from "../collections.js";
+import type * as crons from "../crons.js";
 
 import type {
   ApiFromModules,
@@ -17,7 +19,9 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  collectionSyncActions: typeof collectionSyncActions;
   collections: typeof collections;
+  crons: typeof crons;
 }>;
 
 /**
