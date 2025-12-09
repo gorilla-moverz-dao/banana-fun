@@ -86,7 +86,6 @@ module deployment_addr::test_nft_reduction_manager {
             utf8(COLLECTION_URI),
             1000, // max_supply
             utf8(PLACEHOLDER_URI),
-            signer::address_of(owner), // mint_fee_collector_addr
             signer::address_of(owner), // royalty_address
             option::some(10u64), // royalty_percentage (0.1% = 10 basis points)
             stage_names,

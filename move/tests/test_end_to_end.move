@@ -113,7 +113,6 @@ module deployment_addr::test_end_to_end {
             utf8(COLLECTION_URI),
             MAX_SUPPLY,
             utf8(PLACEHOLDER_URI),
-            signer::address_of(sender),
             signer::address_of(royalty_user),
             option::some(ROYALTY_PERCENTAGE),
             stage_names,
@@ -305,7 +304,6 @@ module deployment_addr::test_end_to_end {
             MAX_SUPPLY,
             utf8(PLACEHOLDER_URI),
             signer::address_of(royalty_user),
-            signer::address_of(sender),
             option::some(ROYALTY_PERCENTAGE),
             stage_names,
             stage_types,
@@ -528,7 +526,6 @@ module deployment_addr::test_end_to_end {
             MAX_SUPPLY,
             utf8(PLACEHOLDER_URI),
             signer::address_of(royalty_user),
-            signer::address_of(sender),
             option::some(ROYALTY_PERCENTAGE),
             stage_names,
             stage_types,
@@ -1248,72 +1245,6 @@ module deployment_addr::test_end_to_end {
     #[test(
         aptos_framework = @0x1, admin = @deployment_addr, user1 = @0x200, royalty_user = @0x300
     )]
-    fun test_update_collection_mint_fee_collector(
-        aptos_framework: &signer,
-        admin: &signer,
-        user1: &signer,
-        royalty_user: &signer
-    ) {
-        setup_test_env(aptos_framework, user1, admin);
-
-        let collection_obj =
-            create_public_only_collection(
-                admin,
-                royalty_user,
-                MINT_FEE_SMALL, // mint_fee
-                MINT_LIMIT_LARGE, // mint_limit
-                DURATION_SHORT // duration
-            );
-
-        // Verify initial mint fee collector is the creator address
-        let initial_mint_fee_collector =
-            nft_launchpad::get_collection_mint_fee_collector_addr(collection_obj);
-        assert!(initial_mint_fee_collector == signer::address_of(admin));
-
-        // Update mint fee collector to a different address
-        let new_mint_fee_collector = @0x999;
-        nft_launchpad::update_collection_mint_fee_collector(
-            admin, collection_obj, new_mint_fee_collector
-        );
-
-        // Verify updated mint fee collector
-        let updated_mint_fee_collector =
-            nft_launchpad::get_collection_mint_fee_collector_addr(collection_obj);
-        assert!(updated_mint_fee_collector == new_mint_fee_collector);
-
-        // Verify creator address remains unchanged
-        let creator_addr = nft_launchpad::get_collection_creator_addr(collection_obj);
-        assert!(creator_addr == signer::address_of(admin));
-    }
-
-    #[test(
-        aptos_framework = @0x1, admin = @deployment_addr, user1 = @0x200, royalty_user = @0x300
-    )]
-    #[expected_failure(abort_code = 11, location = nft_launchpad)]
-    fun test_update_collection_mint_fee_collector_non_creator(
-        aptos_framework: &signer,
-        admin: &signer,
-        user1: &signer,
-        royalty_user: &signer
-    ) {
-        setup_test_env(aptos_framework, user1, admin);
-
-        let collection_obj =
-            create_public_only_collection(
-                admin,
-                royalty_user,
-                MINT_FEE_SMALL, // mint_fee
-                MINT_LIMIT_LARGE, // mint_limit
-                DURATION_SHORT // duration
-            );
-
-        // Try to update mint fee collector as non-creator (should fail)
-        nft_launchpad::update_collection_mint_fee_collector(user1, collection_obj, @0x999);
-    }
-
-    #[test(
-        aptos_framework = @0x1, admin = @deployment_addr, user1 = @0x200, royalty_user = @0x300
-    )]
     fun test_update_max_supply_success(
         aptos_framework: &signer,
         admin: &signer,
@@ -1586,7 +1517,6 @@ module deployment_addr::test_end_to_end {
             utf8(COLLECTION_URI),
             MAX_SUPPLY,
             utf8(PLACEHOLDER_URI),
-            signer::address_of(admin),
             signer::address_of(royalty_user),
             option::some(ROYALTY_PERCENTAGE),
             stage_names,
@@ -1671,7 +1601,6 @@ module deployment_addr::test_end_to_end {
             utf8(COLLECTION_URI),
             MAX_SUPPLY,
             utf8(PLACEHOLDER_URI),
-            signer::address_of(admin),
             signer::address_of(royalty_user),
             option::some(ROYALTY_PERCENTAGE),
             stage_names,
@@ -1748,7 +1677,6 @@ module deployment_addr::test_end_to_end {
             utf8(COLLECTION_URI),
             MAX_SUPPLY,
             utf8(PLACEHOLDER_URI),
-            signer::address_of(admin),
             signer::address_of(royalty_user),
             option::some(ROYALTY_PERCENTAGE),
             stage_names,
@@ -1890,7 +1818,6 @@ module deployment_addr::test_end_to_end {
             utf8(COLLECTION_URI),
             MAX_SUPPLY,
             utf8(PLACEHOLDER_URI),
-            signer::address_of(admin),
             signer::address_of(royalty_user),
             option::some(ROYALTY_PERCENTAGE),
             stage_names,

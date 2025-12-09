@@ -6,23 +6,19 @@ export default defineSchema({
 		// Basic collection info (from indexer/DAS)
 		collectionId: v.string(), // Object address of the collection
 		collectionName: v.string(),
-		description: v.optional(v.string()),
-		uri: v.optional(v.string()),
-		placeholderUri: v.optional(v.string()),
+		description: v.string(),
+		uri: v.string(),
+		placeholderUri: v.string(),
 		creatorAddress: v.string(),
-		royaltyAddress: v.optional(v.string()),
+		royaltyAddress: v.string(),
 		royaltyPercentage: v.optional(v.number()),
 		maxSupply: v.number(),
 		currentSupply: v.number(), // Updated from indexer
 		ownerCount: v.optional(v.number()), // Number of unique owners
 		mintEnabled: v.boolean(),
 
-		// Mint fee configuration
-		mintFeeCollectorAddress: v.optional(v.string()),
-		mintFeePerNFT: v.optional(v.number()), // In smallest unit (8 decimals)
-
 		// Sale configuration
-		saleDeadline: v.optional(v.number()), // Unix timestamp in seconds
+		saleDeadline: v.number(), // Unix timestamp in seconds
 		saleCompleted: v.boolean(),
 		totalFundsCollected: v.optional(v.number()), // In smallest unit (8 decimals)
 		devWalletAddress: v.optional(v.string()),

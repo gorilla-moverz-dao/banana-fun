@@ -164,7 +164,7 @@ function RouteComponent() {
 								<div className="space-y-4">
 									<div>
 										<div className="text-sm font-semibold text-muted-foreground mb-1">Sale Deadline</div>
-										<div className="text-base">{new Date(collectionData.sale_deadline || 0).toLocaleString()}</div>
+										<div className="text-base">{new Date(collectionData.sale_deadline * 1000).toLocaleString()}</div>
 									</div>
 									<div>
 										<div className="text-sm font-semibold text-muted-foreground mb-1">Project</div>

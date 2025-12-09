@@ -131,7 +131,7 @@ export const updateCollectionFromBlockchain = internalMutation({
 			ownerCount: v.optional(v.number()),
 			totalFundsCollected: v.optional(v.number()),
 			saleCompleted: v.optional(v.boolean()),
-			saleDeadline: v.optional(v.number()),
+			saleDeadline: v.number(),
 			mintEnabled: v.optional(v.boolean()),
 			updatedAt: v.number(),
 		}),
