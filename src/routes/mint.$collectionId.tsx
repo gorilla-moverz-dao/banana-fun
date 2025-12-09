@@ -40,13 +40,13 @@ function RouteComponent() {
 	const stages = collectionData?.stages || [];
 	const isFetchedStages = collectionData !== undefined;
 
-	const { data: mintBalance, isFetched: isFetchedMintBalance } = useMintBalance(collectionIdTyped, stages);
+	const { data: mintBalance } = useMintBalance(collectionIdTyped, stages);
 	const { data: nfts, isFetched: isFetchedNFTs } = useCollectionNFTs({
 		onlyOwned: true,
 		collectionIds: [collectionIdTyped],
 	});
 
-	const isFetched = collectionData !== undefined && isFetchedStages && isFetchedMintBalance;
+	const isFetched = collectionData !== undefined && isFetchedStages;
 	if (!isFetched) return <div>Loading...</div>;
 	if (!collectionData) return <div>Collection not found</div>;
 
