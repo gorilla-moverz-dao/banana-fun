@@ -240,6 +240,32 @@ module deployment_addr::nft_launchpad {
         default_protocol_percentage_fee: u64
     }
 
+    struct CollectionViewItem has drop {
+        collection_obj: Object<Collection>,
+        description: String,
+        name: String,
+        uri: String,
+        max_supply: u64,
+        current_supply: u64,
+        mint_enabled: bool,
+        listing_enabled: bool,
+        placeholder_uri: String,
+        collection_settings: vector<String>,
+        dev_wallet_addr: address,
+        sale_deadline: u64,
+        sale_completed: bool,
+        total_funds_collected: u64,
+        fa_symbol: vector<u8>,
+        fa_name: vector<u8>,
+        fa_icon_uri: vector<u8>,
+        fa_project_uri: vector<u8>,
+        vesting_cliff: u64,
+        vesting_duration: u64,
+        creator_vesting_wallet_addr: address,
+        creator_vesting_cliff: u64,
+        creator_vesting_duration: u64
+    }
+
     /// If you deploy the module under an object, sender is the object's signer
     /// If you deploy the module under your own account, sender is your account's signer
     fun init_module(sender: &signer) {
@@ -1273,6 +1299,40 @@ module deployment_addr::nft_launchpad {
         collection_obj: Object<Collection>
     ): Object<CollectionOwnerObjConfig> acquires CollectionConfig {
         borrow_collection_config(&collection_obj).collection_owner_obj
+    }
+
+    #[view]
+    /// Get collection view item for a collection
+    public fun get_collection_view_item(
+        collection_obj: Object<Collection>
+    ): CollectionViewItem acquires CollectionConfig {
+        let collection_config = borrow_collection_config(&collection_obj);
+
+        CollectionViewItem {
+            collection_obj,
+            description: collection::description(collection_obj),
+            name: collection::name(collection_obj),
+            uri: collection::uri(collection_obj),
+            max_supply: collection_config.max_supply,
+            current_supply: *collection::count(collection_obj).borrow(),
+            mint_enabled: collection_config.mint_enabled,
+            listing_enabled: collection_config.listing_enabled,
+            placeholder_uri: collection_config.placeholder_uri,
+            collection_settings: collection_config.collection_settings,
+            dev_wallet_addr: collection_config.dev_wallet_addr,
+            sale_deadline: collection_config.sale_deadline,
+            sale_completed: collection_config.sale_completed,
+            total_funds_collected: collection_config.total_funds_collected,
+            fa_symbol: collection_config.fa_symbol,
+            fa_name: collection_config.fa_name,
+            fa_icon_uri: collection_config.fa_icon_uri,
+            fa_project_uri: collection_config.fa_project_uri,
+            vesting_cliff: collection_config.vesting_cliff,
+            vesting_duration: collection_config.vesting_duration,
+            creator_vesting_wallet_addr: collection_config.creator_vesting_wallet_addr,
+            creator_vesting_cliff: collection_config.creator_vesting_cliff,
+            creator_vesting_duration: collection_config.creator_vesting_duration
+        }
     }
 
     // ================================= Helpers ================================= //

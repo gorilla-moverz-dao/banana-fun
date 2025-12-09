@@ -2017,6 +2017,9 @@ module deployment_addr::test_end_to_end {
         // Verify creator vesting is initialized
         assert!(vesting::is_creator_vesting_initialized(collection_obj));
 
+        let collection_view_item = nft_launchpad::get_collection_view_item(collection_obj);
+        debug::print(&collection_view_item);
+
         // Verify creator vesting pool has 30% of FA
         let creator_vesting_balance = vesting::get_remaining_creator_vesting_tokens(collection_obj);
         debug::print(&creator_vesting_balance);
