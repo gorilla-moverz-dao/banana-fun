@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "convex/react";
 import { ChevronLeft, ChevronRight, ExternalLinkIcon } from "lucide-react";
 import { CollectionFilters } from "@/components/CollectionFilters";
 import { GlassCard } from "@/components/GlassCard";
@@ -7,11 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";
 import { MOVE_NETWORK } from "@/constants";
-import { useCollectionData } from "@/hooks/useCollectionData";
 import { useCollectionNFTs } from "@/hooks/useCollectionNFTs";
 import type { CollectionSearch } from "@/hooks/useCollectionSearch";
 import { applyCollectionSearchDefaults, useCollectionSearch } from "@/hooks/useCollectionSearch";
 import { toShortAddress } from "@/lib/utils";
+import { api } from "../../convex/_generated/api";
 
 export const Route = createFileRoute("/collections/$collectionId")({
 	validateSearch: (search: Record<string, unknown>): CollectionSearch => {
@@ -26,7 +27,11 @@ function RouteComponent() {
 	const { search, collectionId, updateSearchParams } = useCollectionSearch();
 
 	// Fetch collection details
-	const { data: collectionData, isLoading: collectionLoading } = useCollectionData(collectionId as `0x${string}`);
+	const collectionData = useQuery(api.collections.getCollection, {
+		collectionId: collectionId as `0x${string}`,
+	});
+
+	const collectionLoading = collectionData === undefined;
 
 	const pageSize = 100;
 
@@ -45,7 +50,7 @@ function RouteComponent() {
 	// Get the NFTs directly from the server response
 	const nfts = nftsData?.current_token_ownerships_v2 || [];
 
-	const totalPages = collectionData ? Math.ceil((collectionData.collection.current_supply || 0) / pageSize) : 0;
+	const totalPages = collectionData ? Math.ceil((collectionData.current_supply || 0) / pageSize) : 0;
 
 	if (collectionLoading) {
 		return (
@@ -71,8 +76,8 @@ function RouteComponent() {
 					<div className="flex items-start gap-6 sm:flex-row flex-col">
 						<div className="md:w-36 md:h-auto w-full h-auto rounded-lg overflow-hidden border border-white/20">
 							<img
-								src={collectionData.collection.uri}
-								alt={collectionData.collection.collection_name}
+								src={collectionData.uri}
+								alt={collectionData.collection_name}
 								className="w-full h-full object-cover"
 								onError={(e) => {
 									e.currentTarget.src = "/images/favicon-1.png";
@@ -81,21 +86,21 @@ function RouteComponent() {
 						</div>
 						<div className="flex-1 space-y-4">
 							<div>
-								<h1 className="text-2xl font-bold">{collectionData.collection.collection_name}</h1>
-								<p className="text-muted-foreground mt-2">{collectionData.collection.description}</p>
+								<h1 className="text-2xl font-bold">{collectionData.collection_name}</h1>
+								<p className="text-muted-foreground mt-2">{collectionData.description}</p>
 							</div>
 							<div className="flex gap-2">
 								<Badge variant="secondary">
-									{collectionData.collection.current_supply} / {collectionData.collection.max_supply || "∞"} minted
+									{collectionData.current_supply} / {collectionData.max_supply || "∞"} minted
 								</Badge>
 								<a
-									href={MOVE_NETWORK.explorerUrl.replace("{0}", `object/${collectionData.collection.collection_id}`)}
+									href={MOVE_NETWORK.explorerUrl.replace("{0}", `object/${collectionData.collection_id}`)}
 									target="_blank"
 									rel="noopener noreferrer"
 								>
 									<Badge variant="outline">
 										<div className="flex items-center gap-1 p-1">
-											Collection: {toShortAddress(collectionData.collection.collection_id)}{" "}
+											Collection: {toShortAddress(collectionData.collection_id)}{" "}
 											<ExternalLinkIcon className="w-4 h-4" />
 										</div>
 									</Badge>
@@ -112,7 +117,7 @@ function RouteComponent() {
 					{/* Results Count */}
 					<div className="flex items-center justify-between">
 						<div className="text-sm text-muted-foreground">
-							Showing {startIndex + 1}-{startIndex + nfts.length} of {collectionData.collection.current_supply} NFTs
+							Showing {startIndex + 1}-{startIndex + nfts.length} of {collectionData.current_supply} NFTs
 							{search.search && ` matching "${search.search}"`}
 						</div>
 					</div>
@@ -139,7 +144,7 @@ function RouteComponent() {
 					{search.view === "grid" ? (
 						<div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
 							{nfts.map((nft) => (
-								<NFTThumbnail key={nft.token_data_id} nft={nft} collectionData={collectionData.collection} />
+								<NFTThumbnail key={nft.token_data_id} nft={nft} collectionData={collectionData} />
 							))}
 						</div>
 					) : (
@@ -157,7 +162,7 @@ function RouteComponent() {
 												alt={nft.current_token_data?.token_name || "NFT"}
 												className="w-full h-full object-cover"
 												onError={(e) => {
-													e.currentTarget.src = collectionData.collection.uri || "/images/favicon-1.png";
+													e.currentTarget.src = collectionData.uri;
 												}}
 											/>
 										</div>

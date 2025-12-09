@@ -1,20 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { launchpadClient } from "@/lib/aptos";
 import { useClients } from "./useClients";
-import { useMintStages } from "./useMintStages";
+import type { MintStageInfo } from "./useMintStages";
 
-export const useMintBalance = (collectionAddress: `0x${string}`) => {
+export const useMintBalance = (collectionAddress: `0x${string}`, stages: Array<MintStageInfo> = []) => {
 	const { address } = useClients();
-	const { data: stages, isLoading: isLoadingStages } = useMintStages(
-		address?.toString() as `0x${string}`,
-		collectionAddress,
-	);
 
 	return useQuery({
-		queryKey: ["mint-balance", collectionAddress, address],
-		enabled: !isLoadingStages,
+		queryKey: ["mint-balance", collectionAddress, address, stages.length],
+		enabled: !!address && stages.length > 0,
 		queryFn: async () => {
-			if (!address || !stages) return [];
+			if (!address || stages.length === 0) return [];
 
 			try {
 				const promises = stages.map((stage) =>

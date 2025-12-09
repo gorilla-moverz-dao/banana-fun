@@ -190,8 +190,6 @@ module deployment_addr::nft_launchpad {
     struct CollectionConfig has key {
         // creator can create collection
         creator_addr: address,
-        // mint fee collector address for this collection
-        mint_fee_collector_addr: address,
         // Key is stage, value is mint fee denomination
         mint_fee_per_nft_by_stages: SimpleMap<String, u64>,
         mint_enabled: bool,
@@ -346,17 +344,6 @@ module deployment_addr::nft_launchpad {
         );
     }
 
-    /// Update mint fee collector address for a specific collection
-    public entry fun update_collection_mint_fee_collector(
-        sender: &signer, collection_obj: Object<Collection>, new_mint_fee_collector: address
-    ) acquires CollectionConfig {
-        verify_collection_creator(
-            sender, &collection_obj, EONLY_COLLECTION_CREATOR_CAN_UPDATE_MINT_ENABLED
-        );
-        borrow_collection_config_mut(&collection_obj).mint_fee_collector_addr =
-            new_mint_fee_collector;
-    }
-
     /// Update protocol fee collector address
     public entry fun update_protocol_fee_collector(
         sender: &signer, new_protocol_fee_collector: address
@@ -449,7 +436,6 @@ module deployment_addr::nft_launchpad {
         uri: String,
         max_supply: u64,
         placeholder_uri: String,
-        mint_fee_collector_addr: address,
         royalty_address: address,
         royalty_percentage: Option<u64>,
         // Stage configurations
@@ -522,7 +508,6 @@ module deployment_addr::nft_launchpad {
             collection_obj_signer,
             CollectionConfig {
                 creator_addr: sender_addr,
-                mint_fee_collector_addr,
                 mint_fee_per_nft_by_stages: simple_map::new(),
                 mint_enabled: true,
                 listing_enabled: false,
@@ -945,7 +930,7 @@ module deployment_addr::nft_launchpad {
         // Ensure MOVE coins are converted to fungible assets for the pool
         // First, ensure the fungible asset metadata exists for MOVE
         let move_metadata_option = coin::paired_metadata<AptosCoin>();
-        if (option::is_none(&move_metadata_option)) {
+        if (move_metadata_option.is_none()) {
             coin::migrate_to_fungible_store<AptosCoin>(&collection_owner_signer);
         };
 
@@ -1089,14 +1074,6 @@ module deployment_addr::nft_launchpad {
         collection_obj: Object<Collection>
     ): address acquires CollectionConfig {
         borrow_collection_config(&collection_obj).creator_addr
-    }
-
-    #[view]
-    /// Get collection mint fee collector address
-    public fun get_collection_mint_fee_collector_addr(
-        collection_obj: Object<Collection>
-    ): address acquires CollectionConfig {
-        borrow_collection_config(&collection_obj).mint_fee_collector_addr
     }
 
     #[view]

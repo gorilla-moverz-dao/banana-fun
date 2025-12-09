@@ -1,12 +1,18 @@
 import { Link } from "@tanstack/react-router";
-import { useMintingCollections } from "@/hooks/useMintingCollections";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { GlassCard } from "./GlassCard";
 
 export function CollectionBrowser({ path }: { path: "mint" | "collections" }) {
-	const { data, isLoading, error } = useMintingCollections();
+	// Fetch active sales for "mint" path, completed sales for "collections" path
+	const saleCompleted = path === "collections";
+	const requireMintEnabled = path === "mint"; // Only require mint enabled for mint path
+	const data = useQuery(api.collections.getMintingCollections, {
+		saleCompleted: saleCompleted,
+		requireMintEnabled: requireMintEnabled,
+	});
 
-	if (isLoading) return <div>Loading collections...</div>;
-	if (error) return <div>Error loading collections.</div>;
+	if (data === undefined) return <div>Loading collections...</div>;
 	if (!data || data.length === 0) return <div>No collections found.</div>;
 
 	return (

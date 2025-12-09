@@ -10768,13 +10768,6 @@ export type CollectionFragmentFragment = { __typename?: 'current_collections_v2'
 
 export type NftFragmentFragment = { __typename?: 'current_token_ownerships_v2', token_data_id: string, current_token_data?: { __typename?: 'current_token_datas_v2', collection_id: string, token_name: string, description: string, token_properties: any, token_uri: string } | null };
 
-export type TokenQueryQueryVariables = Exact<{
-  collection_id?: InputMaybe<Scalars['String']['input']>;
-}>;
-
-
-export type TokenQueryQuery = { __typename?: 'query_root', current_collections_v2: Array<{ __typename?: 'current_collections_v2', creator_address: string, collection_id: string, collection_name: string, current_supply: any, max_supply?: any | null, uri: string, description: string }>, current_collection_ownership_v2_view: Array<{ __typename?: 'current_collection_ownership_v2_view', owner_address?: string | null }>, current_collection_ownership_v2_view_aggregate: { __typename?: 'current_collection_ownership_v2_view_aggregate', aggregate?: { __typename?: 'current_collection_ownership_v2_view_aggregate_fields', count: number } | null } };
-
 export type GetNfTsQueryVariables = Exact<{
   where?: InputMaybe<Current_Token_Ownerships_V2_Bool_Exp>;
   orderBy?: InputMaybe<Array<Current_Token_Ownerships_V2_Order_By> | Current_Token_Ownerships_V2_Order_By>;
@@ -10841,34 +10834,6 @@ export const NftFragmentFragmentDoc = new TypedDocumentString(`
   }
 }
     `, {"fragmentName":"NFTFragment"}) as unknown as TypedDocumentString<NftFragmentFragment, unknown>;
-export const TokenQueryDocument = new TypedDocumentString(`
-    query TokenQuery($collection_id: String) {
-  current_collections_v2(where: {collection_id: {_eq: $collection_id}}, limit: 1) {
-    ...CollectionFragment
-  }
-  current_collection_ownership_v2_view(
-    where: {collection_id: {_eq: $collection_id}}
-    order_by: {last_transaction_version: desc}
-  ) {
-    owner_address
-  }
-  current_collection_ownership_v2_view_aggregate(
-    where: {collection_id: {_eq: $collection_id}}
-  ) {
-    aggregate {
-      count(distinct: true, columns: owner_address)
-    }
-  }
-}
-    fragment CollectionFragment on current_collections_v2 {
-  creator_address
-  collection_id
-  collection_name
-  current_supply
-  max_supply
-  uri
-  description
-}`) as unknown as TypedDocumentString<TokenQueryQuery, TokenQueryQueryVariables>;
 export const GetNfTsDocument = new TypedDocumentString(`
     query getNFTs($where: current_token_ownerships_v2_bool_exp, $orderBy: [current_token_ownerships_v2_order_by!], $limit: Int, $offset: Int) {
   current_token_ownerships_v2(
