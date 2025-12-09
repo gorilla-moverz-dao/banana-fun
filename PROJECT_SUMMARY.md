@@ -1,5 +1,9 @@
 # Banana Fun - Project Summary
 
+## Demo
+
+https://banana-fun.gorilla-moverz.xyz/
+
 ## Overview
 
 **Banana Fun** is an NFT-backed token launchpad platform that combines NFT sales, token generation, and liquidity pool creation into a single streamlined mechanism. The platform enables projects to launch NFT collections while simultaneously bootstrapping token liquidity on decentralized exchanges.
