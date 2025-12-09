@@ -32,9 +32,6 @@
 		"creatorVestingWalletAddress": "0x598db4c36c6aceb951c79fca46b0b8e72ee07165135b23e56f43cbf4826a05a6",
 		"creatorVestingCliff": 60,
 		"creatorVestingDuration": 120,
-		"collectionSettings": [],
-		"protocolBaseFee": 0,
-		"protocolPercentageFee": 0,
 		"createdAt": 1733688356,
 		"updatedAt": 1733688356
 	},
@@ -65,9 +62,6 @@
 		"creatorVestingWalletAddress": "0x598db4c36c6aceb951c79fca46b0b8e72ee07165135b23e56f43cbf4826a05a6",
 		"creatorVestingCliff": 60,
 		"creatorVestingDuration": 120,
-		"collectionSettings": [],
-		"protocolBaseFee": 0,
-		"protocolPercentageFee": 0,
 		"createdAt": 1733601956,
 		"updatedAt": 1733688356
 	},
@@ -98,9 +92,6 @@
 		"creatorVestingWalletAddress": "0x598db4c36c6aceb951c79fca46b0b8e72ee07165135b23e56f43cbf4826a05a6",
 		"creatorVestingCliff": 60,
 		"creatorVestingDuration": 120,
-		"collectionSettings": [],
-		"protocolBaseFee": 0,
-		"protocolPercentageFee": 0,
 		"createdAt": 1733515556,
 		"updatedAt": 1733515556
 	}

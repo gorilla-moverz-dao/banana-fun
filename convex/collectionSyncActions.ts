@@ -78,13 +78,18 @@ export const syncCollectionDataAction = internalAction({
 					functionArguments: [collectionObject],
 				});
 
-				// Query indexer for current supply
+				// Query indexer for current supply and owner count
 				const indexerResult = await aptos.queryIndexer({
 					query: {
 						query: `
 							query GetCollection($collection_id: String!) {
 								current_collections_v2(where: { collection_id: { _eq: $collection_id } }, limit: 1) {
 									current_supply
+								}
+								current_collection_ownership_v2_view_aggregate(where: { collection_id: { _eq: $collection_id } }) {
+									aggregate {
+										count(distinct: true, columns: owner_address)
+									}
 								}
 							}
 						`,
@@ -96,10 +101,15 @@ export const syncCollectionDataAction = internalAction({
 
 				const collectionData = indexerResult as {
 					current_collections_v2: Array<{ current_supply: number }>;
+					current_collection_ownership_v2_view_aggregate: {
+						aggregate: { count: number } | null;
+					};
 				};
 
 				const currentSupply =
 					collectionData.current_collections_v2[0]?.current_supply ?? collection.currentSupply;
+				const ownerCount =
+					collectionData.current_collection_ownership_v2_view_aggregate.aggregate?.count ?? 0;
 
 				// Query mint stages from blockchain (using dummy address and no reduction NFTs for base data)
 				let mintStages: Array<{
@@ -142,21 +152,24 @@ export const syncCollectionDataAction = internalAction({
 					// Continue without stages if the query fails
 				}
 
-				// Update collection in database
-				// Always include mintStages (even if empty) to ensure it's updated
-				const updateData = {
-					currentSupply: Number(currentSupply),
-					totalFundsCollected: Number(collectedFunds),
-					saleCompleted: saleCompleted,
-					saleDeadline: Number(saleDeadline),
-					mintEnabled: isActive,
-					mintStages: mintStages, // Always include, even if empty array
-					updatedAt: Date.now(),
-				};
-
+				// Update collection in database (without mintStages - they're in separate table)
 				await ctx.runMutation(internal.collections.updateCollectionFromBlockchain, {
 					collectionId: collection._id,
-					updates: updateData,
+					updates: {
+						currentSupply: Number(currentSupply),
+						ownerCount: Number(ownerCount),
+						totalFundsCollected: Number(collectedFunds),
+						saleCompleted: saleCompleted,
+						saleDeadline: Number(saleDeadline),
+						mintEnabled: isActive,
+						updatedAt: Date.now(),
+					},
+				});
+
+				// Update mint stages in separate table (always upsert, even if empty, to clear old stages)
+				await ctx.runMutation(internal.collections.upsertMintStages, {
+					collectionId: collectionId,
+					stages: mintStages,
 				});
 
 				console.log(

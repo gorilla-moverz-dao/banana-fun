@@ -14,6 +14,7 @@ export default defineSchema({
 		royaltyPercentage: v.optional(v.number()),
 		maxSupply: v.number(),
 		currentSupply: v.number(), // Updated from indexer
+		ownerCount: v.optional(v.number()), // Number of unique owners
 		mintEnabled: v.boolean(),
 
 		// Mint fee configuration
@@ -28,10 +29,10 @@ export default defineSchema({
 
 		// Fungible Asset (FA) configuration
 		// These are set when collection is created
-		faSymbol: v.optional(v.string()),
-		faName: v.optional(v.string()),
-		faIconUri: v.optional(v.string()),
-		faProjectUri: v.optional(v.string()),
+		faSymbol: v.string(),
+		faName: v.string(),
+		faIconUri: v.string(),
+		faProjectUri: v.string(),
 
 		// FA information (set when sale is completed)
 		faMetadataAddress: v.optional(v.string()), // Object address of FA metadata
@@ -50,33 +51,24 @@ export default defineSchema({
 		creatorVestingCliff: v.optional(v.number()), // Cliff period in seconds
 		creatorVestingDuration: v.optional(v.number()), // Total vesting duration in seconds
 
-		// Collection settings
-		collectionSettings: v.optional(v.array(v.string())), // e.g., ["SOULBOUND"]
-
-		// Protocol fees
-		protocolBaseFee: v.optional(v.number()),
-		protocolPercentageFee: v.optional(v.number()),
-
-		// Mint stages (array of stage configurations)
-		mintStages: v.optional(
-			v.array(
-				v.object({
-					name: v.string(),
-					mintFee: v.number(), // Base mint fee per NFT (in smallest unit)
-					startTime: v.number(), // Unix timestamp in seconds
-					endTime: v.number(), // Unix timestamp in seconds
-					stageType: v.number(), // 1 = allowlist, 2 = public
-					mintLimitPerAddr: v.optional(v.number()), // Max mints per address for this stage
-				}),
-			),
-		),
-
 		// Timestamps
 		createdAt: v.number(), // When collection was created
 		updatedAt: v.number(), // Last update timestamp
 	})
 		.index("by_collection_id", ["collectionId"])
 		.index("by_creator", ["creatorAddress"])
-		.index("by_sale_completed", ["saleCompleted"])
-		.index("by_mint_enabled", ["mintEnabled"]),
+		.index("by_state", ["saleCompleted", "mintEnabled"]),
+        
+	mintStages: defineTable({
+		collectionId: v.string(), // Reference to collection
+		name: v.string(), // Stage name
+		mintFee: v.number(), // Base mint fee per NFT (in smallest unit)
+		startTime: v.number(), // Unix timestamp in seconds
+		endTime: v.number(), // Unix timestamp in seconds
+		stageType: v.number(), // 1 = allowlist, 2 = public
+		mintLimitPerAddr: v.optional(v.number()), // Max mints per address for this stage
+		updatedAt: v.number(), // Last update timestamp
+	})
+		.index("by_collection_id", ["collectionId"])
+		.index("by_collection_and_name", ["collectionId", "name"]),
 });

@@ -12,7 +12,7 @@ function RouteComponent() {
 		return (
 			<>
 				<div className="flex items-center justify-between">
-					<h1 className="text-2xl pb-4">Collections</h1>
+					<h1 className="text-2xl pb-4">Successful Launches</h1>
 				</div>
 				<CollectionBrowser path="collections" />
 			</>
