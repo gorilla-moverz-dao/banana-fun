@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { ExternalLinkIcon } from "lucide-react";
+import { ExternalLinkIcon, InfoIcon } from "lucide-react";
 import { useState } from "react";
 import { AssetDetailDialog } from "@/components/AssetDetailDialog";
 import { GlassCard } from "@/components/GlassCard";
@@ -9,12 +9,13 @@ import { MintStageCard } from "@/components/MintStageCard";
 import { NFTThumbnail } from "@/components/NFTThumbnail";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MOVE_NETWORK } from "@/constants";
 import type { NFT } from "@/fragments/nft";
 import { useClients } from "@/hooks/useClients";
 import { useCollectionNFTs } from "@/hooks/useCollectionNFTs";
 import { useMintBalance } from "@/hooks/useMintBalance";
-import { oaptToApt, toShortAddress } from "@/lib/utils";
+import { formatDuration, oaptToApt, toShortAddress } from "@/lib/utils";
 import { api } from "../../convex/_generated/api";
 
 export const Route = createFileRoute("/mint/$collectionId")({
@@ -133,6 +134,21 @@ function RouteComponent() {
 						</GlassCard>
 					</div>
 
+					<div className="space-y-2">
+						{stages.map((stage) => (
+							<MintStageCard
+								key={stage.name}
+								stage={stage}
+								collectionId={collectionIdTyped}
+								mintBalance={mintBalance}
+								onMintSuccess={(tokenIds) => {
+									setRecentlyMintedTokenIds(tokenIds);
+									setShowMintDialog(true);
+								}}
+							/>
+						))}
+					</div>
+
 					<GlassCard className="w-full">
 						<CardContent>
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -183,20 +199,199 @@ function RouteComponent() {
 						</CardContent>
 					</GlassCard>
 
-					<div className="space-y-2">
-						{stages.map((stage) => (
-							<MintStageCard
-								key={stage.name}
-								stage={stage}
-								collectionId={collectionIdTyped}
-								mintBalance={mintBalance}
-								onMintSuccess={(tokenIds) => {
-									setRecentlyMintedTokenIds(tokenIds);
-									setShowMintDialog(true);
-								}}
-							/>
-						))}
-					</div>
+					{/* Vesting Information - Two Columns */}
+					{(collectionData.vesting_cliff !== undefined && collectionData.vesting_duration !== undefined) ||
+					(collectionData.creator_vesting_cliff !== undefined &&
+						collectionData.creator_vesting_duration !== undefined) ? (
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+							{/* NFT Holder Vesting Information */}
+							{collectionData.vesting_cliff !== undefined && collectionData.vesting_duration !== undefined && (
+								<GlassCard className="w-full">
+									<CardHeader>
+										<CardTitle>NFT Holder Vesting</CardTitle>
+										<CardDescription>Token vesting schedule for NFT holders</CardDescription>
+									</CardHeader>
+									<CardContent>
+										<div className="space-y-4">
+											{collectionData.sale_completed && collectionData.sale_deadline && (
+												<>
+													<div>
+														<div className="text-sm font-semibold text-muted-foreground mb-1">Vesting Start</div>
+														<div className="text-base">
+															{new Date(collectionData.sale_deadline * 1000).toLocaleString()}
+														</div>
+													</div>
+													<div>
+														<div className="text-sm font-semibold text-muted-foreground mb-1">Cliff Period</div>
+														<div className="text-base">{formatDuration(collectionData.vesting_cliff)}</div>
+														<div className="text-sm text-muted-foreground mt-1">
+															Cliff ends:{" "}
+															{new Date(
+																(collectionData.sale_deadline + collectionData.vesting_cliff) * 1000,
+															).toLocaleString()}
+														</div>
+													</div>
+													<div>
+														<div className="text-sm font-semibold text-muted-foreground mb-1">Vesting Duration</div>
+														<div className="text-base">{formatDuration(collectionData.vesting_duration)}</div>
+														<div className="text-sm text-muted-foreground mt-1">
+															Full vesting ends:{" "}
+															{new Date(
+																(collectionData.sale_deadline + collectionData.vesting_duration) * 1000,
+															).toLocaleString()}
+														</div>
+													</div>
+												</>
+											)}
+											{!collectionData.sale_completed && (
+												<>
+													<div>
+														<div className="text-sm font-semibold text-muted-foreground mb-1">Cliff Period</div>
+														<div className="text-base flex items-center gap-2">
+															{formatDuration(collectionData.vesting_cliff)}
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<InfoIcon className="w-4 h-4 text-muted-foreground cursor-help" />
+																</TooltipTrigger>
+																<TooltipContent>
+																	<p>Vesting will start after sale completion</p>
+																</TooltipContent>
+															</Tooltip>
+														</div>
+													</div>
+													<div>
+														<div className="text-sm font-semibold text-muted-foreground mb-1">Vesting Duration</div>
+														<div className="text-base flex items-center gap-2">
+															{formatDuration(collectionData.vesting_duration)}
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<InfoIcon className="w-4 h-4 text-muted-foreground cursor-help" />
+																</TooltipTrigger>
+																<TooltipContent>
+																	<p>Vesting will start after sale completion</p>
+																</TooltipContent>
+															</Tooltip>
+														</div>
+													</div>
+												</>
+											)}
+											{collectionData.fa_vesting_amount !== undefined && (
+												<div>
+													<div className="text-sm font-semibold text-muted-foreground mb-1">Total Vesting Pool</div>
+													<div className="text-base">
+														{oaptToApt(collectionData.fa_vesting_amount).toLocaleString()} {collectionData.fa_symbol}
+													</div>
+												</div>
+											)}
+										</div>
+									</CardContent>
+								</GlassCard>
+							)}
+
+							{/* Team Vesting Information */}
+							{collectionData.creator_vesting_cliff !== undefined &&
+								collectionData.creator_vesting_duration !== undefined && (
+									<GlassCard className="w-full">
+										<CardHeader>
+											<CardTitle>Team Vesting</CardTitle>
+											<CardDescription>Token vesting schedule for team</CardDescription>
+										</CardHeader>
+										<CardContent>
+											<div className="space-y-4">
+												{collectionData.creator_vesting_wallet_address && (
+													<div>
+														<div className="text-sm font-semibold text-muted-foreground mb-1">Beneficiary Address</div>
+														<a
+															href={MOVE_NETWORK.explorerUrl.replace(
+																"{0}",
+																`account/${collectionData.creator_vesting_wallet_address}`,
+															)}
+															target="_blank"
+															rel="noopener noreferrer"
+															className="text-base text-primary hover:underline flex items-center gap-1"
+														>
+															{toShortAddress(collectionData.creator_vesting_wallet_address)}
+															<ExternalLinkIcon className="w-4 h-4" />
+														</a>
+													</div>
+												)}
+												{collectionData.sale_completed && collectionData.sale_deadline && (
+													<>
+														<div>
+															<div className="text-sm font-semibold text-muted-foreground mb-1">Vesting Start</div>
+															<div className="text-base">
+																{new Date(collectionData.sale_deadline * 1000).toLocaleString()}
+															</div>
+														</div>
+														<div>
+															<div className="text-sm font-semibold text-muted-foreground mb-1">Cliff Period</div>
+															<div className="text-base">{formatDuration(collectionData.creator_vesting_cliff)}</div>
+															<div className="text-sm text-muted-foreground mt-1">
+																Cliff ends:{" "}
+																{new Date(
+																	(collectionData.sale_deadline + collectionData.creator_vesting_cliff) * 1000,
+																).toLocaleString()}
+															</div>
+														</div>
+														<div>
+															<div className="text-sm font-semibold text-muted-foreground mb-1">Vesting Duration</div>
+															<div className="text-base">{formatDuration(collectionData.creator_vesting_duration)}</div>
+															<div className="text-sm text-muted-foreground mt-1">
+																Full vesting ends:{" "}
+																{new Date(
+																	(collectionData.sale_deadline + collectionData.creator_vesting_duration) * 1000,
+																).toLocaleString()}
+															</div>
+														</div>
+													</>
+												)}
+												{!collectionData.sale_completed && (
+													<>
+														<div>
+															<div className="text-sm font-semibold text-muted-foreground mb-1">Cliff Period</div>
+															<div className="text-base flex items-center gap-2">
+																{formatDuration(collectionData.creator_vesting_cliff)}
+																<Tooltip>
+																	<TooltipTrigger asChild>
+																		<InfoIcon className="w-4 h-4 text-muted-foreground cursor-help" />
+																	</TooltipTrigger>
+																	<TooltipContent>
+																		<p>Vesting will start after sale completion</p>
+																	</TooltipContent>
+																</Tooltip>
+															</div>
+														</div>
+														<div>
+															<div className="text-sm font-semibold text-muted-foreground mb-1">Vesting Duration</div>
+															<div className="text-base flex items-center gap-2">
+																{formatDuration(collectionData.creator_vesting_duration)}
+																<Tooltip>
+																	<TooltipTrigger asChild>
+																		<InfoIcon className="w-4 h-4 text-muted-foreground cursor-help" />
+																	</TooltipTrigger>
+																	<TooltipContent>
+																		<p>Vesting will start after sale completion</p>
+																	</TooltipContent>
+																</Tooltip>
+															</div>
+														</div>
+													</>
+												)}
+												{collectionData.fa_creator_vesting_amount !== undefined && (
+													<div>
+														<div className="text-sm font-semibold text-muted-foreground mb-1">Total Vesting Pool</div>
+														<div className="text-base">
+															{oaptToApt(collectionData.fa_creator_vesting_amount).toLocaleString()}{" "}
+															{collectionData.fa_symbol}
+														</div>
+													</div>
+												)}
+											</div>
+										</CardContent>
+									</GlassCard>
+								)}
+						</div>
+					) : null}
 
 					{/* My NFTs Section */}
 					{connected &&

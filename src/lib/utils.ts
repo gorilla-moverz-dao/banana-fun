@@ -37,3 +37,26 @@ export const normalizeHexAddress = (hex: string): string => {
 export function toShortAddress(address: string): string {
 	return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
+
+/**
+ * Format seconds into a human-readable duration string
+ */
+export function formatDuration(seconds: number): string {
+	if (seconds < 60) {
+		return `${seconds} second${seconds !== 1 ? "s" : ""}`;
+	}
+	if (seconds < 3600) {
+		const minutes = Math.floor(seconds / 60);
+		return `${minutes} minute${minutes !== 1 ? "s" : ""}`;
+	}
+	if (seconds < 86400) {
+		const hours = Math.floor(seconds / 3600);
+		return `${hours} hour${hours !== 1 ? "s" : ""}`;
+	}
+	const days = Math.floor(seconds / 86400);
+	const remainingHours = Math.floor((seconds % 86400) / 3600);
+	if (remainingHours === 0) {
+		return `${days} day${days !== 1 ? "s" : ""}`;
+	}
+	return `${days} day${days !== 1 ? "s" : ""} ${remainingHours} hour${remainingHours !== 1 ? "s" : ""}`;
+}
