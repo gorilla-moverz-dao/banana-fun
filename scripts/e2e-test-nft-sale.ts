@@ -13,6 +13,7 @@
 import type { Account, UserTransactionResponse } from "@aptos-labs/ts-sdk";
 import { LAUNCHPAD_MODULE_ADDRESS, MOVE_NETWORK } from "@/constants";
 import { aptos, launchpadClient, vestingClient } from "@/lib/aptos";
+import type { Doc } from "../convex/_generated/dataModel";
 import { dateToSeconds, getSigner, sleep } from "./helper";
 
 // ================================= Configuration =================================
@@ -25,7 +26,7 @@ const TEST_COLLECTION_CONFIG = {
 	name: "BF Collection",
 	description: "BF Collection for testing the NFT launchpad",
 	uri: "https://banana-fun.gorilla-moverz.xyz/favicon.png",
-	maxSupply: 10,
+	maxSupply: 20,
 	placeholderUri: "https://banana-fun.gorilla-moverz.xyz/favicon.png",
 	mintFeePerNFT: 100_000_000, // 0.1 MOVE (8 decimals)
 	royaltyPercentage: 5,
@@ -66,9 +67,12 @@ async function fundAccount(account: Account): Promise<void> {
 	}
 }
 
+type ConvexCollectionData = Omit<Doc<"collections">, "_id" | "_creationTime">;
+
 interface CreateCollectionResult {
 	collectionId: `0x${string}`;
 	txHash: string;
+	convexData: ConvexCollectionData;
 }
 
 async function createCollection(
@@ -98,7 +102,6 @@ async function createCollection(
 			config.uri,
 			BigInt(config.maxSupply),
 			config.placeholderUri,
-			signer.accountAddress.toString(), // mint_fee_collector_addr
 			signer.accountAddress.toString(), // royalty_address
 			BigInt(config.royaltyPercentage), // royalty_percentage
 			stageNames,
@@ -138,7 +141,38 @@ async function createCollection(
 	console.log(`✅ Collection created: ${collectionId}`);
 	console.log(`   TX: ${response.hash}`);
 
-	return { collectionId, txHash: response.hash };
+	// Build Convex collection data for database import
+	const convexData: ConvexCollectionData = {
+		collectionId,
+		collectionName: config.name,
+		createdAt: now,
+		creatorAddress: signer.accountAddress.toString(),
+		creatorVestingCliff: config.creatorVestingCliff,
+		creatorVestingDuration: config.creatorVestingDuration,
+		creatorVestingWalletAddress: signer.accountAddress.toString(),
+		currentSupply: 0,
+		description: config.description,
+		devWalletAddress: signer.accountAddress.toString(),
+		faIconUri: config.faIconUri,
+		faName: config.faName,
+		faProjectUri: config.faProjectUri,
+		faSymbol: config.faSymbol,
+		maxSupply: config.maxSupply,
+		mintEnabled: true,
+		ownerCount: 0,
+		placeholderUri: config.placeholderUri,
+		royaltyAddress: signer.accountAddress.toString(),
+		royaltyPercentage: config.royaltyPercentage,
+		saleCompleted: false,
+		saleDeadline,
+		totalFundsCollected: 0,
+		updatedAt: Date.now(),
+		uri: config.uri,
+		vestingCliff: config.vestingCliff,
+		vestingDuration: config.vestingDuration,
+	};
+
+	return { collectionId, txHash: response.hash, convexData };
 }
 
 async function mintNFT(
@@ -393,7 +427,7 @@ async function main() {
 		faName: `${TEST_COLLECTION_CONFIG.faName} ${numberOfCollections + 1}`,
 	};
 
-	const { collectionId } = await createCollection(admin, config);
+	const { collectionId, convexData } = await createCollection(admin, config);
 
 	// Wait a bit for indexer to catch up
 	await sleep(2000);
@@ -406,8 +440,9 @@ async function main() {
 	const allNftIds: `0x${string}`[] = [];
 
 	// Mint in batches to avoid transaction size limits
+	const supplyToMint = TEST_COLLECTION_CONFIG.maxSupply - 10;
 	const batchSize = 5;
-	for (let i = 0; i < TEST_COLLECTION_CONFIG.maxSupply; i += batchSize) {
+	for (let i = 0; i < supplyToMint; i += batchSize) {
 		const amount = Math.min(batchSize, TEST_COLLECTION_CONFIG.maxSupply - i);
 		const { nftIds } = await mintNFT(admin, collectionId, amount);
 		allNftIds.push(...nftIds);
@@ -449,6 +484,20 @@ async function main() {
 	const finalBalance = await getAccountBalance(admin.accountAddress.toString());
 	console.log(`Final Balance: ${finalBalance} (${Number(finalBalance) / 1e8} MOVE)`);
 	console.log(`Balance Change: ${Number(finalBalance - balance) / 1e8} MOVE`);
+
+	// Update convex data with final state
+	const finalConvexData = {
+		...convexData,
+		currentSupply: allNftIds.length,
+		ownerCount: 1, // Admin owns all NFTs
+		totalFundsCollected: allNftIds.length * TEST_COLLECTION_CONFIG.mintFeePerNFT,
+		saleCompleted,
+		updatedAt: Date.now(),
+	};
+
+	// Output compact JSON for easy copy-paste into Convex
+	console.log("\n📋 Convex Import Data (compact, copy this line):");
+	console.log(JSON.stringify(finalConvexData));
 
 	console.log("\n✅ E2E Test Complete!");
 }

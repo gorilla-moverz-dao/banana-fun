@@ -7,7 +7,7 @@ import { internalAction } from "./_generated/server";
 import { ABI as launchpadABI } from "../src/abi/nft_launchpad";
 
 // Constants - should match src/constants.ts
-const LAUNCHPAD_MODULE_ADDRESS = "0x598db4c36c6aceb951c79fca46b0b8e72ee07165135b23e56f43cbf4826a05a6";
+const LAUNCHPAD_MODULE_ADDRESS = "0x400b0f8d7c011756381fb473b432d46eed94f7cc47db3ef93b76ccd76a72ed8e";
 
 // Network configuration - should match src/lib/networks.ts
 const MOVE_NETWORK = {
