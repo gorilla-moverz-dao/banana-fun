@@ -121,16 +121,14 @@ export const getCollectionsToSync = internalQuery({
 });
 
 /**
- * Internal mutation to update collection data from blockchain
+ * Internal mutation to update collection data from blockchain (infrequent updates)
+ * Supply data (currentSupply, ownerCount, saleCompleted) is handled by updateCollectionSupply
  */
 export const updateCollectionFromBlockchain = internalMutation({
 	args: {
 		collectionId: v.id("collections"),
 		updates: v.object({
-			currentSupply: v.number(),
-			ownerCount: v.optional(v.number()),
 			totalFundsCollected: v.optional(v.number()),
-			saleCompleted: v.optional(v.boolean()),
 			saleDeadline: v.number(),
 			mintEnabled: v.optional(v.boolean()),
 			updatedAt: v.number(),
@@ -144,6 +142,44 @@ export const updateCollectionFromBlockchain = internalMutation({
 		}
 
 		await ctx.db.patch(args.collectionId, args.updates);
+	},
+});
+
+/**
+ * Internal mutation to update supply and sale status (frequent updates)
+ * Only updates if data has actually changed to avoid unnecessary writes
+ */
+export const updateCollectionSupply = internalMutation({
+	args: {
+		collectionId: v.id("collections"),
+		currentSupply: v.number(),
+		ownerCount: v.number(),
+		saleCompleted: v.boolean(),
+	},
+	handler: async (ctx, args) => {
+		const existing = await ctx.db.get(args.collectionId);
+		if (!existing) {
+			console.error(`Collection ${args.collectionId} not found in database`);
+			return { updated: false };
+		}
+
+		// Check if any data has changed
+		const hasChanged =
+			existing.currentSupply !== args.currentSupply ||
+			existing.ownerCount !== args.ownerCount ||
+			existing.saleCompleted !== args.saleCompleted;
+
+		if (!hasChanged) {
+			return { updated: false };
+		}
+
+		await ctx.db.patch(args.collectionId, {
+			currentSupply: args.currentSupply,
+			ownerCount: args.ownerCount,
+			saleCompleted: args.saleCompleted,
+		});
+
+		return { updated: true };
 	},
 });
 

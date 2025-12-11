@@ -19,7 +19,7 @@ https://banana-fun.gorilla-moverz.xyz/
 ### 2. Multi-Stage Minting
 
 - Supports multiple mint stages with different pricing, whitelists, and time windows
-- Whitelist tiers for pre-mint, public mint, and discounted rounds
+- Whitelist tiers for public mint, and discounted rounds (GTD WL, FCFS WL, ...)
 - Sybil protection via Discord roles, NFT ownership, or permissioned wallet lists
 
 ### 3. Instant-Reveal NFTs

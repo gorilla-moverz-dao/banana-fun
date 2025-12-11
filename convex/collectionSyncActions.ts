@@ -30,11 +30,99 @@ function createAptosClient() {
 	return { aptos, launchpadClient };
 }
 
+/**
+ * Sync supply data (currentSupply, ownerCount, saleCompleted) - runs frequently (every 30 seconds)
+ * This data changes often during active mints
+ */
+export const syncCollectionSupplyAction = internalAction({
+	args: {},
+	handler: async (ctx) => {
+		console.log("Syncing collection supply data from indexer");
+		const { aptos, launchpadClient } = createAptosClient();
+
+		// Get all collections from database
+		const collections = await ctx.runQuery(internal.collections.getCollectionsToSync);
+
+		// Sync each collection's supply data
+		for (const collection of collections) {
+			try {
+				// Ensure collection ID is properly formatted (with 0x prefix)
+				const collectionIdRaw = collection.collectionId.startsWith("0x")
+					? collection.collectionId.toLowerCase()
+					: `0x${collection.collectionId.toLowerCase()}`;
+				const collectionId = collectionIdRaw as `0x${string}`;
+
+				// Query indexer for current supply and owner count
+				const indexerResult = await aptos.queryIndexer({
+					query: {
+						query: `
+							query GetCollectionSupply($collection_id: String!) {
+								current_collections_v2(where: { collection_id: { _eq: $collection_id } }, limit: 1) {
+									current_supply
+								}
+								current_collection_ownership_v2_view_aggregate(where: { collection_id: { _eq: $collection_id } }) {
+									aggregate {
+										count(distinct: true, columns: owner_address)
+									}
+								}
+							}
+						`,
+						variables: {
+							collection_id: collectionId,
+						},
+					},
+				});
+
+				const collectionData = indexerResult as {
+					current_collections_v2: Array<{ current_supply: number }>;
+					current_collection_ownership_v2_view_aggregate: {
+						aggregate: { count: number } | null;
+					};
+				};
+
+				const currentSupply =
+					collectionData.current_collections_v2[0]?.current_supply ?? collection.currentSupply;
+				const ownerCount =
+					collectionData.current_collection_ownership_v2_view_aggregate.aggregate?.count ?? 0;
+
+				// Query blockchain for sale completion status
+				const [saleCompleted] = await launchpadClient.view.is_sale_completed({
+					typeArguments: [],
+					functionArguments: [collectionId],
+				});
+
+				// Update supply and sale status (mutation checks if data changed before writing)
+				const result = await ctx.runMutation(internal.collections.updateCollectionSupply, {
+					collectionId: collection._id,
+					currentSupply: Number(currentSupply),
+					ownerCount: Number(ownerCount),
+					saleCompleted: saleCompleted,
+				});
+
+				if (result?.updated) {
+					console.log(
+						`Updated ${collectionId}: ${currentSupply} minted, ${ownerCount} owners, saleCompleted=${saleCompleted}`,
+					);
+				}
+			} catch (error) {
+				console.error(`Error syncing supply for ${collection.collectionId}:`, error);
+				// Continue with other collections even if one fails
+			}
+		}
+
+		return null;
+	},
+});
+
+/**
+ * Sync full collection data - runs less frequently (every 30 minutes)
+ * This includes sale state, mint stages, and other data that changes infrequently
+ */
 export const syncCollectionDataAction = internalAction({
 	args: {},
 	handler: async (ctx) => {
-		console.log("Syncing collection data from blockchain");
-		const { aptos, launchpadClient } = createAptosClient();
+		console.log("Syncing full collection data from blockchain");
+		const { launchpadClient } = createAptosClient();
 
 		// Get all collections from database
 		const collections = await ctx.runQuery(internal.collections.getCollectionsToSync);
@@ -68,48 +156,10 @@ export const syncCollectionDataAction = internalAction({
 					functionArguments: [collectionObject],
 				});
 
-				const [saleCompleted] = await launchpadClient.view.is_sale_completed({
-					typeArguments: [],
-					functionArguments: [collectionObject],
-				});
-
 				const [saleDeadline] = await launchpadClient.view.get_sale_deadline({
 					typeArguments: [],
 					functionArguments: [collectionObject],
 				});
-
-				// Query indexer for current supply and owner count
-				const indexerResult = await aptos.queryIndexer({
-					query: {
-						query: `
-							query GetCollection($collection_id: String!) {
-								current_collections_v2(where: { collection_id: { _eq: $collection_id } }, limit: 1) {
-									current_supply
-								}
-								current_collection_ownership_v2_view_aggregate(where: { collection_id: { _eq: $collection_id } }) {
-									aggregate {
-										count(distinct: true, columns: owner_address)
-									}
-								}
-							}
-						`,
-						variables: {
-							collection_id: collectionId,
-						},
-					},
-				});
-
-				const collectionData = indexerResult as {
-					current_collections_v2: Array<{ current_supply: number }>;
-					current_collection_ownership_v2_view_aggregate: {
-						aggregate: { count: number } | null;
-					};
-				};
-
-				const currentSupply =
-					collectionData.current_collections_v2[0]?.current_supply ?? collection.currentSupply;
-				const ownerCount =
-					collectionData.current_collection_ownership_v2_view_aggregate.aggregate?.count ?? 0;
 
 				// Query mint stages from blockchain (using dummy address and no reduction NFTs for base data)
 				let mintStages: Array<{
@@ -152,14 +202,11 @@ export const syncCollectionDataAction = internalAction({
 					// Continue without stages if the query fails
 				}
 
-				// Update collection in database (without mintStages - they're in separate table)
+				// Update collection in database (currentSupply, ownerCount, saleCompleted are updated by the supply sync action)
 				await ctx.runMutation(internal.collections.updateCollectionFromBlockchain, {
 					collectionId: collection._id,
 					updates: {
-						currentSupply: Number(currentSupply),
-						ownerCount: Number(ownerCount),
 						totalFundsCollected: Number(collectedFunds),
-						saleCompleted: saleCompleted,
 						saleDeadline: Number(saleDeadline),
 						mintEnabled: isActive,
 						updatedAt: Date.now(),
@@ -173,7 +220,7 @@ export const syncCollectionDataAction = internalAction({
 				});
 
 				console.log(
-					`Synced collection ${collectionId}: ${currentSupply} minted, ${mintStages.length} stages`,
+					`Synced collection ${collectionId}: ${mintStages.length} stages, funds=${collectedFunds}`,
 				);
 			} catch (error) {
 				console.error(`Error syncing collection ${collection.collectionId}:`, error);
