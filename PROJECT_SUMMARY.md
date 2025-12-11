@@ -10,28 +10,34 @@ https://banana-fun.gorilla-moverz.xyz/
 
 ## Core Architecture
 
-### Backend (Move/Aptos)
+### Backend
+
+**Move/Aptos Smart Contracts:**
 
 - **Smart Contracts**: Written in Move, deployed on Aptos blockchain
 - **Launchpad Module** (`launchpad.move`): Manages NFT collections, mint stages, whitelists, and conditional token distribution
 - **DEX Integration** (`dex.move`): Integrates with Yuzuswap for automatic liquidity pool creation
 - **Vesting Module**: Handles token vesting and delayed claims
 - **NFT Reduction Manager**: Manages NFT-based token reduction mechanics
+- **Testing**: Movement SDK for testing
 
-### Frontend (React/TypeScript)
-
-- **Framework**: React 19 with TanStack Router for file-based routing
-- **State Management**: TanStack Query for server state
-- **UI Components**: Shadcn UI components with Tailwind CSS
-- **Wallet Integration**: Aptos wallet adapter for blockchain interactions
-- **GraphQL**: Code generation for type-safe API queries
-
-### Backend (Convex)
+**Convex Backend Service:**
 
 - **Database**: Convex for caching blockchain data and improving frontend performance
 - **Real-time Sync**: Automatic synchronization of collection state from blockchain every minute
 - **Data Caching**: Stores collection metadata, mint stages, sale status, supply, and funds collected
 - **Query API**: Provides efficient queries for frontend without direct blockchain calls
+
+### Frontend
+
+- **Framework**: React 19 with TanStack Router for file-based routing
+- **Language**: TypeScript
+- **Build Tool**: Vite
+- **State Management**: TanStack Query for server state
+- **UI Components**: Shadcn UI components with Tailwind CSS
+- **Wallet Integration**: Aptos wallet adapter for blockchain interactions
+- **GraphQL**: Code generation for type-safe API queries
+- **Code Quality**: Biome for linting and formatting
 
 ## Key Features
 
@@ -80,26 +86,6 @@ The platform implements a dual vesting system for token distribution:
 
 Both vesting systems are automatically initialized when a sale completes successfully, with tokens locked in secure vaults until they vest.
 
-## Technology Stack
-
-**Backend:**
-
-- Move (Movement/Aptos blockchain)
-- Convex (real-time database and sync service)
-- Yuzuswap DEX integration
-- Movement SDK for testing
-
-**Frontend:**
-
-- React 19
-- TypeScript
-- TanStack Router
-- TanStack Query
-- Tailwind CSS
-- Shadcn UI
-- Vite
-- Biome (linting/formatting)
-
 ## Project Structure
 
 - `/move/` - Move smart contracts and tests
@@ -107,32 +93,6 @@ Both vesting systems are automatically initialized when a sale completes success
 - `/convex/` - Convex backend functions, schema, and sync actions
 - `/docs/` - Project documentation
 - `/scripts/` - Build and deployment scripts
-
-## Convex Integration & Data Sync
-
-The platform uses Convex as a backend service to cache blockchain data and provide efficient queries to the frontend:
-
-**Automatic Synchronization:**
-
-- Cron job runs every minute to sync collection data from the blockchain
-- Queries blockchain state for: current supply, owner count, funds collected, sale status, and mint stages
-- Updates Convex database with latest on-chain information
-- Reduces frontend blockchain queries and improves performance
-
-**Data Cached:**
-
-- Collection metadata and configuration
-- Real-time mint stages with pricing and timing
-- Sale completion status and deadlines
-- Token distribution amounts (LP, vesting, dev wallet, creator vesting)
-- Vesting configuration (cliff periods and durations)
-
-**Frontend Integration:**
-
-- React components use Convex React Client for real-time data queries
-- Automatic reactivity when blockchain data updates
-- Type-safe queries with generated TypeScript types
-- Efficient data fetching without direct blockchain calls
 
 ## Development Status
 
