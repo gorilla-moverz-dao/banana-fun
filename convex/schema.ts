@@ -52,9 +52,8 @@ export default defineSchema({
 		updatedAt: v.number(), // Last update timestamp
 	})
 		.index("by_collection_id", ["collectionId"])
-		.index("by_creator", ["creatorAddress"])
 		.index("by_state", ["saleCompleted", "mintEnabled"]),
-        
+
 	mintStages: defineTable({
 		collectionId: v.string(), // Reference to collection
 		name: v.string(), // Stage name
@@ -64,7 +63,5 @@ export default defineSchema({
 		stageType: v.number(), // 1 = allowlist, 2 = public
 		mintLimitPerAddr: v.optional(v.number()), // Max mints per address for this stage
 		updatedAt: v.number(), // Last update timestamp
-	})
-		.index("by_collection_id", ["collectionId"])
-		.index("by_collection_and_name", ["collectionId", "name"]),
+	}).index("by_collection_id", ["collectionId"]),
 });

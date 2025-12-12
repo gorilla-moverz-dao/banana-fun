@@ -9,6 +9,7 @@
 		"ignoreUnknown": false,
 		"includes": [
 			"**/src/**/*",
+			"**/convex/**/*.ts",
 			"**/scripts/**/*",
 			"**/.vscode/**/*",
 			"**/index.html",

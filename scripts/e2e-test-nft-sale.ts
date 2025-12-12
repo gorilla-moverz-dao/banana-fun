@@ -13,6 +13,7 @@
 import type { Account, UserTransactionResponse } from "@aptos-labs/ts-sdk";
 import { LAUNCHPAD_MODULE_ADDRESS, MOVE_NETWORK } from "@/constants";
 import { aptos, launchpadClient, vestingClient } from "@/lib/aptos";
+import { normalizeHexAddress } from "@/lib/utils";
 import type { Doc } from "../convex/_generated/dataModel";
 import { dateToSeconds, getSigner, sleep } from "./helper";
 
@@ -135,8 +136,9 @@ async function createCollection(
 		throw new Error("Collection creation event not found");
 	}
 
-	const collectionId = (createEvent.data as { collection_obj: { inner: string } }).collection_obj
-		.inner as `0x${string}`;
+	const collectionId = normalizeHexAddress(
+		(createEvent.data as { collection_obj: { inner: string } }).collection_obj.inner,
+	) as `0x${string}`;
 
 	console.log(`✅ Collection created: ${collectionId}`);
 	console.log(`   TX: ${response.hash}`);

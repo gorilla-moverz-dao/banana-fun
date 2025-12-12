@@ -2,9 +2,9 @@
 
 import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
 import { createSurfClient } from "@thalalabs/surf";
+import { ABI as launchpadABI } from "../src/abi/nft_launchpad";
 import { internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
-import { ABI as launchpadABI } from "../src/abi/nft_launchpad";
 
 // Constants - should match src/constants.ts
 const LAUNCHPAD_MODULE_ADDRESS = "0x400b0f8d7c011756381fb473b432d46eed94f7cc47db3ef93b76ccd76a72ed8e";
@@ -47,10 +47,7 @@ export const syncCollectionSupplyAction = internalAction({
 		for (const collection of collections) {
 			try {
 				// Ensure collection ID is properly formatted (with 0x prefix)
-				const collectionIdRaw = collection.collectionId.startsWith("0x")
-					? collection.collectionId.toLowerCase()
-					: `0x${collection.collectionId.toLowerCase()}`;
-				const collectionId = collectionIdRaw as `0x${string}`;
+				const collectionId = collection.collectionId as `0x${string}`;
 
 				// Query indexer for current supply and owner count
 				const indexerResult = await aptos.queryIndexer({
@@ -80,10 +77,8 @@ export const syncCollectionSupplyAction = internalAction({
 					};
 				};
 
-				const currentSupply =
-					collectionData.current_collections_v2[0]?.current_supply ?? collection.currentSupply;
-				const ownerCount =
-					collectionData.current_collection_ownership_v2_view_aggregate.aggregate?.count ?? 0;
+				const currentSupply = collectionData.current_collections_v2[0].current_supply;
+				const ownerCount = collectionData.current_collection_ownership_v2_view_aggregate.aggregate?.count ?? 0;
 
 				// Query blockchain for sale completion status
 				const [saleCompleted] = await launchpadClient.view.is_sale_completed({
@@ -91,18 +86,29 @@ export const syncCollectionSupplyAction = internalAction({
 					functionArguments: [collectionId],
 				});
 
-				// Update supply and sale status (mutation checks if data changed before writing)
-				const result = await ctx.runMutation(internal.collections.updateCollectionSupply, {
-					collectionId: collection._id,
-					currentSupply: Number(currentSupply),
-					ownerCount: Number(ownerCount),
-					saleCompleted: saleCompleted,
-				});
-
-				if (result?.updated) {
+				// If anything changed, update the collection in the database
+				if (
+					currentSupply !== collection.currentSupply ||
+					ownerCount !== collection.ownerCount ||
+					saleCompleted !== collection.saleCompleted
+				) {
 					console.log(
-						`Updated ${collectionId}: ${currentSupply} minted, ${ownerCount} owners, saleCompleted=${saleCompleted}`,
+						`Syncing supply for ${collectionId}: ${currentSupply} minted, ${ownerCount} owners, saleCompleted=${saleCompleted}`,
 					);
+
+					// Update supply and sale status (mutation checks if data changed before writing)
+					const result = await ctx.runMutation(internal.collections.updateCollectionSupply, {
+						collectionId: collection._id,
+						currentSupply: Number(currentSupply),
+						ownerCount: Number(ownerCount),
+						saleCompleted: saleCompleted,
+					});
+
+					if (result?.updated) {
+						console.log(
+							`Updated ${collectionId}: ${currentSupply} minted, ${ownerCount} owners, saleCompleted=${saleCompleted}`,
+						);
+					}
 				}
 			} catch (error) {
 				console.error(`Error syncing supply for ${collection.collectionId}:`, error);
@@ -133,9 +139,7 @@ export const syncCollectionDataAction = internalAction({
 			typeArguments: [],
 		});
 
-		const activeCollectionIds = new Set(
-			registry.map((item) => item.inner.toLowerCase()),
-		);
+		const activeCollectionIds = new Set(registry.map((item) => item.inner.toLowerCase()));
 
 		// Sync each collection
 		for (const collection of collections) {
@@ -181,13 +185,15 @@ export const syncCollectionDataAction = internalAction({
 						console.warn(`No mint stages info returned for ${collectionId}`);
 					} else {
 						// Transform mint stages to match schema format
-						mintStages = (mintStagesInfo as Array<{
-							name: string;
-							mint_fee: string;
-							start_time: string;
-							end_time: string;
-							stage_type: number;
-						}>).map((stage) => ({
+						mintStages = (
+							mintStagesInfo as Array<{
+								name: string;
+								mint_fee: string;
+								start_time: string;
+								end_time: string;
+								stage_type: number;
+							}>
+						).map((stage) => ({
 							name: stage.name,
 							mintFee: Number(stage.mint_fee),
 							startTime: Number(stage.start_time),
@@ -195,7 +201,10 @@ export const syncCollectionDataAction = internalAction({
 							stageType: stage.stage_type,
 						}));
 
-						console.log(`Found ${mintStages.length} mint stages for collection ${collectionId}:`, mintStages.map(s => s.name));
+						console.log(
+							`Found ${mintStages.length} mint stages for collection ${collectionId}:`,
+							mintStages.map((s) => s.name),
+						);
 					}
 				} catch (stageError) {
 					console.error(`Error fetching mint stages for ${collectionId}:`, stageError);
@@ -219,9 +228,7 @@ export const syncCollectionDataAction = internalAction({
 					stages: mintStages,
 				});
 
-				console.log(
-					`Synced collection ${collectionId}: ${mintStages.length} stages, funds=${collectedFunds}`,
-				);
+				console.log(`Synced collection ${collectionId}: ${mintStages.length} stages, funds=${collectedFunds}`);
 			} catch (error) {
 				console.error(`Error syncing collection ${collection.collectionId}:`, error);
 				// Continue with other collections even if one fails
