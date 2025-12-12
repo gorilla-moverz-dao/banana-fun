@@ -1,35 +1,9 @@
 "use node";
 
-import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
-import { createSurfClient } from "@thalalabs/surf";
-import { ABI as launchpadABI } from "../src/abi/nft_launchpad";
 import { normalizeHexAddress } from "../src/lib/utils";
 import { internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
-
-// Constants - should match src/constants.ts
-const LAUNCHPAD_MODULE_ADDRESS = "0x400b0f8d7c011756381fb473b432d46eed94f7cc47db3ef93b76ccd76a72ed8e";
-
-// Network configuration - should match src/lib/networks.ts
-const MOVE_NETWORK = {
-	rpcUrl: process.env.VITE_RPC_URL || "https://testnet.movementnetwork.xyz/v1",
-	indexerUrl: process.env.VITE_INDEXER_URL || "https://hasura.testnet.movementnetwork.xyz/v1/graphql",
-	faucetUrl: process.env.VITE_FAUCET_URL || "https://faucet.testnet.movementnetwork.xyz",
-};
-
-function createAptosClient() {
-	const config = new AptosConfig({
-		network: Network.CUSTOM,
-		fullnode: MOVE_NETWORK.rpcUrl,
-		indexer: MOVE_NETWORK.indexerUrl,
-		faucet: MOVE_NETWORK.faucetUrl,
-	});
-
-	const aptos = new Aptos(config);
-	const launchpadClient = createSurfClient(aptos).useABI(launchpadABI, LAUNCHPAD_MODULE_ADDRESS);
-
-	return { aptos, launchpadClient };
-}
+import { createAptosClient } from "./aptos";
 
 /**
  * Sync supply data (currentSupply, ownerCount, saleCompleted) - runs frequently (every 30 seconds)
@@ -39,7 +13,7 @@ export const syncCollectionSupplyAction = internalAction({
 	args: {},
 	handler: async (ctx) => {
 		console.log("Syncing collection supply data from indexer");
-		const { aptos, launchpadClient } = createAptosClient();
+		const { aptos, launchpadClient, account } = createAptosClient();
 
 		// Get all collections from database
 		const collections = await ctx.runQuery(internal.collections.getCollectionsToSync);
@@ -72,20 +46,38 @@ export const syncCollectionSupplyAction = internalAction({
 				});
 
 				const collectionData = indexerResult as {
-					current_collections_v2: Array<{ current_supply: number }>;
+					current_collections_v2: Array<{ current_supply: string }>;
 					current_collection_ownership_v2_view_aggregate: {
 						aggregate: { count: number } | null;
 					};
 				};
 
-				const currentSupply = collectionData.current_collections_v2[0].current_supply;
+				const currentSupply = Number(collectionData.current_collections_v2[0].current_supply);
 				const ownerCount = collectionData.current_collection_ownership_v2_view_aggregate.aggregate?.count ?? 0;
 
 				// Query blockchain for sale completion status
-				const [saleCompleted] = await launchpadClient.view.is_sale_completed({
-					typeArguments: [],
-					functionArguments: [collectionId],
-				});
+				let saleCompleted = await launchpadClient.view
+					.is_sale_completed({
+						typeArguments: [],
+						functionArguments: [collectionId],
+					})
+					.then((value) => value[0]);
+
+				if (currentSupply === collection.maxSupply && !saleCompleted) {
+					console.log(`Checking and completing sale for ${collectionId}`);
+					await launchpadClient.entry.check_and_complete_sale({
+						typeArguments: [],
+						functionArguments: [collectionId],
+						account: account,
+					});
+
+					saleCompleted = await launchpadClient.view
+						.is_sale_completed({
+							typeArguments: [],
+							functionArguments: [collectionId],
+						})
+						.then((value) => value[0]);
+				}
 
 				// If anything changed, update the collection in the database
 				if (

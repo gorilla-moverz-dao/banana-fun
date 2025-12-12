@@ -107,6 +107,10 @@ function RouteComponent() {
 								<span className="ml-auto text-sm">{percent}%</span>
 							</div>
 							<Progress value={percent} className="h-3 mb-4 bg-muted/30" />
+
+							{collectionData.sale_completed && (
+								<div className="text-green-500 text-sm font-semibold">Sale completed</div>
+							)}
 						</CardContent>
 					</GlassCard>
 
