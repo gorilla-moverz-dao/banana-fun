@@ -1,3 +1,4 @@
+import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery, query } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -13,20 +14,12 @@ export const getMintingCollections = query({
 		const saleCompleted = args.saleCompleted ?? false; // Default to false (active sales)
 		const requireMintEnabled = args.requireMintEnabled ?? true; // Default to true (only mint-enabled)
 		
-		let collections;
+		let collections: Doc<"collections">[];
 		
 		if (requireMintEnabled) {
-			// Use compound index for both filters
-			collections = await ctx.db
-				.query("collections")
-				.withIndex("by_state", (q) => q.eq("saleCompleted", saleCompleted).eq("mintEnabled", true))
-				.collect();
+			collections = await ctx.db.query("collections").withIndex("by_state", (q) => q.eq("saleCompleted", saleCompleted).eq("mintEnabled", true)).collect();
 		} else {
-			// Only filter by saleCompleted, don't care about mintEnabled
-			collections = await ctx.db
-				.query("collections")
-				.filter((q) => q.eq(q.field("saleCompleted"), saleCompleted))
-				.collect();
+			collections = await ctx.db.query("collections").filter((q) => q.eq(q.field("saleCompleted"), saleCompleted)).collect();
 		}
 
 		// Sort by createdAt descending (newest first)

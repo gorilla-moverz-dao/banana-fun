@@ -19,7 +19,8 @@
 			"!**/src/ui/**/*",
 			"!**/src/graphql/**/*",
 			"!**/src/components/ui/**/*",
-			"!**/src/abi/**/*"
+			"!**/src/abi/**/*",
+			"!**/convex/_generated/**/*"
 		]
 	},
 	"formatter": {
