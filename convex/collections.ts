@@ -120,6 +120,58 @@ export const getCollectionsToSync = internalQuery({
 });
 
 /**
+ * Internal mutation to create a new collection from blockchain data
+ */
+export const createCollectionFromBlockchain = internalMutation({
+	args: {
+		collectionData: v.object({
+			collectionId: v.string(),
+			collectionName: v.string(),
+			description: v.string(),
+			uri: v.string(),
+			placeholderUri: v.string(),
+			creatorAddress: v.string(),
+			royaltyAddress: v.string(),
+			royaltyPercentage: v.optional(v.number()),
+			maxSupply: v.number(),
+			currentSupply: v.number(),
+			ownerCount: v.number(),
+			mintEnabled: v.boolean(),
+			saleDeadline: v.number(),
+			saleCompleted: v.boolean(),
+			totalFundsCollected: v.optional(v.number()),
+			devWalletAddress: v.optional(v.string()),
+			faSymbol: v.string(),
+			faName: v.string(),
+			faIconUri: v.string(),
+			faProjectUri: v.string(),
+			vestingCliff: v.optional(v.number()),
+			vestingDuration: v.optional(v.number()),
+			creatorVestingWalletAddress: v.optional(v.string()),
+			creatorVestingCliff: v.optional(v.number()),
+			creatorVestingDuration: v.optional(v.number()),
+			createdAt: v.number(),
+			updatedAt: v.number(),
+		}),
+	},
+	handler: async (ctx, args) => {
+		// Check if collection already exists
+		const existing = await ctx.db
+			.query("collections")
+			.withIndex("by_collection_id", (q) => q.eq("collectionId", args.collectionData.collectionId))
+			.first();
+
+		if (existing) {
+			console.log(`Collection ${args.collectionData.collectionId} already exists, skipping creation`);
+			return;
+		}
+
+		await ctx.db.insert("collections", args.collectionData);
+		console.log(`Created new collection ${args.collectionData.collectionId} in database`);
+	},
+});
+
+/**
  * Internal mutation to update collection data from blockchain (infrequent updates)
  * Supply data (currentSupply, ownerCount, saleCompleted) is handled by updateCollectionSupply
  */
@@ -130,6 +182,16 @@ export const updateCollectionFromBlockchain = internalMutation({
 			totalFundsCollected: v.optional(v.number()),
 			saleDeadline: v.number(),
 			mintEnabled: v.optional(v.boolean()),
+			devWalletAddress: v.optional(v.string()),
+			vestingCliff: v.optional(v.number()),
+			vestingDuration: v.optional(v.number()),
+			creatorVestingWalletAddress: v.optional(v.string()),
+			creatorVestingCliff: v.optional(v.number()),
+			creatorVestingDuration: v.optional(v.number()),
+			faSymbol: v.optional(v.string()),
+			faName: v.optional(v.string()),
+			faIconUri: v.optional(v.string()),
+			faProjectUri: v.optional(v.string()),
 			updatedAt: v.number(),
 		}),
 	},

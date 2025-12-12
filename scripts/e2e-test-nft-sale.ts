@@ -27,7 +27,7 @@ const TEST_COLLECTION_CONFIG = {
 	name: "BF Collection",
 	description: "BF Collection for testing the NFT launchpad",
 	uri: "https://banana-fun.gorilla-moverz.xyz/favicon.png",
-	maxSupply: 20,
+	maxSupply: 30,
 	placeholderUri: "https://banana-fun.gorilla-moverz.xyz/favicon.png",
 	mintFeePerNFT: 100_000_000, // 0.1 MOVE (8 decimals)
 	royaltyPercentage: 5,
@@ -498,7 +498,7 @@ async function main() {
 	};
 
 	// Output compact JSON for easy copy-paste into Convex
-	console.log("\n📋 Convex Import Data (compact, copy this line):");
+	console.log("\n📋");
 	console.log(JSON.stringify(finalConvexData));
 
 	console.log("\n✅ E2E Test Complete!");

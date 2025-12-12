@@ -2,8 +2,269 @@
 
 import { normalizeHexAddress } from "../src/lib/utils";
 import { internal } from "./_generated/api";
-import { internalAction } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+import { type ActionCtx, internalAction } from "./_generated/server";
 import { createAptosClient } from "./aptos";
+
+/**
+ * Helper function to decode hex-encoded strings
+ */
+function decodeHexString(hex: string): string {
+	if (!hex.startsWith("0x")) {
+		return hex; // Already decoded or not hex
+	}
+	try {
+		return Buffer.from(hex.slice(2), "hex").toString("utf-8");
+	} catch {
+		return hex; // Return original if decoding fails
+	}
+}
+
+/**
+ * Helper function to sync a single collection's data from blockchain
+ * Used for both existing and newly discovered collections
+ */
+async function syncCollectionData(
+	ctx: ActionCtx,
+	launchpadClient: ReturnType<typeof createAptosClient>["launchpadClient"],
+	aptos: ReturnType<typeof createAptosClient>["aptos"],
+	collectionId: `0x${string}`,
+	existingCollectionId?: Id<"collections">, // Database ID if collection already exists
+	isActive: boolean = true,
+) {
+	// Use collection ID directly as Object<Collection> (Aptos SDK handles the conversion)
+	const collectionObject = collectionId as `0x${string}`;
+
+	const [collectionViewItem] = await launchpadClient.view.get_collection_view_item({
+		typeArguments: [],
+		functionArguments: [collectionObject],
+	});
+
+	// Extract data from collectionViewItem
+	const viewData = collectionViewItem as {
+		total_funds_collected: string;
+		sale_deadline: string;
+		current_supply: string;
+		sale_completed: boolean;
+		mint_enabled: boolean;
+		max_supply: string;
+		description: string;
+		uri: string;
+		placeholder_uri: string;
+		name: string;
+		dev_wallet_addr: string;
+		fa_symbol: string;
+		fa_name: string;
+		fa_icon_uri: string;
+		fa_project_uri: string;
+		vesting_cliff: string;
+		vesting_duration: string;
+		creator_vesting_wallet_addr: string;
+		creator_vesting_cliff: string;
+		creator_vesting_duration: string;
+	};
+
+	// Decode hex-encoded FA fields
+	const faSymbol = decodeHexString(viewData.fa_symbol);
+	const faName = decodeHexString(viewData.fa_name);
+	const faIconUri = decodeHexString(viewData.fa_icon_uri);
+	const faProjectUri = decodeHexString(viewData.fa_project_uri);
+
+	// Get creator address from blockchain
+	const [creatorAddress] = await launchpadClient.view.get_collection_creator_addr({
+		typeArguments: [],
+		functionArguments: [collectionObject],
+	});
+
+	// Query indexer for royalty info and other metadata
+	let royaltyAddress: string = creatorAddress.toString();
+	let royaltyPercentage: number | undefined;
+	let createdAt = Math.floor(Date.now() / 1000); // Default to now if not found
+
+	try {
+		const indexerResult = await aptos.queryIndexer({
+			query: {
+				query: `
+					query GetCollectionMetadata($collection_id: String!) {
+						current_collections_v2(where: { collection_id: { _eq: $collection_id } }, limit: 1) {
+							creator_address
+							last_transaction_timestamp
+						}
+					}
+				`,
+				variables: {
+					collection_id: collectionId,
+				},
+			},
+		});
+
+		const collectionData = indexerResult as {
+			current_collections_v2: Array<{
+				creator_address: string;
+				last_transaction_timestamp: string;
+			}>;
+		};
+
+		if (collectionData.current_collections_v2.length > 0) {
+			royaltyAddress = collectionData.current_collections_v2[0].creator_address;
+			// Parse timestamp (format: "2024-01-01T00:00:00Z")
+			const timestamp = new Date(collectionData.current_collections_v2[0].last_transaction_timestamp);
+			createdAt = Math.floor(timestamp.getTime() / 1000);
+		}
+	} catch (error) {
+		console.warn(`Could not fetch collection metadata from indexer for ${collectionId}:`, error);
+	}
+
+	// Query mint stages from blockchain
+	let mintStages: Array<{
+		name: string;
+		mintFee: number;
+		startTime: number;
+		endTime: number;
+		stageType: number;
+	}> = [];
+
+	try {
+		const [mintStagesInfo] = await launchpadClient.view.get_mint_stages_info({
+			typeArguments: [],
+			functionArguments: ["0x0", collectionObject, []],
+		});
+
+		if (mintStagesInfo && Array.isArray(mintStagesInfo)) {
+			mintStages = (
+				mintStagesInfo as Array<{
+					name: string;
+					mint_fee: string;
+					start_time: string;
+					end_time: string;
+					stage_type: number;
+				}>
+			).map((stage) => ({
+				name: stage.name,
+				mintFee: Number(stage.mint_fee),
+				startTime: Number(stage.start_time),
+				endTime: Number(stage.end_time),
+				stageType: stage.stage_type,
+			}));
+		}
+	} catch (stageError) {
+		console.error(`Error fetching mint stages for ${collectionId}:`, stageError);
+	}
+
+	// Query indexer for current supply and owner count
+	let currentSupply = Number(viewData.current_supply);
+	let ownerCount = 0;
+
+	try {
+		const indexerResult = await aptos.queryIndexer({
+			query: {
+				query: `
+					query GetCollectionSupply($collection_id: String!) {
+						current_collections_v2(where: { collection_id: { _eq: $collection_id } }, limit: 1) {
+							current_supply
+						}
+						current_collection_ownership_v2_view_aggregate(where: { collection_id: { _eq: $collection_id } }) {
+							aggregate {
+								count(distinct: true, columns: owner_address)
+							}
+						}
+					}
+				`,
+				variables: {
+					collection_id: collectionId,
+				},
+			},
+		});
+
+		const supplyData = indexerResult as {
+			current_collections_v2: Array<{ current_supply: string }>;
+			current_collection_ownership_v2_view_aggregate: {
+				aggregate: { count: number } | null;
+			};
+		};
+
+		if (supplyData.current_collections_v2.length > 0) {
+			currentSupply = Number(supplyData.current_collections_v2[0].current_supply);
+		}
+		ownerCount = supplyData.current_collection_ownership_v2_view_aggregate.aggregate?.count ?? 0;
+	} catch (error) {
+		console.warn(`Could not fetch supply data from indexer for ${collectionId}:`, error);
+	}
+
+	if (existingCollectionId) {
+		// Update existing collection
+		await ctx.runMutation(internal.collections.updateCollectionFromBlockchain, {
+			collectionId: existingCollectionId,
+			updates: {
+				totalFundsCollected: Number(viewData.total_funds_collected),
+				saleDeadline: Number(viewData.sale_deadline),
+				mintEnabled: isActive && viewData.mint_enabled,
+				devWalletAddress: viewData.dev_wallet_addr,
+				vestingCliff: Number(viewData.vesting_cliff),
+				vestingDuration: Number(viewData.vesting_duration),
+				creatorVestingWalletAddress: viewData.creator_vesting_wallet_addr,
+				creatorVestingCliff: Number(viewData.creator_vesting_cliff),
+				creatorVestingDuration: Number(viewData.creator_vesting_duration),
+				faSymbol: faSymbol,
+				faName: faName,
+				faIconUri: faIconUri,
+				faProjectUri: faProjectUri,
+				updatedAt: Date.now(),
+			},
+		});
+
+		// Update supply separately
+		await ctx.runMutation(internal.collections.updateCollectionSupply, {
+			collectionId: existingCollectionId,
+			currentSupply: currentSupply,
+			ownerCount: ownerCount,
+			saleCompleted: viewData.sale_completed,
+		});
+	} else {
+		// Create new collection
+		await ctx.runMutation(internal.collections.createCollectionFromBlockchain, {
+			collectionData: {
+				collectionId: collectionId,
+				collectionName: viewData.name,
+				description: viewData.description,
+				uri: viewData.uri,
+				placeholderUri: viewData.placeholder_uri,
+				creatorAddress: creatorAddress.toString(),
+				royaltyAddress: royaltyAddress,
+				royaltyPercentage: royaltyPercentage,
+				maxSupply: Number(viewData.max_supply),
+				currentSupply: currentSupply,
+				ownerCount: ownerCount,
+				mintEnabled: isActive && viewData.mint_enabled,
+				saleDeadline: Number(viewData.sale_deadline),
+				saleCompleted: viewData.sale_completed,
+				totalFundsCollected: Number(viewData.total_funds_collected),
+				devWalletAddress: viewData.dev_wallet_addr,
+				faSymbol: faSymbol,
+				faName: faName,
+				faIconUri: faIconUri,
+				faProjectUri: faProjectUri,
+				vestingCliff: Number(viewData.vesting_cliff),
+				vestingDuration: Number(viewData.vesting_duration),
+				creatorVestingWalletAddress: viewData.creator_vesting_wallet_addr,
+				creatorVestingCliff: Number(viewData.creator_vesting_cliff),
+				creatorVestingDuration: Number(viewData.creator_vesting_duration),
+				createdAt: createdAt,
+				updatedAt: Date.now(),
+			},
+		});
+	}
+
+	// Update mint stages in separate table (always upsert, even if empty, to clear old stages)
+	await ctx.runMutation(internal.collections.upsertMintStages, {
+		collectionId: collectionId,
+		stages: mintStages,
+	});
+
+	console.log(
+		`Synced collection ${collectionId}: ${mintStages.length} stages, funds=${viewData.total_funds_collected}`,
+	);
+}
 
 /**
  * Sync supply data (currentSupply, ownerCount, saleCompleted) - runs frequently (every 30 seconds)
@@ -116,15 +377,17 @@ export const syncCollectionSupplyAction = internalAction({
 /**
  * Sync full collection data - runs less frequently (every 30 minutes)
  * This includes sale state, mint stages, and other data that changes infrequently
+ * Also discovers and syncs newly created collections from the blockchain
  */
 export const syncCollectionDataAction = internalAction({
 	args: {},
 	handler: async (ctx) => {
 		console.log("Syncing full collection data from blockchain");
-		const { launchpadClient } = createAptosClient();
+		const { launchpadClient, aptos } = createAptosClient();
 
 		// Get all collections from database
 		const collections = await ctx.runQuery(internal.collections.getCollectionsToSync);
+		const dbCollectionIds = new Set(collections.map((c) => normalizeHexAddress(c.collectionId.toLowerCase())));
 
 		// Get registry from blockchain to see which collections are active
 		const [registry] = await launchpadClient.view.get_registry({
@@ -134,7 +397,7 @@ export const syncCollectionDataAction = internalAction({
 
 		const activeCollectionIds = new Set(registry.map((item) => normalizeHexAddress(item.inner.toLowerCase())));
 
-		// Sync each collection
+		// Sync existing collections
 		for (const collection of collections) {
 			try {
 				// Ensure collection ID is properly formatted (with 0x prefix)
@@ -145,86 +408,27 @@ export const syncCollectionDataAction = internalAction({
 
 				const isActive = activeCollectionIds.has(collectionId);
 
-				// Use collection ID directly as Object<Collection> (Aptos SDK handles the conversion)
-				const collectionObject = collectionId as `0x${string}`;
-
-				// Query blockchain for collection state
-				const [collectedFunds] = await launchpadClient.view.get_collected_funds({
-					typeArguments: [],
-					functionArguments: [collectionObject],
-				});
-
-				const [saleDeadline] = await launchpadClient.view.get_sale_deadline({
-					typeArguments: [],
-					functionArguments: [collectionObject],
-				});
-
-				// Query mint stages from blockchain (using dummy address and no reduction NFTs for base data)
-				let mintStages: Array<{
-					name: string;
-					mintFee: number;
-					startTime: number;
-					endTime: number;
-					stageType: number;
-				}> = [];
-
-				try {
-					console.log(`Fetching mint stages for collection ${collectionId}...`);
-					const [mintStagesInfo] = await launchpadClient.view.get_mint_stages_info({
-						typeArguments: [],
-						functionArguments: ["0x0", collectionObject, []],
-					});
-
-					if (!mintStagesInfo || !Array.isArray(mintStagesInfo)) {
-						console.warn(`No mint stages info returned for ${collectionId}`);
-					} else {
-						// Transform mint stages to match schema format
-						mintStages = (
-							mintStagesInfo as Array<{
-								name: string;
-								mint_fee: string;
-								start_time: string;
-								end_time: string;
-								stage_type: number;
-							}>
-						).map((stage) => ({
-							name: stage.name,
-							mintFee: Number(stage.mint_fee),
-							startTime: Number(stage.start_time),
-							endTime: Number(stage.end_time),
-							stageType: stage.stage_type,
-						}));
-
-						console.log(
-							`Found ${mintStages.length} mint stages for collection ${collectionId}:`,
-							mintStages.map((s) => s.name),
-						);
-					}
-				} catch (stageError) {
-					console.error(`Error fetching mint stages for ${collectionId}:`, stageError);
-					// Continue without stages if the query fails
-				}
-
-				// Update collection in database (currentSupply, ownerCount, saleCompleted are updated by the supply sync action)
-				await ctx.runMutation(internal.collections.updateCollectionFromBlockchain, {
-					collectionId: collection._id,
-					updates: {
-						totalFundsCollected: Number(collectedFunds),
-						saleDeadline: Number(saleDeadline),
-						mintEnabled: isActive,
-						updatedAt: Date.now(),
-					},
-				});
-
-				// Update mint stages in separate table (always upsert, even if empty, to clear old stages)
-				await ctx.runMutation(internal.collections.upsertMintStages, {
-					collectionId: collectionId,
-					stages: mintStages,
-				});
-
-				console.log(`Synced collection ${collectionId}: ${mintStages.length} stages, funds=${collectedFunds}`);
+				await syncCollectionData(ctx, launchpadClient, aptos, collectionId, collection._id, isActive);
 			} catch (error) {
 				console.error(`Error syncing collection ${collection.collectionId}:`, error);
+				// Continue with other collections even if one fails
+			}
+		}
+
+		// Discover and sync new collections from registry
+		for (const registryItem of registry) {
+			try {
+				const collectionId = normalizeHexAddress(registryItem.inner.toLowerCase()) as `0x${string}`;
+
+				// Skip if already in database
+				if (dbCollectionIds.has(collectionId)) {
+					continue;
+				}
+
+				console.log(`Discovering new collection: ${collectionId}`);
+				await syncCollectionData(ctx, launchpadClient, aptos, collectionId, undefined, true);
+			} catch (error) {
+				console.error(`Error syncing new collection ${registryItem.inner}:`, error);
 				// Continue with other collections even if one fails
 			}
 		}
