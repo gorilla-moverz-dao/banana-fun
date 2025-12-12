@@ -1,6 +1,6 @@
+import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery, query } from "./_generated/server";
-import { v } from "convex/values";
 
 /**
  * Get all collections filtered by sale completion status
@@ -13,20 +13,26 @@ export const getMintingCollections = query({
 	handler: async (ctx, args) => {
 		const saleCompleted = args.saleCompleted ?? false; // Default to false (active sales)
 		const requireMintEnabled = args.requireMintEnabled ?? true; // Default to true (only mint-enabled)
-		
+
 		let collections: Doc<"collections">[];
-		
+
 		if (requireMintEnabled) {
-			collections = await ctx.db.query("collections").withIndex("by_state", (q) => q.eq("saleCompleted", saleCompleted).eq("mintEnabled", true)).collect();
+			collections = await ctx.db
+				.query("collections")
+				.withIndex("by_state", (q) => q.eq("saleCompleted", saleCompleted).eq("mintEnabled", true))
+				.collect();
 		} else {
-			collections = await ctx.db.query("collections").filter((q) => q.eq(q.field("saleCompleted"), saleCompleted)).collect();
+			collections = await ctx.db
+				.query("collections")
+				.filter((q) => q.eq(q.field("saleCompleted"), saleCompleted))
+				.collect();
 		}
 
 		// Sort by createdAt descending (newest first)
 		collections.sort((a, b) => b.createdAt - a.createdAt);
 
 		// Transform to match the expected format from the old GraphQL query
-		return collections.map(({collectionId, collectionName, currentSupply, maxSupply, uri, description}) => ({
+		return collections.map(({ collectionId, collectionName, currentSupply, maxSupply, uri, description }) => ({
 			collection_id: collectionId,
 			collection_name: collectionName,
 			current_supply: currentSupply,
@@ -128,13 +134,13 @@ export const updateCollectionFromBlockchain = internalMutation({
 		}),
 	},
 	handler: async (ctx, args) => {
-		const existing = await ctx.db.get(args.collectionId);
+		const existing = await ctx.db.get("collections", args.collectionId);
 		if (!existing) {
 			console.error(`Collection ${args.collectionId} not found in database`);
 			return;
 		}
 
-		await ctx.db.patch(args.collectionId, args.updates);
+		await ctx.db.patch("collections", args.collectionId, args.updates);
 	},
 });
 
@@ -150,7 +156,7 @@ export const updateCollectionSupply = internalMutation({
 		saleCompleted: v.boolean(),
 	},
 	handler: async (ctx, args) => {
-		const existing = await ctx.db.get(args.collectionId);
+		const existing = await ctx.db.get("collections", args.collectionId);
 		if (!existing) {
 			console.error(`Collection ${args.collectionId} not found in database`);
 			return { updated: false };
@@ -166,7 +172,7 @@ export const updateCollectionSupply = internalMutation({
 			return { updated: false };
 		}
 
-		await ctx.db.patch(args.collectionId, {
+		await ctx.db.patch("collections", args.collectionId, {
 			currentSupply: args.currentSupply,
 			ownerCount: args.ownerCount,
 			saleCompleted: args.saleCompleted,
@@ -202,7 +208,7 @@ export const upsertMintStages = internalMutation({
 
 		// Delete existing stages
 		for (const stage of existingStages) {
-			await ctx.db.delete(stage._id);
+			await ctx.db.delete("mintStages", stage._id);
 		}
 
 		// Insert new stages
