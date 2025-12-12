@@ -3,6 +3,7 @@
 import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
 import { createSurfClient } from "@thalalabs/surf";
 import { ABI as launchpadABI } from "../src/abi/nft_launchpad";
+import { normalizeHexAddress } from "../src/lib/utils";
 import { internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
 
@@ -139,7 +140,7 @@ export const syncCollectionDataAction = internalAction({
 			typeArguments: [],
 		});
 
-		const activeCollectionIds = new Set(registry.map((item) => item.inner.toLowerCase()));
+		const activeCollectionIds = new Set(registry.map((item) => normalizeHexAddress(item.inner.toLowerCase())));
 
 		// Sync each collection
 		for (const collection of collections) {
@@ -149,6 +150,7 @@ export const syncCollectionDataAction = internalAction({
 					? collection.collectionId.toLowerCase()
 					: `0x${collection.collectionId.toLowerCase()}`;
 				const collectionId = collectionIdRaw as `0x${string}`;
+
 				const isActive = activeCollectionIds.has(collectionId);
 
 				// Use collection ID directly as Object<Collection> (Aptos SDK handles the conversion)
