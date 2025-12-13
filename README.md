@@ -1,310 +1,110 @@
-Welcome to your new TanStack app! 
+# Banana Fun - Project Summary
 
-# Getting Started
+## Demo
 
-To run this application:
+https://banana-fun.gorilla-moverz.xyz/
 
-```bash
-bun install
-bun --bun run start
-```
+## Overview
 
-# Building For Production
+**Banana Fun** is an NFT-backed token launchpad platform that combines NFT sales, token generation, and liquidity pool creation into a single streamlined mechanism. The platform enables projects to launch NFT collections while simultaneously bootstrapping token liquidity on decentralized exchanges.
 
-To build this application for production:
+## Key Features
 
-```bash
-bun --bun run build
-```
+### 1. Conditional Launch Mechanism
 
-## Testing
+- NFT collections are minted with a fixed maximum supply and hard cap
+- If the threshold is reached before deadline: automatically creates liquidity pool on DEX and enables token claims
+- If threshold not met: buyers can refund by burning NFTs (safe presale mechanism)
 
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
+### 2. Multi-Stage Minting
 
-```bash
-bun --bun run test
-```
+- Supports multiple mint stages with different pricing, whitelists, and time windows
+- Whitelist tiers for public mint, and discounted rounds (GTD WL, FCFS WL, ...)
+- Sybil protection via Discord roles, NFT ownership, or permissioned wallet lists
 
-## Styling
+### 3. Instant-Reveal NFTs
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
+- NFTs reveal immediately upon minting
+- Enables quality-based trading and community evaluation from launch
 
+### 4. Token Distribution
 
-## Linting & Formatting
+When a sale completes successfully (all NFTs minted), the platform automatically:
 
-This project uses [Biome](https://biomejs.dev/) for linting and formatting. The following scripts are available:
+- **Mints total token supply**: A fixed total supply of fungible tokens is created for the collection
+- **Distributes to liquidity pool**: A portion is allocated for creating a DEX liquidity pool on Yuzuswap
+- **Allocates to NFT holder vesting**: A portion is locked in the vesting contract, distributed proportionally to NFT holders based on their ownership
+- **Sends to dev wallet**: A portion is immediately transferred to the project's development wallet (can be used for Airdrops, ...)
+- **Allocates to creator vesting**: A portion is locked in the creator vesting contract for the team
 
+All distributions happen atomically when the sale completes. NFT holders can claim their vested tokens over time, while the liquidity pool is created immediately to enable trading.
 
-```bash
-bun --bun run lint
-bun --bun run format
-bun --bun run check
-```
+### 5. Vesting System
 
+The platform implements a dual vesting system for token distribution:
 
-## Shadcn
+**NFT Holder Vesting:**
 
-Add components using the latest version of [Shadcn](https://ui.shadcn.com/).
+- Tokens are allocated per NFT owned (typically 10% of total token supply)
+- Linear vesting schedule with configurable cliff period and duration
+- NFT holders claim vested tokens by presenting their NFT
+- Each NFT has its own vesting allocation that vests independently
+- Prevents early dumping and stabilizes token price
 
-```bash
-pnpx shadcn@latest add button
-```
+**Creator/Team Vesting:**
 
+- Separate vesting pool for project creators and team (typically 30% of total supply)
+- Single beneficiary address receives the entire creator vesting pool
+- Same linear vesting mechanism with configurable cliff and duration
+- Beneficiary can claim vested tokens directly (must be the designated address)
+- Ensures long-term alignment between team and project success
 
+Both vesting systems are automatically initialized when a sale completes successfully, with tokens locked in secure vaults until they vest.
 
-## Routing
-This project uses [TanStack Router](https://tanstack.com/router). The initial setup is a file based router. Which means that the routes are managed as files in `src/routes`.
+## Core Architecture
 
-### Adding A Route
+### Backend
 
-To add a new route to your application just add another a new file in the `./src/routes` directory.
+**Move/Aptos Smart Contracts:**
 
-TanStack will automatically generate the content of the route file for you.
+- **Smart Contracts**: Written in Move, deployed on Aptos blockchain
+- **Launchpad Module** (`launchpad.move`): Manages NFT collections, mint stages, whitelists, and conditional token distribution
+- **DEX Integration** (`dex.move`): Integrates with Yuzuswap for automatic liquidity pool creation
+- **Vesting Module**: Handles token vesting and delayed claims
+- **NFT Reduction Manager**: Manages NFT-based token reduction mechanics
+- **Testing**: Movement SDK for testing
 
-Now that you have two routes you can use a `Link` component to navigate between them.
+**Convex Backend Service:**
 
-### Adding Links
+- **Database**: Convex for caching blockchain data and improving frontend performance
+- **Real-time Sync**: Automatic synchronization of collection state from blockchain every minute
+- **Data Caching**: Stores collection metadata, mint stages, sale status, supply, and funds collected
+- **Query API**: Provides efficient queries for frontend without direct blockchain calls
 
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
+### Frontend
 
-```tsx
-import { Link } from "@tanstack/react-router";
-```
+- **Framework**: React 19 with TanStack Router for file-based routing
+- **Language**: TypeScript
+- **Build Tool**: Vite
+- **State Management**: TanStack Query for server state
+- **UI Components**: Shadcn UI components with Tailwind CSS
+- **Wallet Integration**: Aptos wallet adapter for blockchain interactions
+- **GraphQL**: Code generation for type-safe API queries
+- **Code Quality**: Biome for linting and formatting
 
-Then anywhere in your JSX you can use it like so:
+## Project Structure
 
-```tsx
-<Link to="/about">About</Link>
-```
+- `/move/` - Move smart contracts and tests
+- `/src/` - React frontend application
+- `/convex/` - Convex backend functions, schema, and sync actions
+- `/docs/` - Project documentation
+- `/scripts/` - Build and deployment scripts
 
-This will create a link that will navigate to the `/about` route.
+## Development Status
 
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
+Active development with focus on:
 
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you use the `<Outlet />` component.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { Outlet, createRootRoute } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
-
-import { Link } from "@tanstack/react-router";
-
-export const Route = createRootRoute({
-  component: () => (
-    <>
-      <header>
-        <nav>
-          <Link to="/">Home</Link>
-          <Link to="/about">About</Link>
-        </nav>
-      </header>
-      <Outlet />
-      <TanStackRouterDevtools />
-    </>
-  ),
-})
-```
-
-The `<TanStackRouterDevtools />` component is not required so you can remove it if you don't want it in your layout.
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-const peopleRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/people",
-  loader: async () => {
-    const response = await fetch("https://swapi.dev/api/people");
-    return response.json() as Promise<{
-      results: {
-        name: string;
-      }[];
-    }>;
-  },
-  component: () => {
-    const data = peopleRoute.useLoaderData();
-    return (
-      <ul>
-        {data.results.map((person) => (
-          <li key={person.name}>{person.name}</li>
-        ))}
-      </ul>
-    );
-  },
-});
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-### React-Query
-
-React-Query is an excellent addition or alternative to route loading and integrating it into you application is a breeze.
-
-First add your dependencies:
-
-```bash
-bun install @tanstack/react-query @tanstack/react-query-devtools
-```
-
-Next we'll need to create a query client and provider. We recommend putting those in `main.tsx`.
-
-```tsx
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-// ...
-
-const queryClient = new QueryClient();
-
-// ...
-
-if (!rootElement.innerHTML) {
-  const root = ReactDOM.createRoot(rootElement);
-
-  root.render(
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
-  );
-}
-```
-
-You can also add TanStack Query Devtools to the root route (optional).
-
-```tsx
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-
-const rootRoute = createRootRoute({
-  component: () => (
-    <>
-      <Outlet />
-      <ReactQueryDevtools buttonPosition="top-right" />
-      <TanStackRouterDevtools />
-    </>
-  ),
-});
-```
-
-Now you can use `useQuery` to fetch your data.
-
-```tsx
-import { useQuery } from "@tanstack/react-query";
-
-import "./App.css";
-
-function App() {
-  const { data } = useQuery({
-    queryKey: ["people"],
-    queryFn: () =>
-      fetch("https://swapi.dev/api/people")
-        .then((res) => res.json())
-        .then((data) => data.results as { name: string }[]),
-    initialData: [],
-  });
-
-  return (
-    <div>
-      <ul>
-        {data.map((person) => (
-          <li key={person.name}>{person.name}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-export default App;
-```
-
-You can find out everything you need to know on how to use React-Query in the [React-Query documentation](https://tanstack.com/query/latest/docs/framework/react/overview).
-
-## State Management
-
-Another common requirement for React applications is state management. There are many options for state management in React. TanStack Store provides a great starting point for your project.
-
-First you need to add TanStack Store as a dependency:
-
-```bash
-bun install @tanstack/store
-```
-
-Now let's create a simple counter in the `src/App.tsx` file as a demonstration.
-
-```tsx
-import { useStore } from "@tanstack/react-store";
-import { Store } from "@tanstack/store";
-import "./App.css";
-
-const countStore = new Store(0);
-
-function App() {
-  const count = useStore(countStore);
-  return (
-    <div>
-      <button onClick={() => countStore.setState((n) => n + 1)}>
-        Increment - {count}
-      </button>
-    </div>
-  );
-}
-
-export default App;
-```
-
-One of the many nice features of TanStack Store is the ability to derive state from other state. That derived state will update when the base state updates.
-
-Let's check this out by doubling the count using derived state.
-
-```tsx
-import { useStore } from "@tanstack/react-store";
-import { Store, Derived } from "@tanstack/store";
-import "./App.css";
-
-const countStore = new Store(0);
-
-const doubledStore = new Derived({
-  fn: () => countStore.state * 2,
-  deps: [countStore],
-});
-doubledStore.mount();
-
-function App() {
-  const count = useStore(countStore);
-  const doubledCount = useStore(doubledStore);
-
-  return (
-    <div>
-      <button onClick={() => countStore.setState((n) => n + 1)}>
-        Increment - {count}
-      </button>
-      <div>Doubled - {doubledCount}</div>
-    </div>
-  );
-}
-
-export default App;
-```
-
-We use the `Derived` class to create a new store that is derived from another store. The `Derived` class has a `mount` method that will start the derived store updating.
-
-Once we've created the derived store we can use it in the `App` component just like we would any other store using the `useStore` hook.
-
-You can find out everything you need to know on how to use TanStack Store in the [TanStack Store documentation](https://tanstack.com/store/latest).
-
-# Demo files
-
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
+- DEX integration for liquidity pools
+- Frontend UI for collection browsing and minting
+- Convex integration for real-time data synchronization
+- Vesting system for NFT holders and team members
