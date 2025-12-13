@@ -1,5 +1,5 @@
+import type { Doc } from "convex/_generated/dataModel";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { Collection } from "@/fragments/collection";
 import { useCollectionNFTs } from "@/hooks/useCollectionNFTs";
 import { NFTThumbnail } from "./NFTThumbnail";
 
@@ -7,7 +7,7 @@ interface MintResultDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	recentlyMintedTokenIds: Array<string>;
-	collectionData: Collection;
+	collectionData: Doc<"collections">;
 }
 
 export function MintResultDialog({
@@ -18,7 +18,7 @@ export function MintResultDialog({
 }: MintResultDialogProps) {
 	const { data: nfts, isLoading: isLoadingNFTs } = useCollectionNFTs({
 		onlyOwned: false,
-		collectionIds: [collectionData.collection_id],
+		collectionIds: [collectionData.collectionId],
 		tokenIds: recentlyMintedTokenIds,
 	});
 

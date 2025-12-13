@@ -1,21 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { ExternalLinkIcon, InfoIcon } from "lucide-react";
+import { ExternalLinkIcon } from "lucide-react";
 import { useState } from "react";
 import { AssetDetailDialog } from "@/components/AssetDetailDialog";
 import { GlassCard } from "@/components/GlassCard";
 import { MintResultDialog } from "@/components/MintResultDialog";
 import { MintStageCard } from "@/components/MintStageCard";
-import { NFTThumbnail } from "@/components/NFTThumbnail";
+import { MyNFTsCard } from "@/components/MyNFTsCard";
+import { TokenInfoCard } from "@/components/TokenInfoCard";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { VestingCard } from "@/components/VestingCard";
 import { MOVE_NETWORK } from "@/constants";
 import type { NFT } from "@/fragments/nft";
 import { useClients } from "@/hooks/useClients";
 import { useCollectionNFTs } from "@/hooks/useCollectionNFTs";
 import { useMintBalance } from "@/hooks/useMintBalance";
-import { formatDuration, oaptToApt, toShortAddress } from "@/lib/utils";
+import { oaptToApt, toShortAddress } from "@/lib/utils";
 import { api } from "../../convex/_generated/api";
 
 export const Route = createFileRoute("/mint/$collectionId")({
@@ -38,7 +39,7 @@ function RouteComponent() {
 	});
 
 	// Use stages from Convex - reduction fees are calculated on-chain when needed
-	const stages = collectionData?.stages || [];
+	const stages = collectionData?.mintStages || [];
 	const isFetchedStages = collectionData !== undefined;
 
 	const { data: mintBalance } = useMintBalance(collectionIdTyped, stages);
@@ -51,14 +52,21 @@ function RouteComponent() {
 	if (!isFetched) return <div>Loading...</div>;
 	if (!collectionData) return <div>Collection not found</div>;
 
-	const minted = collectionData.current_supply;
-	const total = collectionData.max_supply;
+	const minted = collectionData.currentSupply;
+	const total = collectionData.maxSupply;
 	const percent = Math.round((minted / total) * 100);
 
 	const handleNFTClick = (nft: NFT) => {
 		setSelectedNFT(nft);
 		setShowAssetDetailDialog(true);
 	};
+
+	// Check if vesting info is available
+	const hasHolderVesting = collectionData.vestingCliff !== undefined && collectionData.vestingDuration !== undefined;
+	const hasTeamVesting =
+		collectionData.creatorVestingCliff !== undefined && collectionData.creatorVestingDuration !== undefined;
+
+	const myNfts = nfts?.current_token_ownerships_v2 || [];
 
 	return (
 		<div className="flex flex-col gap-8">
@@ -70,23 +78,23 @@ function RouteComponent() {
 							<div className="w-full aspect-square rounded-lg bg-background overflow-hidden border mb-2 flex items-center justify-center group">
 								<img
 									src={collectionData.uri}
-									alt={collectionData.collection_name}
+									alt={collectionData.collectionName}
 									className="object-cover w-full h-full transition-transform duration-300 ease-in-out group-hover:scale-105"
 								/>
 							</div>
-							<CardTitle className="truncate text-lg">{collectionData.collection_name}</CardTitle>
+							<CardTitle className="truncate text-lg">{collectionData.collectionName}</CardTitle>
 							<CardDescription className="mb-1">{collectionData.description}</CardDescription>
 						</CardHeader>
 						<CardContent>
 							<div className="text-sm break-all">
 								<p className="font-semibold text-muted-foreground">Collection Address:</p>{" "}
 								<a
-									href={MOVE_NETWORK.explorerUrl.replace("{0}", `object/${collectionData.collection_id}`)}
+									href={MOVE_NETWORK.explorerUrl.replace("{0}", `object/${collectionData.collectionId}`)}
 									target="_blank"
 									rel="noopener noreferrer"
 								>
 									<div className="flex items-center gap-1">
-										{toShortAddress(collectionData.collection_id)} <ExternalLinkIcon className="w-4 h-4" />
+										{toShortAddress(collectionData.collectionId)} <ExternalLinkIcon className="w-4 h-4" />
 									</div>
 								</a>
 							</div>
@@ -102,13 +110,13 @@ function RouteComponent() {
 									{minted} / {total}
 								</span>
 								<span className="text-sm text-muted-foreground">
-									(Collected {oaptToApt(collectionData.total_funds_collected || 0).toLocaleString()} MOVE)
+									(Collected {oaptToApt(collectionData.totalFundsCollected || 0).toLocaleString()} MOVE)
 								</span>
 								<span className="ml-auto text-sm">{percent}%</span>
 							</div>
 							<Progress value={percent} className="h-3 mb-4 bg-muted/30" />
 
-							{collectionData.sale_completed && (
+							{collectionData.saleCompleted && (
 								<div className="text-green-500 text-sm font-semibold">Sale completed</div>
 							)}
 						</CardContent>
@@ -133,7 +141,7 @@ function RouteComponent() {
 						<GlassCard className="text-center">
 							<CardContent>
 								<div className="text-sm font-semibold text-muted-foreground mb-1">Unique Holders</div>
-								<div className="text-2xl font-bold">{collectionData.ownerCount.toLocaleString() || 0}</div>
+								<div className="text-2xl font-bold">{collectionData.ownerCount?.toLocaleString() || 0}</div>
 							</CardContent>
 						</GlassCard>
 					</div>
@@ -153,274 +161,22 @@ function RouteComponent() {
 						))}
 					</div>
 
-					<GlassCard className="w-full">
-						<CardContent>
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-								{/* Left Column: Icon and Symbol */}
-								<div className="flex items-start gap-4">
-									<div className="w-16 h-16 rounded-lg overflow-hidden border border-white/20 flex-shrink-0">
-										<img
-											src={collectionData.fa_icon_uri}
-											alt={collectionData.fa_name || "FA Icon"}
-											className="w-full h-full object-cover"
-											onError={(e) => {
-												e.currentTarget.src = "/images/favicon-1.png";
-											}}
-										/>
-									</div>
-									<div className="flex-1 space-y-2">
-										<div>
-											<div className="text-sm font-semibold text-muted-foreground mb-1">Symbol</div>
-											<div className="text-lg font-bold">{collectionData.fa_symbol}</div>
-										</div>
-										<div>
-											<div className="text-sm font-semibold text-muted-foreground mb-1">Name</div>
-											<div className="text-base">{collectionData.fa_name}</div>
-										</div>
-									</div>
-								</div>
-
-								{/* Right Column: Sale Deadline and Project */}
-								<div className="space-y-4">
-									<div>
-										<div className="text-sm font-semibold text-muted-foreground mb-1">Sale Deadline</div>
-										<div className="text-base">{new Date(collectionData.sale_deadline * 1000).toLocaleString()}</div>
-									</div>
-									<div>
-										<div className="text-sm font-semibold text-muted-foreground mb-1">Project</div>
-										<a
-											href={collectionData.fa_project_uri}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-base text-primary hover:underline flex items-center gap-1"
-										>
-											{collectionData.fa_project_uri}
-											<ExternalLinkIcon className="w-4 h-4" />
-										</a>
-									</div>
-								</div>
-							</div>
-						</CardContent>
-					</GlassCard>
+					{/* Token Info Card */}
+					<TokenInfoCard collectionData={collectionData} />
 
 					{/* Vesting Information - Two Columns */}
-					{(collectionData.vesting_cliff !== undefined && collectionData.vesting_duration !== undefined) ||
-					(collectionData.creator_vesting_cliff !== undefined &&
-						collectionData.creator_vesting_duration !== undefined) ? (
+					{(hasHolderVesting || hasTeamVesting) && (
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-							{/* NFT Holder Vesting Information */}
-							{collectionData.vesting_cliff !== undefined && collectionData.vesting_duration !== undefined && (
-								<GlassCard className="w-full">
-									<CardHeader>
-										<CardTitle>NFT Holder Vesting</CardTitle>
-										<CardDescription>Token vesting schedule for NFT holders</CardDescription>
-									</CardHeader>
-									<CardContent>
-										<div className="space-y-4">
-											{collectionData.sale_completed && collectionData.sale_deadline && (
-												<>
-													<div>
-														<div className="text-sm font-semibold text-muted-foreground mb-1">Vesting Start</div>
-														<div className="text-base">
-															{new Date(collectionData.sale_deadline * 1000).toLocaleString()}
-														</div>
-													</div>
-													<div>
-														<div className="text-sm font-semibold text-muted-foreground mb-1">Cliff Period</div>
-														<div className="text-base">{formatDuration(collectionData.vesting_cliff)}</div>
-														<div className="text-sm text-muted-foreground mt-1">
-															Cliff ends:{" "}
-															{new Date(
-																(collectionData.sale_deadline + collectionData.vesting_cliff) * 1000,
-															).toLocaleString()}
-														</div>
-													</div>
-													<div>
-														<div className="text-sm font-semibold text-muted-foreground mb-1">Vesting Duration</div>
-														<div className="text-base">{formatDuration(collectionData.vesting_duration)}</div>
-														<div className="text-sm text-muted-foreground mt-1">
-															Full vesting ends:{" "}
-															{new Date(
-																(collectionData.sale_deadline + collectionData.vesting_duration) * 1000,
-															).toLocaleString()}
-														</div>
-													</div>
-												</>
-											)}
-											{!collectionData.sale_completed && (
-												<>
-													<div>
-														<div className="text-sm font-semibold text-muted-foreground mb-1">Cliff Period</div>
-														<div className="text-base flex items-center gap-2">
-															{formatDuration(collectionData.vesting_cliff)}
-															<Tooltip>
-																<TooltipTrigger asChild>
-																	<InfoIcon className="w-4 h-4 text-muted-foreground cursor-help" />
-																</TooltipTrigger>
-																<TooltipContent>
-																	<p>Vesting will start after sale completion</p>
-																</TooltipContent>
-															</Tooltip>
-														</div>
-													</div>
-													<div>
-														<div className="text-sm font-semibold text-muted-foreground mb-1">Vesting Duration</div>
-														<div className="text-base flex items-center gap-2">
-															{formatDuration(collectionData.vesting_duration)}
-															<Tooltip>
-																<TooltipTrigger asChild>
-																	<InfoIcon className="w-4 h-4 text-muted-foreground cursor-help" />
-																</TooltipTrigger>
-																<TooltipContent>
-																	<p>Vesting will start after sale completion</p>
-																</TooltipContent>
-															</Tooltip>
-														</div>
-													</div>
-												</>
-											)}
-											{collectionData.fa_vesting_amount !== undefined && (
-												<div>
-													<div className="text-sm font-semibold text-muted-foreground mb-1">Total Vesting Pool</div>
-													<div className="text-base">
-														{oaptToApt(collectionData.fa_vesting_amount).toLocaleString()} {collectionData.fa_symbol}
-													</div>
-												</div>
-											)}
-										</div>
-									</CardContent>
-								</GlassCard>
-							)}
+							{hasHolderVesting && <VestingCard type="holder" collectionData={collectionData} />}
 
-							{/* Team Vesting Information */}
-							{collectionData.creator_vesting_cliff !== undefined &&
-								collectionData.creator_vesting_duration !== undefined && (
-									<GlassCard className="w-full">
-										<CardHeader>
-											<CardTitle>Team Vesting</CardTitle>
-											<CardDescription>Token vesting schedule for team</CardDescription>
-										</CardHeader>
-										<CardContent>
-											<div className="space-y-4">
-												{collectionData.creator_vesting_wallet_address && (
-													<div>
-														<div className="text-sm font-semibold text-muted-foreground mb-1">Beneficiary Address</div>
-														<a
-															href={MOVE_NETWORK.explorerUrl.replace(
-																"{0}",
-																`account/${collectionData.creator_vesting_wallet_address}`,
-															)}
-															target="_blank"
-															rel="noopener noreferrer"
-															className="text-base text-primary hover:underline flex items-center gap-1"
-														>
-															{toShortAddress(collectionData.creator_vesting_wallet_address)}
-															<ExternalLinkIcon className="w-4 h-4" />
-														</a>
-													</div>
-												)}
-												{collectionData.sale_completed && collectionData.sale_deadline && (
-													<>
-														<div>
-															<div className="text-sm font-semibold text-muted-foreground mb-1">Vesting Start</div>
-															<div className="text-base">
-																{new Date(collectionData.sale_deadline * 1000).toLocaleString()}
-															</div>
-														</div>
-														<div>
-															<div className="text-sm font-semibold text-muted-foreground mb-1">Cliff Period</div>
-															<div className="text-base">{formatDuration(collectionData.creator_vesting_cliff)}</div>
-															<div className="text-sm text-muted-foreground mt-1">
-																Cliff ends:{" "}
-																{new Date(
-																	(collectionData.sale_deadline + collectionData.creator_vesting_cliff) * 1000,
-																).toLocaleString()}
-															</div>
-														</div>
-														<div>
-															<div className="text-sm font-semibold text-muted-foreground mb-1">Vesting Duration</div>
-															<div className="text-base">{formatDuration(collectionData.creator_vesting_duration)}</div>
-															<div className="text-sm text-muted-foreground mt-1">
-																Full vesting ends:{" "}
-																{new Date(
-																	(collectionData.sale_deadline + collectionData.creator_vesting_duration) * 1000,
-																).toLocaleString()}
-															</div>
-														</div>
-													</>
-												)}
-												{!collectionData.sale_completed && (
-													<>
-														<div>
-															<div className="text-sm font-semibold text-muted-foreground mb-1">Cliff Period</div>
-															<div className="text-base flex items-center gap-2">
-																{formatDuration(collectionData.creator_vesting_cliff)}
-																<Tooltip>
-																	<TooltipTrigger asChild>
-																		<InfoIcon className="w-4 h-4 text-muted-foreground cursor-help" />
-																	</TooltipTrigger>
-																	<TooltipContent>
-																		<p>Vesting will start after sale completion</p>
-																	</TooltipContent>
-																</Tooltip>
-															</div>
-														</div>
-														<div>
-															<div className="text-sm font-semibold text-muted-foreground mb-1">Vesting Duration</div>
-															<div className="text-base flex items-center gap-2">
-																{formatDuration(collectionData.creator_vesting_duration)}
-																<Tooltip>
-																	<TooltipTrigger asChild>
-																		<InfoIcon className="w-4 h-4 text-muted-foreground cursor-help" />
-																	</TooltipTrigger>
-																	<TooltipContent>
-																		<p>Vesting will start after sale completion</p>
-																	</TooltipContent>
-																</Tooltip>
-															</div>
-														</div>
-													</>
-												)}
-												{collectionData.fa_creator_vesting_amount !== undefined && (
-													<div>
-														<div className="text-sm font-semibold text-muted-foreground mb-1">Total Vesting Pool</div>
-														<div className="text-base">
-															{oaptToApt(collectionData.fa_creator_vesting_amount).toLocaleString()}{" "}
-															{collectionData.fa_symbol}
-														</div>
-													</div>
-												)}
-											</div>
-										</CardContent>
-									</GlassCard>
-								)}
+							{hasTeamVesting && <VestingCard type="team" collectionData={collectionData} />}
 						</div>
-					) : null}
+					)}
 
 					{/* My NFTs Section */}
-					{connected &&
-						isFetchedNFTs &&
-						nfts?.current_token_ownerships_v2 &&
-						nfts.current_token_ownerships_v2.length > 0 && (
-							<GlassCard className="w-full">
-								<CardHeader>
-									<CardTitle>My NFTs</CardTitle>
-									<CardDescription>NFTs from this collection in your wallet</CardDescription>
-								</CardHeader>
-								<CardContent>
-									<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-										{nfts.current_token_ownerships_v2.map((nft) => (
-											<NFTThumbnail
-												key={nft.token_data_id}
-												nft={nft}
-												collectionData={collectionData}
-												onClick={() => handleNFTClick(nft)}
-											/>
-										))}
-									</div>
-								</CardContent>
-							</GlassCard>
-						)}
+					{connected && isFetchedNFTs && (
+						<MyNFTsCard nfts={myNfts} collectionData={collectionData} onNFTClick={handleNFTClick} />
+					)}
 				</div>
 			</div>
 

@@ -39,13 +39,13 @@ export default defineSchema({
 		faCreatorVestingAmount: v.optional(v.number()), // Amount for creator vesting (30%)
 
 		// NFT Holder Vesting configuration
-		vestingCliff: v.optional(v.number()), // Cliff period in seconds
-		vestingDuration: v.optional(v.number()), // Total vesting duration in seconds
+		vestingCliff: v.number(), // Cliff period in seconds
+		vestingDuration: v.number(), // Total vesting duration in seconds
 
 		// Creator Vesting configuration
-		creatorVestingWalletAddress: v.optional(v.string()),
-		creatorVestingCliff: v.optional(v.number()), // Cliff period in seconds
-		creatorVestingDuration: v.optional(v.number()), // Total vesting duration in seconds
+		creatorVestingWalletAddress: v.string(),
+		creatorVestingCliff: v.number(), // Cliff period in seconds
+		creatorVestingDuration: v.number(), // Total vesting duration in seconds
 
 		// Timestamps
 		createdAt: v.number(), // When collection was created

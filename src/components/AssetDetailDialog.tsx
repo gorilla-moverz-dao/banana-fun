@@ -1,7 +1,7 @@
+import type { Doc } from "convex/_generated/dataModel";
 import { ExternalLinkIcon } from "lucide-react";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { Collection } from "@/fragments/collection";
 import type { NFT } from "@/fragments/nft";
 import { toShortAddress } from "@/lib/utils";
 import { GlassCard } from "./GlassCard";
@@ -10,7 +10,7 @@ interface AssetDetailDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	nft: NFT | null;
-	collectionData: Collection;
+	collectionData: Doc<"collections">;
 }
 
 export function AssetDetailDialog({ open, onOpenChange, nft, collectionData }: AssetDetailDialogProps) {
@@ -61,15 +61,15 @@ export function AssetDetailDialog({ open, onOpenChange, nft, collectionData }: A
 									<div className="space-y-3">
 										<div>
 											<span className="text-sm font-medium text-muted-foreground">Collection Name</span>
-											<p className="text-sm">{collectionData.collection_name || "Unknown Collection"}</p>
+											<p className="text-sm">{collectionData.collectionName || "Unknown Collection"}</p>
 										</div>
 										<div>
 											<span className="text-sm font-medium text-muted-foreground">Collection ID</span>
 											<div className="flex items-center gap-2">
-												<p className="text-sm font-mono">{toShortAddress(collectionData.collection_id)}</p>
+												<p className="text-sm font-mono">{toShortAddress(collectionData.collectionId)}</p>
 												<button
 													type="button"
-													onClick={() => navigator.clipboard.writeText(collectionData.collection_id)}
+													onClick={() => navigator.clipboard.writeText(collectionData.collectionId)}
 													className="text-xs text-muted-foreground hover:text-foreground transition-colors"
 													title="Copy collection ID"
 												>

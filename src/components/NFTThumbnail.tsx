@@ -1,9 +1,9 @@
-import type { Collection } from "@/fragments/collection";
+import type { Doc } from "convex/_generated/dataModel";
 import type { NFT } from "@/fragments/nft";
 
 interface NFTThumbnailProps {
 	nft: NFT;
-	collectionData?: Collection;
+	collectionData?: Doc<"collections">;
 	onClick?: () => void;
 	className?: string;
 }
