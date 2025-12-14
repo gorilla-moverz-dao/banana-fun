@@ -1,6 +1,7 @@
 module deployment_addr::vesting {
     use std::option::{Self, Option};
     use std::signer;
+    use std::vector;
     use aptos_framework::object::{Self, Object, ExtendRef};
     use aptos_framework::timestamp;
     use aptos_framework::primary_fungible_store;
@@ -248,11 +249,10 @@ module deployment_addr::vesting {
 
     // ================================= Public Entry Functions ================================= //
 
-    /// Claim vested tokens for an NFT (sender must own the NFT)
-    public entry fun claim(
-        sender: &signer, collection_obj: Object<Collection>, nft_obj: Object<Token>
-    ) acquires NftVestingConfig, VestingVault {
-        let sender_addr = signer::address_of(sender);
+    /// Internal claim logic for a single NFT - returns the claimed amount
+    fun claim_internal(
+        sender_addr: address, collection_obj: Object<Collection>, nft_obj: Object<Token>
+    ): u64 acquires NftVestingConfig, VestingVault {
         let collection_addr = object::object_address(&collection_obj);
 
         assert!(exists<NftVestingConfig>(collection_addr), EVESTING_NOT_INITIALIZED);
@@ -309,6 +309,28 @@ module deployment_addr::vesting {
                 total_claimed: new_claimed
             }
         );
+
+        claimable
+    }
+
+    /// Claim vested tokens for an NFT (sender must own the NFT)
+    public entry fun claim(
+        sender: &signer, collection_obj: Object<Collection>, nft_obj: Object<Token>
+    ) acquires NftVestingConfig, VestingVault {
+        claim_internal(signer::address_of(sender), collection_obj, nft_obj);
+    }
+
+    /// Claim vested tokens for multiple NFTs at once (sender must own all NFTs)
+    public entry fun claim_batch(
+        sender: &signer, collection_obj: Object<Collection>, nft_objs: vector<Object<Token>>
+    ) acquires NftVestingConfig, VestingVault {
+        let sender_addr = signer::address_of(sender);
+        let len = nft_objs.length();
+        let i = 0;
+        while (i < len) {
+            claim_internal(sender_addr, collection_obj, nft_objs[i]);
+            i = i + 1;
+        };
     }
 
     /// Claim vested tokens for the creator (sender must be the beneficiary)
@@ -374,6 +396,7 @@ module deployment_addr::vesting {
         exists<CreatorVestingConfig>(object::object_address(&collection_obj))
     }
 
+    // TODO: Check if this is needed
     #[view]
     public fun get_vested_amount(
         collection_obj: Object<Collection>, _nft_obj: Object<Token>
@@ -416,6 +439,23 @@ module deployment_addr::vesting {
         if (vested > claimed) {
             vested - claimed
         } else { 0 }
+    }
+
+    #[view]
+    /// Get claimable amounts for multiple NFTs at once
+    /// Returns a vector of claimable amounts in the same order as the input NFTs
+    public fun get_claimable_amount_batch(
+        collection_obj: Object<Collection>, nft_objs: vector<Object<Token>>
+    ): vector<u64> acquires NftVestingConfig {
+        let results = vector::empty<u64>();
+        let len = nft_objs.length();
+        let i = 0;
+        while (i < len) {
+            let claimable = get_claimable_amount(collection_obj, nft_objs[i]);
+            results.push_back(claimable);
+            i = i + 1;
+        };
+        results
     }
 
     #[view]
