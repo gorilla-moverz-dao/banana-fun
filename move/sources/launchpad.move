@@ -216,6 +216,13 @@ module deployment_addr::nft_launchpad {
         fa_name: vector<u8>,
         fa_icon_uri: vector<u8>,
         fa_project_uri: vector<u8>,
+        fa_metadata_addr: Option<address>,
+        fa_total_minted: Option<u64>,
+        fa_lp_amount: Option<u64>,
+        fa_vesting_amount: Option<u64>,
+        fa_dev_wallet_amount: Option<u64>,
+        fa_creator_vesting_amount: Option<u64>,
+
         // NFT holder vesting configuration
         vesting_cliff: u64, // Cliff period in seconds before claims allowed
         vesting_duration: u64, // Total vesting duration in seconds
@@ -255,10 +262,16 @@ module deployment_addr::nft_launchpad {
         sale_deadline: u64,
         sale_completed: bool,
         total_funds_collected: u64,
-        fa_symbol: vector<u8>,
-        fa_name: vector<u8>,
-        fa_icon_uri: vector<u8>,
-        fa_project_uri: vector<u8>,
+        fa_symbol: String,
+        fa_name: String,
+        fa_icon_uri: String,
+        fa_project_uri: String,
+        fa_metadata_addr: Option<address>,
+        fa_total_minted: Option<u64>, // Total FA tokens minted (1B * 10^9)
+        fa_lp_amount: Option<u64>, // Amount allocated to liquidity pool (50%)
+        fa_vesting_amount: Option<u64>, // Amount for NFT holder vesting (10%)
+        fa_dev_wallet_amount: Option<u64>, // Amount sent to dev wallet (10%)
+        fa_creator_vesting_amount: Option<u64>, // Amount for creator vesting (30%)
         vesting_cliff: u64,
         vesting_duration: u64,
         creator_vesting_wallet_addr: address,
@@ -552,6 +565,12 @@ module deployment_addr::nft_launchpad {
                 fa_name,
                 fa_icon_uri,
                 fa_project_uri,
+                fa_metadata_addr: option::none(),
+                fa_total_minted: option::none(),
+                fa_lp_amount: option::none(),
+                fa_vesting_amount: option::none(),
+                fa_dev_wallet_amount: option::none(),
+                fa_creator_vesting_amount: option::none(),
                 vesting_cliff,
                 vesting_duration,
                 creator_vesting_wallet_addr,
@@ -979,6 +998,14 @@ module deployment_addr::nft_launchpad {
         // Deposit any remaining tokens (due to rounding) to collection owner
         primary_fungible_store::deposit(collection_owner_addr, minted_fa);
 
+        // Set FA metadata address
+        collection_config.fa_metadata_addr = option::some(object::object_address(&fa_metadata));
+        collection_config.fa_total_minted = option::some(FA_TOTAL_SUPPLY);
+        collection_config.fa_lp_amount = option::some(lp_amount);
+        collection_config.fa_vesting_amount = option::some(vesting_amount);
+        collection_config.fa_dev_wallet_amount = option::some(dev_wallet_amount);
+        collection_config.fa_creator_vesting_amount = option::some(creator_vesting_amount);
+
         // Emit sale completed event
         event::emit(
             SaleCompletedEvent {
@@ -1323,10 +1350,16 @@ module deployment_addr::nft_launchpad {
             sale_deadline: collection_config.sale_deadline,
             sale_completed: collection_config.sale_completed,
             total_funds_collected: collection_config.total_funds_collected,
-            fa_symbol: collection_config.fa_symbol,
-            fa_name: collection_config.fa_name,
-            fa_icon_uri: collection_config.fa_icon_uri,
-            fa_project_uri: collection_config.fa_project_uri,
+            fa_symbol: utf8(collection_config.fa_symbol),
+            fa_name: utf8(collection_config.fa_name),
+            fa_icon_uri: utf8(collection_config.fa_icon_uri),
+            fa_project_uri: utf8(collection_config.fa_project_uri),
+            fa_metadata_addr: collection_config.fa_metadata_addr,
+            fa_total_minted: collection_config.fa_total_minted,
+            fa_lp_amount: collection_config.fa_lp_amount,
+            fa_vesting_amount: collection_config.fa_vesting_amount,
+            fa_dev_wallet_amount: collection_config.fa_dev_wallet_amount,
+            fa_creator_vesting_amount: collection_config.fa_creator_vesting_amount,
             vesting_cliff: collection_config.vesting_cliff,
             vesting_duration: collection_config.vesting_duration,
             creator_vesting_wallet_addr: collection_config.creator_vesting_wallet_addr,
