@@ -22,15 +22,18 @@ function HomePage() {
 			{/* Main Content - Left Column */}
 			<div className="lg:w-2/3 space-y-8 pb-12">
 				{/* Hero Section */}
-				<section>
-					<h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-500 bg-clip-text text-transparent">
-						Banana Fun
-					</h1>
-					<p className="text-lg text-muted-foreground">
-						An NFT-backed token launchpad platform that combines NFT sales, token generation, and liquidity pool
-						creation into a single streamlined mechanism. Launch NFT collections while simultaneously bootstrapping
-						token liquidity on decentralized exchanges.
-					</p>
+				<section className="flex flex-col md:flex-row items-center gap-6">
+					<img src="/images/logo1.webp" alt="Banana Fun" className="w-1/3 object-contain" />
+					<div>
+						<h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-500 bg-clip-text text-transparent">
+							Banana Fun
+						</h1>
+						<p className="text-lg text-muted-foreground">
+							An NFT-backed token launchpad platform that combines NFT sales, token generation, and liquidity pool
+							creation into a single streamlined mechanism. Launch NFT collections while simultaneously bootstrapping
+							token liquidity on decentralized exchanges.
+						</p>
+					</div>
 				</section>
 
 				{/* How It Works */}
