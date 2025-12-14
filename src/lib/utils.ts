@@ -20,6 +20,20 @@ export function oaptToApt(oapt: string | number): number {
 }
 
 /**
+ * Convert FA token smallest unit to display value (9 decimals)
+ */
+export function faToDisplay(amount: string | number): number {
+	return Number(amount) / 1e9;
+}
+
+/**
+ * Convert display value to FA token smallest unit (9 decimals)
+ */
+export function displayToFa(amount: string | number): number {
+	return Math.round(Number(amount) * 1e9);
+}
+
+/**
  * Normalizes a hex string to ensure it has the correct format (0x + 64 hex characters).
  * Pads with leading zeros if necessary.
  */
