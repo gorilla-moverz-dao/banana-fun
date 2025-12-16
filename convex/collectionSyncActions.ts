@@ -48,6 +48,18 @@ async function syncCollectionData(
 		creator_vesting_wallet_addr: string;
 		creator_vesting_cliff: string;
 		creator_vesting_duration: string;
+		// FA info (populated after sale completion) - Move Option<T> serializes as { vec: T[] }
+		fa_metadata_addr?: { vec: string[] };
+		fa_total_minted?: { vec: string[] };
+		fa_lp_amount?: { vec: string[] };
+		fa_vesting_amount?: { vec: string[] };
+		fa_dev_wallet_amount?: { vec: string[] };
+		fa_creator_vesting_amount?: { vec: string[] };
+	};
+
+	// Helper to extract value from Move Option (serialized as { vec: T[] })
+	const extractOption = <T>(opt: { vec: T[] } | undefined): T | undefined => {
+		return opt?.vec?.[0];
 	};
 
 	// Get creator address from blockchain
@@ -189,6 +201,21 @@ async function syncCollectionData(
 				faName: viewData.fa_name,
 				faIconUri: viewData.fa_icon_uri,
 				faProjectUri: viewData.fa_project_uri,
+				// FA info (populated after sale completion) - extract from Move Option
+				faMetadataAddress: extractOption(viewData.fa_metadata_addr),
+				faTotalMinted: extractOption(viewData.fa_total_minted)
+					? Number(extractOption(viewData.fa_total_minted))
+					: undefined,
+				faLpAmount: extractOption(viewData.fa_lp_amount) ? Number(extractOption(viewData.fa_lp_amount)) : undefined,
+				faVestingAmount: extractOption(viewData.fa_vesting_amount)
+					? Number(extractOption(viewData.fa_vesting_amount))
+					: undefined,
+				faDevWalletAmount: extractOption(viewData.fa_dev_wallet_amount)
+					? Number(extractOption(viewData.fa_dev_wallet_amount))
+					: undefined,
+				faCreatorVestingAmount: extractOption(viewData.fa_creator_vesting_amount)
+					? Number(extractOption(viewData.fa_creator_vesting_amount))
+					: undefined,
 				updatedAt: Date.now(),
 			},
 		});
