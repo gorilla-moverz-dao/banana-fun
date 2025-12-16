@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { AlertTriangle, CheckCircle, Clock } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
 import { Badge } from "@/components/ui/badge";
+import { searchDefaults } from "@/hooks/useCollectionSearch";
 import { api } from "../../convex/_generated/api";
 
 export const Route = createFileRoute("/collections")({
@@ -34,7 +35,7 @@ function CollectionCard({
 	const linkPath = "/collections/$collectionId";
 
 	return (
-		<Link to={linkPath} params={{ collectionId: collection.collection_id }} className="block">
+		<Link to={linkPath} params={{ collectionId: collection.collection_id }} search={searchDefaults} className="block">
 			<GlassCard hoverEffect={true} className="flex flex-col items-center p-4 h-full group gap-2">
 				<div className="w-full flex items-center justify-center mb-3 overflow-hidden rounded-lg border">
 					<img

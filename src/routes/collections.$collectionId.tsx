@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, ExternalLinkIcon } from "lucide-react";
 import { useState } from "react";
 import { AssetDetailDialog } from "@/components/AssetDetailDialog";
 import { CollectionFilters } from "@/components/CollectionFilters";
+import { CreatorVestingCard } from "@/components/CreatorVestingCard";
 import { GlassCard } from "@/components/GlassCard";
 import { MyNFTsCard } from "@/components/MyNFTsCard";
 import { NFTThumbnail } from "@/components/NFTThumbnail";
@@ -33,7 +34,7 @@ export const Route = createFileRoute("/collections/$collectionId")({
 
 function RouteComponent() {
 	const { search, collectionId, updateSearchParams } = useCollectionSearch();
-	const { connected } = useClients();
+	const { connected, address } = useClients();
 	const [showAssetDetailDialog, setShowAssetDetailDialog] = useState(false);
 	const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
 
@@ -87,6 +88,12 @@ function RouteComponent() {
 	// Check if this is a failed launch (deadline passed but not completed)
 	const now = Math.floor(Date.now() / 1000);
 	const isFailedLaunch = collectionData && !collectionData.saleCompleted && now > collectionData.saleDeadline;
+
+	// Check if current user is the creator vesting beneficiary
+	const isCreatorVestingBeneficiary =
+		collectionData?.saleCompleted &&
+		address &&
+		collectionData.creatorVestingWalletAddress?.toLowerCase() === address.toLowerCase();
 
 	if (collectionLoading) {
 		return (
@@ -157,6 +164,9 @@ function RouteComponent() {
 					{hasTeamVesting && <VestingCard type="team" collectionData={collectionData} />}
 				</div>
 			)}
+
+			{/* Creator Vesting Card - Show when user is the dev wallet and sale is completed */}
+			{isCreatorVestingBeneficiary && <CreatorVestingCard collectionData={collectionData} />}
 
 			{/* My NFTs Card - Show refund card for failed launches, claim card for successful */}
 			{connected &&
