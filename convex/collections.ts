@@ -44,6 +44,54 @@ export const getMintingCollections = query({
 });
 
 /**
+ * Get all collections grouped by status (ongoing, successful, failed)
+ */
+export const getCollectionsGrouped = query({
+	args: {},
+	handler: async (ctx) => {
+		const allCollections = await ctx.db.query("collections").collect();
+		const now = Math.floor(Date.now() / 1000);
+
+		const ongoing: Doc<"collections">[] = [];
+		const successful: Doc<"collections">[] = [];
+		const failed: Doc<"collections">[] = [];
+
+		for (const collection of allCollections) {
+			if (collection.saleCompleted) {
+				// Sale completed = successful (max supply reached)
+				successful.push(collection);
+			} else if (now < collection.saleDeadline) {
+				// Deadline not passed yet = ongoing
+				ongoing.push(collection);
+			} else {
+				// Deadline passed but not completed = failed
+				failed.push(collection);
+			}
+		}
+
+		// Sort each group by createdAt descending
+		ongoing.sort((a, b) => b.createdAt - a.createdAt);
+		successful.sort((a, b) => b.createdAt - a.createdAt);
+		failed.sort((a, b) => b.createdAt - a.createdAt);
+
+		const transform = (c: Doc<"collections">) => ({
+			...c,
+			collection_id: c.collectionId,
+			collection_name: c.collectionName,
+			current_supply: c.currentSupply,
+			max_supply: c.maxSupply,
+			sale_deadline: c.saleDeadline,
+		});
+
+		return {
+			ongoing: ongoing.map(transform),
+			successful: successful.map(transform),
+			failed: failed.map(transform),
+		};
+	},
+});
+
+/**
  * Get a single collection by ID with full details
  */
 export const getCollection = query({
