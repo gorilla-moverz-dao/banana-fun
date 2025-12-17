@@ -2,13 +2,15 @@ import type { Doc } from "convex/_generated/dataModel";
 import { ExternalLinkIcon } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
 import { CardContent } from "@/components/ui/card";
+import { MOVE_NETWORK } from "@/constants";
+import { toShortAddress } from "@/lib/utils";
 
 interface TokenInfoCardProps {
 	collectionData: Doc<"collections">;
 }
 
 export function TokenInfoCard({ collectionData }: TokenInfoCardProps) {
-	const { faIconUri, faName, faSymbol, saleDeadline, faProjectUri } = collectionData;
+	const { faIconUri, faName, faSymbol, saleDeadline, faProjectUri, faMetadataAddress } = collectionData;
 
 	if (!faSymbol && !faName && !saleDeadline && !faProjectUri) {
 		return null;
@@ -43,6 +45,20 @@ export function TokenInfoCard({ collectionData }: TokenInfoCardProps) {
 								<div>
 									<div className="text-sm font-semibold text-muted-foreground mb-1">Name</div>
 									<div className="text-base">{faName}</div>
+								</div>
+							)}
+							{faMetadataAddress && (
+								<div>
+									<div className="text-sm font-semibold text-muted-foreground mb-1">Metadata Address</div>
+									<a
+										href={MOVE_NETWORK.explorerUrl.replace("{0}", `object/${faMetadataAddress}`)}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="text-base text-primary hover:underline flex items-center gap-1"
+									>
+										{toShortAddress(faMetadataAddress)}
+										<ExternalLinkIcon className="w-4 h-4" />
+									</a>
 								</div>
 							)}
 						</div>

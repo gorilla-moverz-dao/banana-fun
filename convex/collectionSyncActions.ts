@@ -7,20 +7,6 @@ import { type ActionCtx, internalAction } from "./_generated/server";
 import { createAptosClient } from "./aptos";
 
 /**
- * Helper function to decode hex-encoded strings
- */
-function decodeHexString(hex: string): string {
-	if (!hex.startsWith("0x")) {
-		return hex; // Already decoded or not hex
-	}
-	try {
-		return Buffer.from(hex.slice(2), "hex").toString("utf-8");
-	} catch {
-		return hex; // Return original if decoding fails
-	}
-}
-
-/**
  * Helper function to sync a single collection's data from blockchain
  * Used for both existing and newly discovered collections
  */
@@ -62,13 +48,19 @@ async function syncCollectionData(
 		creator_vesting_wallet_addr: string;
 		creator_vesting_cliff: string;
 		creator_vesting_duration: string;
+		// FA info (populated after sale completion) - Move Option<T> serializes as { vec: T[] }
+		fa_metadata_addr?: { vec: string[] };
+		fa_total_minted?: { vec: string[] };
+		fa_lp_amount?: { vec: string[] };
+		fa_vesting_amount?: { vec: string[] };
+		fa_dev_wallet_amount?: { vec: string[] };
+		fa_creator_vesting_amount?: { vec: string[] };
 	};
 
-	// Decode hex-encoded FA fields
-	const faSymbol = decodeHexString(viewData.fa_symbol);
-	const faName = decodeHexString(viewData.fa_name);
-	const faIconUri = decodeHexString(viewData.fa_icon_uri);
-	const faProjectUri = decodeHexString(viewData.fa_project_uri);
+	// Helper to extract value from Move Option (serialized as { vec: T[] })
+	const extractOption = <T>(opt: { vec: T[] } | undefined): T | undefined => {
+		return opt?.vec?.[0];
+	};
 
 	// Get creator address from blockchain
 	const [creatorAddress] = await launchpadClient.view.get_collection_creator_addr({
@@ -205,10 +197,25 @@ async function syncCollectionData(
 				creatorVestingWalletAddress: viewData.creator_vesting_wallet_addr,
 				creatorVestingCliff: Number(viewData.creator_vesting_cliff),
 				creatorVestingDuration: Number(viewData.creator_vesting_duration),
-				faSymbol: faSymbol,
-				faName: faName,
-				faIconUri: faIconUri,
-				faProjectUri: faProjectUri,
+				faSymbol: viewData.fa_symbol,
+				faName: viewData.fa_name,
+				faIconUri: viewData.fa_icon_uri,
+				faProjectUri: viewData.fa_project_uri,
+				// FA info (populated after sale completion) - extract from Move Option
+				faMetadataAddress: extractOption(viewData.fa_metadata_addr),
+				faTotalMinted: extractOption(viewData.fa_total_minted)
+					? Number(extractOption(viewData.fa_total_minted))
+					: undefined,
+				faLpAmount: extractOption(viewData.fa_lp_amount) ? Number(extractOption(viewData.fa_lp_amount)) : undefined,
+				faVestingAmount: extractOption(viewData.fa_vesting_amount)
+					? Number(extractOption(viewData.fa_vesting_amount))
+					: undefined,
+				faDevWalletAmount: extractOption(viewData.fa_dev_wallet_amount)
+					? Number(extractOption(viewData.fa_dev_wallet_amount))
+					: undefined,
+				faCreatorVestingAmount: extractOption(viewData.fa_creator_vesting_amount)
+					? Number(extractOption(viewData.fa_creator_vesting_amount))
+					: undefined,
 				updatedAt: Date.now(),
 			},
 		});
@@ -240,10 +247,10 @@ async function syncCollectionData(
 				saleCompleted: viewData.sale_completed,
 				totalFundsCollected: Number(viewData.total_funds_collected),
 				devWalletAddress: viewData.dev_wallet_addr,
-				faSymbol: faSymbol,
-				faName: faName,
-				faIconUri: faIconUri,
-				faProjectUri: faProjectUri,
+				faSymbol: viewData.fa_symbol,
+				faName: viewData.fa_name,
+				faIconUri: viewData.fa_icon_uri,
+				faProjectUri: viewData.fa_project_uri,
 				vestingCliff: Number(viewData.vesting_cliff),
 				vestingDuration: Number(viewData.vesting_duration),
 				creatorVestingWalletAddress: viewData.creator_vesting_wallet_addr,

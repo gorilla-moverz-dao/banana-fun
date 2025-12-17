@@ -6,7 +6,7 @@ import { ABI as launchpadABI } from "../src/abi/nft_launchpad";
 import { NETWORKS } from "../src/lib/networks";
 
 const MOVE_NETWORK = NETWORKS.TESTNET;
-const LAUNCHPAD_MODULE_ADDRESS = "0x400b0f8d7c011756381fb473b432d46eed94f7cc47db3ef93b76ccd76a72ed8e";
+const LAUNCHPAD_MODULE_ADDRESS = "0x87af4d7e941f0a3850caa7fa7ff9e3f986dc096f1b899006c071f60851f57263";
 
 export function createAptosClient() {
 	const config = new AptosConfig({

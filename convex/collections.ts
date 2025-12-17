@@ -211,6 +211,13 @@ export const updateCollectionFromBlockchain = internalMutation({
 			faName: v.optional(v.string()),
 			faIconUri: v.optional(v.string()),
 			faProjectUri: v.optional(v.string()),
+			// FA info (populated after sale completion)
+			faMetadataAddress: v.optional(v.string()),
+			faTotalMinted: v.optional(v.number()),
+			faLpAmount: v.optional(v.number()),
+			faVestingAmount: v.optional(v.number()),
+			faDevWalletAmount: v.optional(v.number()),
+			faCreatorVestingAmount: v.optional(v.number()),
 			updatedAt: v.number(),
 		}),
 	},
