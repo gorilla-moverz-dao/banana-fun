@@ -26,23 +26,20 @@ export default function Header() {
 
 	return (
 		<>
-			<header className="p-4 flex items-center bg-gray-800 text-white shadow-lg sticky top-0 z-50">
-				<div className="flex w-full max-w-7xl mx-auto">
+			<header className="p-4 flex items-center bg-gray-800 text-white shadow-lg sticky top-0 z-50 overflow-x-hidden">
+				<div className="flex w-full max-w-7xl mx-auto items-center gap-2 md:gap-4 min-w-0">
 					<button
 						type="button"
 						onClick={() => setIsOpen(true)}
-						className="p-2 hover:bg-gray-700 rounded-lg transition-colors md:hidden"
+						className="p-2 hover:bg-gray-700 rounded-lg transition-colors md:hidden flex-shrink-0"
 						aria-label="Open menu"
 					>
 						<Menu size={24} />
 					</button>
-					<Link to="/" className="text-4xl font-bold">
+					<Link to="/" className="text-xl md:text-4xl font-bold truncate min-w-0 flex-shrink-0">
 						🍌 BANANA FUN 🍌
 					</Link>
-					<div
-						className="flex-1 
-				flex items-center gap-2 justify-center"
-					>
+					<div className="hidden md:flex flex-1 items-center gap-2 justify-center">
 						{links.map((link) => (
 							<Link
 								key={link.to}
@@ -57,7 +54,9 @@ export default function Header() {
 							</Link>
 						))}
 					</div>
-					<WalletSelector />
+					<div className="ml-auto flex-shrink-0">
+						<WalletSelector />
+					</div>
 				</div>
 			</header>
 

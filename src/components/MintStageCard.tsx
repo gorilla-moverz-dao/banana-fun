@@ -97,22 +97,22 @@ export function MintStageCard({ stage, collectionId, mintBalance, onMintSuccess 
 		<GlassCard
 			className={`mb-4 transition-all duration-300 pt-4 pb-2 gap-0 ${isActive ? "relative z-10 bg-gradient-to-br from-yellow-400/80 via-orange-400/60 to-yellow-500/40 border-1 border-orange-400/50 shadow-lg shadow-orange-400/20 ring-1 ring-orange-400/30 [&_*]:drop-shadow-lg [&_*]:text-shadow-sm" : "z-0 bg-muted/20 hover:bg-muted/30"}`}
 		>
-			<CardHeader className="pb-2 flex flex-row items-center justify-between px-6">
+			<CardHeader className="pb-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-6">
 				<CardTitle className="text-base flex-1">{stage.name}</CardTitle>
 				{isActive && walletBalance > 0 && (
-					<div className="flex flex-col gap-1">
-						<span className="block text-right text-base text-foreground mt-1 font-semibold min-w-[120px]">
+					<div className="flex flex-col gap-1 w-full sm:w-auto sm:text-right">
+						<span className="block text-base text-foreground font-semibold">
 							Total: {((oaptToApt(stage.mint_fee_with_reduction) || 0) * (mintAmount ?? 0)).toLocaleString()} MOVE
 						</span>
 						{insufficientBalance && (
-							<Badge variant="destructive" className="text-xs">
+							<Badge variant="destructive" className="text-xs w-fit">
 								Insufficient balance: {nativeBalance?.balance.toLocaleString()} MOVE
 							</Badge>
 						)}
 					</div>
 				)}
 			</CardHeader>
-			<CardContent className="flex flex-col md:flex-row md:items-center gap-2 pb-4 px-6">
+			<CardContent className="flex flex-col md:flex-row md:items-center gap-3 pb-4 px-6">
 				<div className="flex-1 text-xs space-y-1">
 					{!isPast ? (
 						<>
@@ -146,19 +146,22 @@ export function MintStageCard({ stage, collectionId, mintBalance, onMintSuccess 
 						<div className="text-lg font-bold text-muted-foreground">Minting stage is over</div>
 					)}
 				</div>
-				<div className="flex flex-col items-end gap-2">
+				<div className="flex flex-col md:items-end gap-2">
 					{walletBalance > 0 && (
-						<Badge variant="outline" className="text-muted-foreground">
+						<Badge variant="outline" className="text-muted-foreground w-fit md:w-auto">
 							Mint spots: <span className="text-foreground font-bold">{walletBalance}</span>
 						</Badge>
 					)}
 					{walletBalance === 0 && address && (
-						<Badge variant="secondary" className="text-xs text-muted-foreground bg-muted/20 border-muted/50">
+						<Badge
+							variant="secondary"
+							className="text-xs text-muted-foreground bg-muted/20 border-muted/50 w-fit md:w-auto"
+						>
 							No mint spots
 						</Badge>
 					)}
 
-					<div className="flex items-center gap-2">
+					<div className="flex items-center gap-2 w-full md:w-auto">
 						{isActive && (
 							<NumberInput
 								value={mintAmount}
@@ -166,7 +169,7 @@ export function MintStageCard({ stage, collectionId, mintBalance, onMintSuccess 
 								min={1}
 								max={walletBalance}
 								disabled={minting || walletBalance === 0}
-								className="w-32"
+								className="w-32 flex-shrink-0"
 								aria-label="Mint amount"
 							/>
 						)}
@@ -175,7 +178,7 @@ export function MintStageCard({ stage, collectionId, mintBalance, onMintSuccess 
 								disabled={
 									!isActive || minting || walletBalance === 0 || insufficientBalance || !mintAmount || mintAmount < 1
 								}
-								className={!isActive ? "opacity-50 cursor-not-allowed" : ""}
+								className={`flex-1 md:flex-initial ${!isActive ? "opacity-50 cursor-not-allowed" : ""}`}
 								onClick={handleMint}
 							>
 								{minting ? "Minting..." : "Mint"}

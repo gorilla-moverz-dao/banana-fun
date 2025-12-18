@@ -13,7 +13,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 	component: () => (
 		<>
 			<Header />
-			<main className="pt-4 w-full max-w-7xl mx-auto">
+			<main className="pt-4 px-4 md:px-6 lg:px-8 w-full max-w-7xl mx-auto">
 				<Outlet />
 			</main>
 			<TanStackDevtools

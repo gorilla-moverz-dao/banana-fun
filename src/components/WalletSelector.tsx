@@ -65,7 +65,11 @@ export function WalletSelector({ isModalOpen, setModalOpen, ...walletSortingOpti
 
 	if (network && MOVE_NETWORK.chainId !== network.chainId) {
 		return (
-			<Button variant="destructive" className="wallet-button" onClick={handleWrongNetworkClick}>
+			<Button
+				variant="destructive"
+				className="wallet-button text-xs md:text-sm px-2 md:px-4"
+				onClick={handleWrongNetworkClick}
+			>
 				Switch to {MOVE_NETWORK.name}
 			</Button>
 		);
@@ -73,7 +77,7 @@ export function WalletSelector({ isModalOpen, setModalOpen, ...walletSortingOpti
 
 	return (
 		<>
-			<Button variant="default" className="wallet-button" onClick={onWalletButtonClick}>
+			<Button variant="default" className="wallet-button text-xs md:text-sm px-2 md:px-4" onClick={onWalletButtonClick}>
 				{connected ? buttonText : "Connect Wallet"}
 			</Button>
 
