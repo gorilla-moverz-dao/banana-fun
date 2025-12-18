@@ -42,7 +42,7 @@ function RouteComponent() {
 	const stages = collectionData?.mintStages || [];
 	const isFetchedStages = collectionData !== undefined;
 
-	const { data: mintBalance } = useMintBalance(collectionIdTyped, stages);
+	const { data: mintBalance, refetch: refetchMintBalance } = useMintBalance(collectionIdTyped, stages);
 	const { data: nfts, isFetched: isFetchedNFTs } = useCollectionNFTs({
 		onlyOwned: true,
 		collectionIds: [collectionIdTyped],
@@ -154,6 +154,7 @@ function RouteComponent() {
 								collectionId={collectionIdTyped}
 								mintBalance={mintBalance}
 								onMintSuccess={(tokenIds) => {
+									refetchMintBalance();
 									setRecentlyMintedTokenIds(tokenIds);
 									setShowMintDialog(true);
 								}}

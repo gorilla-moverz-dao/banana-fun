@@ -10,7 +10,6 @@ import { WalletSelector } from "@/components/WalletSelector";
 import { useClients } from "@/hooks/useClients";
 import { useCollectionNFTs } from "@/hooks/useCollectionNFTs";
 import { useGetAccountNativeBalance } from "@/hooks/useGetAccountNativeBalance";
-import { useMintBalance } from "@/hooks/useMintBalance";
 import type { MintStageInfo } from "@/hooks/useMintStages";
 import { useTransaction } from "@/hooks/useTransaction";
 import { useUserReductionNFTs } from "@/hooks/useUserReductionNFTs";
@@ -45,7 +44,6 @@ function extractTokenIds(result: { events: Array<MintNftEvent> }): Array<string>
 
 export function MintStageCard({ stage, collectionId, mintBalance, onMintSuccess }: MintStageCardProps) {
 	const { launchpadClient, connected, address, correctNetwork } = useClients();
-	const { refetch: refetchMintBalance } = useMintBalance(collectionId);
 	const { refetch: refetchNFTs } = useCollectionNFTs({
 		onlyOwned: true,
 		collectionIds: [collectionId],
@@ -53,7 +51,7 @@ export function MintStageCard({ stage, collectionId, mintBalance, onMintSuccess 
 	const { data: nativeBalance, isLoading: isLoadingNativeBalance } = useGetAccountNativeBalance();
 	const { data: reductionNFTs = [] } = useUserReductionNFTs(address?.toString() || "");
 
-	const { transactionInProgress: minting, executeTransaction } = useTransaction();
+	const { transactionInProgress: minting, executeTransaction } = useTransaction({ waitForIndexer: true });
 	const [mintAmount, setMintAmount] = useState<number | undefined>(1);
 
 	const now = new Date();
@@ -87,7 +85,6 @@ export function MintStageCard({ stage, collectionId, mintBalance, onMintSuccess 
 				type_arguments: [],
 			}),
 		);
-		await refetchMintBalance();
 		await refetchNFTs();
 		const newTokenIds = extractTokenIds(result as { events: MintNftEvent[] });
 		onMintSuccess(newTokenIds);
