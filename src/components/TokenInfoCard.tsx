@@ -1,6 +1,7 @@
 import type { Doc } from "convex/_generated/dataModel";
-import { ExternalLinkIcon } from "lucide-react";
+import { ArrowRightLeft, ExternalLinkIcon } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
+import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";
 import { MOVE_NETWORK } from "@/constants";
 import { toShortAddress } from "@/lib/utils";
@@ -60,6 +61,18 @@ export function TokenInfoCard({ collectionData }: TokenInfoCardProps) {
 										<ExternalLinkIcon className="w-4 h-4" />
 									</a>
 								</div>
+							)}
+							{faMetadataAddress && collectionData.saleCompleted && (
+								<a
+									href={`https://bardock.yuzu.finance/swap?tokenIn=0xa&tokenOut=${faMetadataAddress}`}
+									target="_blank"
+									rel="noopener noreferrer"
+								>
+									<Button className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600">
+										<ArrowRightLeft className="w-4 h-4 mr-2" />
+										Trade on Yuzu
+									</Button>
+								</a>
 							)}
 						</div>
 					</div>
