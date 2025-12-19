@@ -391,6 +391,9 @@ export const syncCollectionSupplyAction = internalAction({
 						.then((value) => value[0]);
 				}
 
+				// Check if sale just completed (was false, now true)
+				const saleJustCompleted = !collection.saleCompleted && saleCompleted;
+
 				// If anything changed, update the collection in the database
 				if (
 					currentSupply !== collection.currentSupply ||
@@ -413,6 +416,16 @@ export const syncCollectionSupplyAction = internalAction({
 						console.log(
 							`Updated ${collectionId}: ${currentSupply} minted, ${ownerCount} owners, saleCompleted=${saleCompleted}`,
 						);
+					}
+
+					// If sale just completed, trigger a full sync to get vesting data
+					if (saleJustCompleted) {
+						console.log(`Sale just completed for ${collectionId}, syncing full collection data with vesting info`);
+						try {
+							await syncCollectionData(ctx, launchpadClient, aptos, collectionId, collection._id, true);
+						} catch (syncError) {
+							console.error(`Error syncing full data for newly completed sale ${collectionId}:`, syncError);
+						}
 					}
 				}
 			} catch (error) {
