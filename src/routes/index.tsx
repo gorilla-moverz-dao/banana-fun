@@ -23,7 +23,7 @@ function HomePage() {
 			<div className="lg:w-2/3 space-y-8 pb-12">
 				{/* Hero Section */}
 				<section className="flex flex-col md:flex-row items-center gap-6">
-					<img src="/images/logo1.webp" alt="Banana Fun" className="w-1/3 object-contain" />
+					<img src="/images/logo1.webp" alt="Banana Fun" className="w-2/3 md:w-1/3 object-contain" />
 					<div>
 						<h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-500 bg-clip-text text-transparent">
 							Banana Fun
