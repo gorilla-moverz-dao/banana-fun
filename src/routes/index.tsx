@@ -22,19 +22,21 @@ function HomePage() {
 			{/* Main Content - Left Column */}
 			<div className="lg:w-2/3 space-y-8 pb-12">
 				{/* Hero Section */}
-				<section className="flex flex-col md:flex-row items-center gap-6">
-					<img src="/images/logo1.webp" alt="Banana Fun" className="w-2/3 md:w-1/3 object-contain" />
-					<div>
-						<h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-500 bg-clip-text text-transparent">
-							Banana Fun
-						</h1>
-						<p className="text-lg text-muted-foreground">
-							An NFT-backed token launchpad platform that combines NFT sales, token generation, and liquidity pool
-							creation into a single streamlined mechanism. Launch NFT collections while simultaneously bootstrapping
-							token liquidity on decentralized exchanges.
-						</p>
-					</div>
-				</section>
+				<GlassCard>
+					<section className="flex flex-col md:flex-row items-center gap-6">
+						<img src="/images/logo1.webp" alt="Banana Fun" className="w-2/3 md:w-1/3 object-contain" />
+						<div>
+							<h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-500 bg-clip-text text-transparent">
+								Banana Fun
+							</h1>
+							<p className="text-lg text-muted-foreground">
+								An NFT-backed token launchpad platform that combines NFT sales, token generation, and liquidity pool
+								creation into a single streamlined mechanism. Launch NFT collections while simultaneously bootstrapping
+								token liquidity on decentralized exchanges.
+							</p>
+						</div>
+					</section>
+				</GlassCard>
 
 				{/* How It Works */}
 				<section>
@@ -187,10 +189,10 @@ function HomePage() {
 
 			{/* Active Launches - Right Column */}
 			<div className="lg:w-1/3">
-				<div className="lg:sticky lg:top-20">
+				<div>
 					<div className="flex items-center justify-between mb-4">
 						<h2 className="text-xl font-bold">Active Launches</h2>
-						<Link to="/mint" className="text-primary hover:underline flex items-center gap-1 text-sm">
+						<Link to="/mint" className="text-white hover:underline flex items-center gap-1 text-sm">
 							View all <ArrowRight className="w-4 h-4" />
 						</Link>
 					</div>

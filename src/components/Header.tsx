@@ -26,27 +26,32 @@ export default function Header() {
 
 	return (
 		<>
-			<header className="p-4 flex items-center bg-gray-800 text-white shadow-lg sticky top-0 z-50 overflow-x-hidden">
+			<header className="p-4 flex items-center bg-black/20 text-white z-50 overflow-x-hidden">
 				<div className="flex w-full max-w-7xl mx-auto items-center gap-2 md:gap-4 min-w-0">
 					<button
 						type="button"
 						onClick={() => setIsOpen(true)}
-						className="p-2 hover:bg-gray-700 rounded-lg transition-colors md:hidden flex-shrink-0"
+						className="p-2 hover:bg-white/10 rounded-lg transition-colors md:hidden flex-shrink-0"
 						aria-label="Open menu"
 					>
 						<Menu size={24} />
 					</button>
-					<Link to="/" className="text-xl md:text-4xl font-bold truncate min-w-0 flex-shrink-0">
-						🍌 BANANA FUN 🍌
+
+					<Link
+						to="/"
+						className="text-xl md:text-4xl font-bold truncate min-w-0 flex-shrink-0 bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-500 bg-clip-text text-transparent"
+					>
+						BANANA FUN
 					</Link>
 					<div className="hidden md:flex flex-1 items-center gap-2 justify-center">
 						{links.map((link) => (
 							<Link
 								key={link.to}
 								to={link.to}
-								className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-700 transition-colors"
+								className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/10 transition-colors"
 								activeProps={{
-									className: "flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 transition-colors",
+									className:
+										"flex items-center gap-2 bg-yellow-500/80 hover:bg-yellow-500/90 transition-colors shadow-lg",
 								}}
 							>
 								<link.icon size={20} />
@@ -61,16 +66,16 @@ export default function Header() {
 			</header>
 
 			<aside
-				className={`fixed top-0 left-0 h-full w-80 bg-gray-900 text-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${
+				className={`fixed top-0 left-0 h-full w-80 text-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${
 					isOpen ? "translate-x-0" : "-translate-x-full"
 				}`}
 			>
-				<div className="flex items-center justify-between p-4 border-b border-gray-700">
+				<div className="flex items-center justify-between p-4 border-b border-white/20">
 					<h2 className="text-xl font-bold">Navigation</h2>
 					<button
 						type="button"
 						onClick={() => setIsOpen(false)}
-						className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+						className="p-2 hover:bg-white/10 rounded-lg transition-colors"
 						aria-label="Close menu"
 					>
 						<X size={24} />
@@ -83,10 +88,10 @@ export default function Header() {
 							key={link.to}
 							to={link.to}
 							onClick={() => setIsOpen(false)}
-							className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors mb-2"
+							className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/10 transition-colors mb-2"
 							activeProps={{
 								className:
-									"flex items-center gap-3 p-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 transition-colors mb-2",
+									"flex items-center gap-3 p-3 rounded-lg bg-yellow-500/80 hover:bg-yellow-500/90 transition-colors mb-2 shadow-lg",
 							}}
 						>
 							<link.icon size={20} />
