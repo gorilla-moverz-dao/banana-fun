@@ -1,3 +1,4 @@
+import { useAction } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { GlassCard } from "@/components/GlassCard";
@@ -14,6 +15,7 @@ import type { MintStageInfo } from "@/hooks/useMintStages";
 import { useTransaction } from "@/hooks/useTransaction";
 import { useUserReductionNFTs } from "@/hooks/useUserReductionNFTs";
 import { oaptToApt } from "@/lib/utils";
+import { api } from "../../convex/_generated/api";
 
 interface MintNftEvent {
 	type: string;
@@ -50,6 +52,7 @@ export function MintStageCard({ stage, collectionId, mintBalance, onMintSuccess 
 	});
 	const { data: nativeBalance, isLoading: isLoadingNativeBalance } = useGetAccountNativeBalance();
 	const { data: reductionNFTs = [] } = useUserReductionNFTs(address?.toString() || "");
+	const afterMint = useAction(api.collectionSyncActions.afterMint);
 
 	const { transactionInProgress: minting, executeTransaction } = useTransaction({ waitForIndexer: true });
 	const [mintAmount, setMintAmount] = useState<number | undefined>(1);
@@ -86,6 +89,12 @@ export function MintStageCard({ stage, collectionId, mintBalance, onMintSuccess 
 			}),
 		);
 		await refetchNFTs();
+
+		// Sync collection supply data after successful mint
+		afterMint({ collectionId }).catch((error) => {
+			console.error("Failed to sync collection after mint:", error);
+		});
+
 		const newTokenIds = extractTokenIds(result as { events: MintNftEvent[] });
 		onMintSuccess(newTokenIds);
 	}

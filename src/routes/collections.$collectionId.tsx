@@ -116,7 +116,7 @@ function RouteComponent() {
 			{/* Collection Header + Token Info - Two Columns */}
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 				{/* Collection Header */}
-				<GlassCard className="p-3 backdrop-blur-3xl dark:bg-secondary/20">
+				<GlassCard className="p-3">
 					<div className="flex items-start gap-6 sm:flex-row flex-col">
 						<div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden border border-white/20">
 							<img

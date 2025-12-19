@@ -133,7 +133,7 @@ export function CreatorVestingCard({ collectionData }: CreatorVestingCardProps) 
 					<div className="flex items-center gap-2">
 						<Wallet className="w-5 h-5 text-purple-400" />
 						<div>
-							<CardTitle className="text-purple-400">Creator Vesting</CardTitle>
+							<CardTitle className="text-purple-400">Team Vesting</CardTitle>
 							<CardDescription>Your team token allocation</CardDescription>
 						</div>
 					</div>
@@ -179,7 +179,7 @@ export function CreatorVestingCard({ collectionData }: CreatorVestingCardProps) 
 						<div className="flex justify-between text-sm mb-2">
 							<span className="text-muted-foreground">Vesting Progress</span>
 							<span className="flex items-center gap-3">
-								<span>
+								<span className="text-yellow-400">
 									Vested: {vestingProgress.toFixed(1)}%
 									{vestedAmount !== undefined &&
 										` (${faToDisplay(vestedAmount).toLocaleString()} ${collectionData.faSymbol})`}
@@ -194,12 +194,12 @@ export function CreatorVestingCard({ collectionData }: CreatorVestingCardProps) 
 						</div>
 						{/* Combined progress bar */}
 						<div className="relative w-full h-4 bg-muted rounded-full overflow-hidden">
-							{/* Vested portion */}
+							{/* Vested portion (yellow/amber) */}
 							<div
-								className="absolute left-0 top-0 h-full bg-primary/50 rounded-full"
+								className="absolute left-0 top-0 h-full bg-yellow-500/70 rounded-full"
 								style={{ width: `${vestingProgress}%` }}
 							/>
-							{/* Claimed portion (within vested) */}
+							{/* Claimed portion (green, overlaps vested) */}
 							<div
 								className="absolute left-0 top-0 h-full bg-green-500 rounded-full"
 								style={{ width: `${claimedProgress}%` }}

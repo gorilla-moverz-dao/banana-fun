@@ -139,6 +139,21 @@ export const getCollectionsToSync = internalQuery({
 });
 
 /**
+ * Internal query to get a collection by its blockchain address
+ */
+export const getCollectionByAddress = internalQuery({
+	args: {
+		collectionId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db
+			.query("collections")
+			.withIndex("by_collection_id", (q) => q.eq("collectionId", args.collectionId))
+			.first();
+	},
+});
+
+/**
  * Internal mutation to create a new collection from blockchain data
  */
 export const createCollectionFromBlockchain = internalMutation({
@@ -248,6 +263,7 @@ export const updateCollectionSupply = internalMutation({
 		currentSupply: v.number(),
 		ownerCount: v.number(),
 		saleCompleted: v.boolean(),
+		totalFundsCollected: v.optional(v.number()),
 	},
 	handler: async (ctx, args) => {
 		const existing = await ctx.db.get("collections", args.collectionId);
@@ -260,17 +276,29 @@ export const updateCollectionSupply = internalMutation({
 		const hasChanged =
 			existing.currentSupply !== args.currentSupply ||
 			existing.ownerCount !== args.ownerCount ||
-			existing.saleCompleted !== args.saleCompleted;
+			existing.saleCompleted !== args.saleCompleted ||
+			(args.totalFundsCollected !== undefined && existing.totalFundsCollected !== args.totalFundsCollected);
 
 		if (!hasChanged) {
 			return { updated: false };
 		}
 
-		await ctx.db.patch("collections", args.collectionId, {
+		const patch: {
+			currentSupply: number;
+			ownerCount: number;
+			saleCompleted: boolean;
+			totalFundsCollected?: number;
+		} = {
 			currentSupply: args.currentSupply,
 			ownerCount: args.ownerCount,
 			saleCompleted: args.saleCompleted,
-		});
+		};
+
+		if (args.totalFundsCollected !== undefined) {
+			patch.totalFundsCollected = args.totalFundsCollected;
+		}
+
+		await ctx.db.patch("collections", args.collectionId, patch);
 
 		return { updated: true };
 	},

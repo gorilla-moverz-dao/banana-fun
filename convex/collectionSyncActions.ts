@@ -1,9 +1,10 @@
 "use node";
 
+import { v } from "convex/values";
 import { normalizeHexAddress } from "../src/lib/utils";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { type ActionCtx, internalAction } from "./_generated/server";
+import { type ActionCtx, action, internalAction } from "./_generated/server";
 import { createAptosClient } from "./aptos";
 
 /**
@@ -318,7 +319,137 @@ async function syncCollectionData(
 }
 
 /**
- * Sync supply data (currentSupply, ownerCount, saleCompleted) - runs frequently (every 30 seconds)
+ * Helper function to sync supply data for a single collection
+ * Returns the synced data or null if sync failed
+ */
+async function syncCollectionSupply(
+	ctx: ActionCtx,
+	aptos: ReturnType<typeof createAptosClient>["aptos"],
+	launchpadClient: ReturnType<typeof createAptosClient>["launchpadClient"],
+	account: ReturnType<typeof createAptosClient>["account"],
+	collection: {
+		_id: Id<"collections">;
+		collectionId: string;
+		maxSupply: number;
+		currentSupply: number;
+		ownerCount: number | undefined;
+		saleCompleted: boolean;
+		totalFundsCollected: number | undefined;
+	},
+): Promise<{
+	currentSupply: number;
+	ownerCount: number;
+	saleCompleted: boolean;
+	totalFundsCollected: number;
+	saleJustCompleted: boolean;
+} | null> {
+	const collectionId = collection.collectionId as `0x${string}`;
+
+	// Query indexer for current supply and owner count
+	const indexerResult = await aptos.queryIndexer({
+		query: {
+			query: `
+				query GetCollectionSupply($collection_id: String!) {
+					current_collections_v2(where: { collection_id: { _eq: $collection_id } }, limit: 1) {
+						current_supply
+					}
+					current_collection_ownership_v2_view_aggregate(where: { collection_id: { _eq: $collection_id } }) {
+						aggregate {
+							count(distinct: true, columns: owner_address)
+						}
+					}
+				}
+			`,
+			variables: {
+				collection_id: collectionId,
+			},
+		},
+	});
+
+	const collectionData = indexerResult as {
+		current_collections_v2: Array<{ current_supply: string }>;
+		current_collection_ownership_v2_view_aggregate: {
+			aggregate: { count: number } | null;
+		};
+	};
+
+	const currentSupply = Number(collectionData.current_collections_v2[0]?.current_supply ?? collection.currentSupply);
+	const ownerCount =
+		collectionData.current_collection_ownership_v2_view_aggregate.aggregate?.count ?? collection.ownerCount ?? 0;
+
+	// Query blockchain for total_funds_collected
+	const [totalFundsCollectedRaw] = await launchpadClient.view.get_collected_funds({
+		typeArguments: [],
+		functionArguments: [collectionId],
+	});
+	const totalFundsCollected = Number(totalFundsCollectedRaw);
+
+	let saleCompleted = await launchpadClient.view
+		.is_sale_completed({
+			typeArguments: [],
+			functionArguments: [collectionId],
+		})
+		.then((value) => value[0]);
+
+	// If max supply reached but sale not completed, trigger completion
+	if (currentSupply === collection.maxSupply && !saleCompleted) {
+		console.log(`Checking and completing sale for ${collectionId}`);
+		await launchpadClient.entry.check_and_complete_sale({
+			typeArguments: [],
+			functionArguments: [collectionId],
+			account: account,
+		});
+
+		saleCompleted = await launchpadClient.view
+			.is_sale_completed({
+				typeArguments: [],
+				functionArguments: [collectionId],
+			})
+			.then((value) => value[0]);
+	}
+
+	// Check if sale just completed (was false, now true)
+	const saleJustCompleted = !collection.saleCompleted && saleCompleted;
+
+	// Check if anything changed
+	const hasChanged =
+		currentSupply !== collection.currentSupply ||
+		ownerCount !== collection.ownerCount ||
+		saleCompleted !== collection.saleCompleted ||
+		totalFundsCollected !== collection.totalFundsCollected;
+
+	if (!hasChanged) {
+		return null;
+	}
+
+	// Update the database
+	await ctx.runMutation(internal.collections.updateCollectionSupply, {
+		collectionId: collection._id,
+		currentSupply,
+		ownerCount,
+		saleCompleted,
+		totalFundsCollected,
+	});
+
+	console.log(
+		`Synced supply for ${collectionId}: ${currentSupply} minted, ${ownerCount} owners, ${totalFundsCollected} collected, saleCompleted=${saleCompleted}`,
+	);
+
+	// If sale just completed, trigger a full sync to get vesting data
+	if (saleJustCompleted) {
+		console.log(`Sale just completed for ${collectionId}, syncing full collection data with vesting info`);
+		try {
+			await syncCollectionData(ctx, launchpadClient, aptos, collectionId, collection._id, true);
+		} catch (syncError) {
+			console.error(`Error syncing full data for newly completed sale ${collectionId}:`, syncError);
+		}
+	}
+
+	return { currentSupply, ownerCount, saleCompleted, totalFundsCollected, saleJustCompleted };
+}
+
+/**
+ * Sync supply data (currentSupply, ownerCount, saleCompleted, totalFundsCollected) - runs frequently (every 30 seconds)
  * This data changes often during active mints
  */
 export const syncCollectionSupplyAction = internalAction({
@@ -333,101 +464,15 @@ export const syncCollectionSupplyAction = internalAction({
 		// Sync each collection's supply data
 		for (const collection of collections) {
 			try {
-				// Ensure collection ID is properly formatted (with 0x prefix)
-				const collectionId = collection.collectionId as `0x${string}`;
-
-				// Query indexer for current supply and owner count
-				const indexerResult = await aptos.queryIndexer({
-					query: {
-						query: `
-							query GetCollectionSupply($collection_id: String!) {
-								current_collections_v2(where: { collection_id: { _eq: $collection_id } }, limit: 1) {
-									current_supply
-								}
-								current_collection_ownership_v2_view_aggregate(where: { collection_id: { _eq: $collection_id } }) {
-									aggregate {
-										count(distinct: true, columns: owner_address)
-									}
-								}
-							}
-						`,
-						variables: {
-							collection_id: collectionId,
-						},
-					},
+				await syncCollectionSupply(ctx, aptos, launchpadClient, account, {
+					_id: collection._id,
+					collectionId: collection.collectionId,
+					maxSupply: collection.maxSupply,
+					currentSupply: collection.currentSupply,
+					ownerCount: collection.ownerCount,
+					saleCompleted: collection.saleCompleted,
+					totalFundsCollected: collection.totalFundsCollected,
 				});
-
-				const collectionData = indexerResult as {
-					current_collections_v2: Array<{ current_supply: string }>;
-					current_collection_ownership_v2_view_aggregate: {
-						aggregate: { count: number } | null;
-					};
-				};
-
-				const currentSupply = Number(collectionData.current_collections_v2[0].current_supply);
-				const ownerCount = collectionData.current_collection_ownership_v2_view_aggregate.aggregate?.count ?? 0;
-
-				// Query blockchain for sale completion status
-				let saleCompleted = await launchpadClient.view
-					.is_sale_completed({
-						typeArguments: [],
-						functionArguments: [collectionId],
-					})
-					.then((value) => value[0]);
-
-				if (currentSupply === collection.maxSupply && !saleCompleted) {
-					console.log(`Checking and completing sale for ${collectionId}`);
-					await launchpadClient.entry.check_and_complete_sale({
-						typeArguments: [],
-						functionArguments: [collectionId],
-						account: account,
-					});
-
-					saleCompleted = await launchpadClient.view
-						.is_sale_completed({
-							typeArguments: [],
-							functionArguments: [collectionId],
-						})
-						.then((value) => value[0]);
-				}
-
-				// Check if sale just completed (was false, now true)
-				const saleJustCompleted = !collection.saleCompleted && saleCompleted;
-
-				// If anything changed, update the collection in the database
-				if (
-					currentSupply !== collection.currentSupply ||
-					ownerCount !== collection.ownerCount ||
-					saleCompleted !== collection.saleCompleted
-				) {
-					console.log(
-						`Syncing supply for ${collectionId}: ${currentSupply} minted, ${ownerCount} owners, saleCompleted=${saleCompleted}`,
-					);
-
-					// Update supply and sale status (mutation checks if data changed before writing)
-					const result = await ctx.runMutation(internal.collections.updateCollectionSupply, {
-						collectionId: collection._id,
-						currentSupply: Number(currentSupply),
-						ownerCount: Number(ownerCount),
-						saleCompleted: saleCompleted,
-					});
-
-					if (result?.updated) {
-						console.log(
-							`Updated ${collectionId}: ${currentSupply} minted, ${ownerCount} owners, saleCompleted=${saleCompleted}`,
-						);
-					}
-
-					// If sale just completed, trigger a full sync to get vesting data
-					if (saleJustCompleted) {
-						console.log(`Sale just completed for ${collectionId}, syncing full collection data with vesting info`);
-						try {
-							await syncCollectionData(ctx, launchpadClient, aptos, collectionId, collection._id, true);
-						} catch (syncError) {
-							console.error(`Error syncing full data for newly completed sale ${collectionId}:`, syncError);
-						}
-					}
-				}
 			} catch (error) {
 				console.error(`Error syncing supply for ${collection.collectionId}:`, error);
 				// Continue with other collections even if one fails
@@ -498,5 +543,44 @@ export const syncCollectionDataAction = internalAction({
 		}
 
 		return null;
+	},
+});
+
+/**
+ * Public action to sync collection supply after minting
+ * Called from the client after a successful mint to update supply and owner count immediately
+ */
+export const afterMint = action({
+	args: {
+		collectionId: v.string(),
+	},
+	handler: async (ctx, args): Promise<boolean> => {
+		const { aptos, launchpadClient, account } = createAptosClient();
+
+		// Get the collection from database
+		const collection = await ctx.runQuery(internal.collections.getCollectionByAddress, {
+			collectionId: args.collectionId,
+		});
+
+		if (!collection) {
+			console.warn(`Collection ${args.collectionId} not found in database`);
+			return false;
+		}
+
+		try {
+			await syncCollectionSupply(ctx, aptos, launchpadClient, account, {
+				_id: collection._id,
+				collectionId: collection.collectionId,
+				maxSupply: collection.maxSupply,
+				currentSupply: collection.currentSupply,
+				ownerCount: collection.ownerCount,
+				saleCompleted: collection.saleCompleted,
+				totalFundsCollected: collection.totalFundsCollected,
+			});
+			return true;
+		} catch (error) {
+			console.error(`afterMint: Error syncing ${args.collectionId}:`, error);
+			return false;
+		}
 	},
 });
