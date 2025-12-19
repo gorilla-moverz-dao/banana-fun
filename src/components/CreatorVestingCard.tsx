@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { GlassCard } from "@/components/GlassCard";
 import { Button } from "@/components/ui/button";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { MOVE_NETWORK } from "@/constants";
 import { useClients } from "@/hooks/useClients";
 import { useTransaction } from "@/hooks/useTransaction";
@@ -17,7 +16,7 @@ interface CreatorVestingCardProps {
 }
 
 export function CreatorVestingCard({ collectionData }: CreatorVestingCardProps) {
-	const { vestingClient: walletVestingClient, connected, correctNetwork } = useClients();
+	const { vestingClient: walletVestingClient, connected, correctNetwork, address } = useClients();
 	const { transactionInProgress: claiming, executeTransaction } = useTransaction();
 
 	// Fetch creator claimable amount
@@ -26,7 +25,7 @@ export function CreatorVestingCard({ collectionData }: CreatorVestingCardProps) 
 		isLoading: isLoadingClaimable,
 		refetch: refetchClaimable,
 	} = useQuery({
-		queryKey: ["creator-claimable", collectionData.collectionId],
+		queryKey: ["creator-claimable", collectionData.collectionId, address],
 		queryFn: async () => {
 			const result = await vestingClient.view.get_creator_claimable_amount({
 				functionArguments: [collectionData.collectionId as `0x${string}`],
@@ -66,16 +65,44 @@ export function CreatorVestingCard({ collectionData }: CreatorVestingCardProps) 
 		refetchInterval: 30000,
 	});
 
-	const totalPool = collectionData.faCreatorVestingAmount || 0;
+	// Fetch creator vested amount (what the backend calculates as vested)
+	const { data: vestedAmount } = useQuery({
+		queryKey: ["creator-vested", collectionData.collectionId],
+		queryFn: async () => {
+			const result = await vestingClient.view.get_creator_vested_amount({
+				functionArguments: [collectionData.collectionId as `0x${string}`],
+				typeArguments: [],
+			});
+			return Number(result[0]);
+		},
+		enabled: collectionData.saleCompleted,
+		refetchInterval: 30000,
+	});
+
+	// Use vesting config from database (synced from contract)
+	const totalPool = collectionData.creatorVestingTotalPool || collectionData.faCreatorVestingAmount || 0;
 	const hasClaimable = (claimableAmount ?? 0) > 0;
 
-	// Calculate vesting progress
+	// Calculate vesting progress based on actual vested amount from backend
+	// This is more accurate than calculating from time, especially if saleDeadline is incorrect
+	const vestingProgress =
+		totalPool > 0 && vestedAmount !== undefined ? Math.min(100, Math.max(0, (vestedAmount / totalPool) * 100)) : 0;
+
+	// Calculate claimed progress as percentage
+	const claimedProgress =
+		totalPool > 0 && claimedAmount !== undefined ? Math.min(100, Math.max(0, (claimedAmount / totalPool) * 100)) : 0;
+
+	// Use vesting start time from database (synced from contract), fall back to saleDeadline
+	const vestingStart = collectionData.creatorVestingStartTime || collectionData.saleDeadline || 0;
+	const vestingCliff = collectionData.creatorVestingCliff || 0;
+	const vestingDuration = collectionData.creatorVestingDuration || 0;
+	const cliffEnd = vestingStart + vestingCliff;
+
+	// Calculate cliff period status
 	const now = Math.floor(Date.now() / 1000);
-	const vestingStart = collectionData.saleDeadline || 0;
-	const vestingEnd = vestingStart + (collectionData.creatorVestingDuration || 0);
-	const cliffEnd = vestingStart + (collectionData.creatorVestingCliff || 0);
-	const isInCliff = now < cliffEnd;
-	const vestingProgress = Math.min(100, Math.max(0, ((now - vestingStart) / (vestingEnd - vestingStart)) * 100));
+	// If there are claimable tokens, the cliff period has definitely passed
+	// Use claimable amount as the source of truth since it's fetched from the backend
+	const isInCliff = hasClaimable ? false : now < cliffEnd;
 
 	async function handleClaim() {
 		if (!walletVestingClient || !hasClaimable) {
@@ -151,9 +178,33 @@ export function CreatorVestingCard({ collectionData }: CreatorVestingCardProps) 
 					<div>
 						<div className="flex justify-between text-sm mb-2">
 							<span className="text-muted-foreground">Vesting Progress</span>
-							<span>{vestingProgress.toFixed(1)}%</span>
+							<span className="flex items-center gap-3">
+								<span>
+									Vested: {vestingProgress.toFixed(1)}%
+									{vestedAmount !== undefined &&
+										` (${faToDisplay(vestedAmount).toLocaleString()} ${collectionData.faSymbol})`}
+								</span>
+								<span className="text-green-400">
+									Claimed: {claimedProgress.toFixed(1)}%
+									{isLoadingClaimed
+										? "..."
+										: ` (${faToDisplay(claimedAmount || 0).toLocaleString()} ${collectionData.faSymbol})`}
+								</span>
+							</span>
 						</div>
-						<Progress value={vestingProgress} className="h-2" />
+						{/* Combined progress bar */}
+						<div className="relative w-full h-4 bg-muted rounded-full overflow-hidden">
+							{/* Vested portion */}
+							<div
+								className="absolute left-0 top-0 h-full bg-primary/50 rounded-full"
+								style={{ width: `${vestingProgress}%` }}
+							/>
+							{/* Claimed portion (within vested) */}
+							<div
+								className="absolute left-0 top-0 h-full bg-green-500 rounded-full"
+								style={{ width: `${claimedProgress}%` }}
+							/>
+						</div>
 						{isInCliff && (
 							<div className="text-xs text-amber-400 mt-1">
 								In cliff period - claiming starts {new Date(cliffEnd * 1000).toLocaleDateString()}
@@ -169,15 +220,15 @@ export function CreatorVestingCard({ collectionData }: CreatorVestingCardProps) 
 						</div>
 						<div>
 							<div className="text-sm font-semibold text-muted-foreground mb-1">Full Vesting</div>
-							<div className="text-sm">{new Date(vestingEnd * 1000).toLocaleDateString()}</div>
+							<div className="text-sm">{new Date((vestingStart + vestingDuration) * 1000).toLocaleDateString()}</div>
 						</div>
 						<div>
 							<div className="text-sm font-semibold text-muted-foreground mb-1">Cliff Period</div>
-							<div className="text-sm">{formatDuration(collectionData.creatorVestingCliff || 0)}</div>
+							<div className="text-sm">{formatDuration(vestingCliff)}</div>
 						</div>
 						<div>
 							<div className="text-sm font-semibold text-muted-foreground mb-1">Duration</div>
-							<div className="text-sm">{formatDuration(collectionData.creatorVestingDuration || 0)}</div>
+							<div className="text-sm">{formatDuration(vestingDuration)}</div>
 						</div>
 					</div>
 
@@ -192,8 +243,7 @@ export function CreatorVestingCard({ collectionData }: CreatorVestingCardProps) 
 						<div>
 							<div className="text-sm font-semibold text-muted-foreground mb-1">Claimed</div>
 							<div className="text-sm font-medium text-green-400">
-								{isLoadingClaimed ? "..." : faToDisplay(claimedAmount || 0).toLocaleString()}{" "}
-								{collectionData.faSymbol}
+								{isLoadingClaimed ? "..." : faToDisplay(claimedAmount || 0).toLocaleString()} {collectionData.faSymbol}
 							</div>
 						</div>
 						<div>

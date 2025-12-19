@@ -38,14 +38,21 @@ export default defineSchema({
 		faDevWalletAmount: v.optional(v.number()), // Amount sent to dev wallet (10%)
 		faCreatorVestingAmount: v.optional(v.number()), // Amount for creator vesting (30%)
 
-		// NFT Holder Vesting configuration
+		// NFT Holder Vesting configuration (from launchpad)
 		vestingCliff: v.number(), // Cliff period in seconds
 		vestingDuration: v.number(), // Total vesting duration in seconds
+		// NFT Holder Vesting actual values (from vesting contract, set after sale completion)
+		vestingStartTime: v.optional(v.number()), // Actual vesting start time from contract
+		vestingTotalPool: v.optional(v.number()), // Actual total pool from contract
+		vestingAmountPerNft: v.optional(v.number()), // Amount per NFT from contract
 
-		// Creator Vesting configuration
+		// Creator Vesting configuration (from launchpad)
 		creatorVestingWalletAddress: v.string(),
 		creatorVestingCliff: v.number(), // Cliff period in seconds
 		creatorVestingDuration: v.number(), // Total vesting duration in seconds
+		// Creator Vesting actual values (from vesting contract, set after sale completion)
+		creatorVestingStartTime: v.optional(v.number()), // Actual vesting start time from contract
+		creatorVestingTotalPool: v.optional(v.number()), // Actual total pool from contract
 
 		// Timestamps
 		createdAt: v.number(), // When collection was created

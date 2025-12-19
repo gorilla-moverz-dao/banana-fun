@@ -183,6 +183,44 @@ async function syncCollectionData(
 		console.warn(`Could not fetch supply data from indexer for ${collectionId}:`, error);
 	}
 
+	// Fetch vesting config from vesting contract if sale is completed
+	let vestingStartTime: number | undefined;
+	let vestingTotalPool: number | undefined;
+	let vestingAmountPerNft: number | undefined;
+	let creatorVestingStartTime: number | undefined;
+	let creatorVestingTotalPool: number | undefined;
+
+	if (viewData.sale_completed) {
+		const { vestingClient } = createAptosClient();
+
+		try {
+			// Fetch NFT holder vesting config
+			const holderVestingConfig = await vestingClient.view.get_vesting_config({
+				functionArguments: [collectionId],
+				typeArguments: [],
+			});
+			// Returns: (total_pool, amount_per_nft, cliff, duration, start_time)
+			vestingTotalPool = Number(holderVestingConfig[0]);
+			vestingAmountPerNft = Number(holderVestingConfig[1]);
+			vestingStartTime = Number(holderVestingConfig[4]);
+		} catch (error) {
+			console.warn(`Could not fetch holder vesting config for ${collectionId}:`, error);
+		}
+
+		try {
+			// Fetch creator vesting config
+			const creatorVestingConfig = await vestingClient.view.get_creator_vesting_config({
+				functionArguments: [collectionId],
+				typeArguments: [],
+			});
+			// Returns: (total_pool, beneficiary, cliff, duration, start_time, claimed_amount)
+			creatorVestingTotalPool = Number(creatorVestingConfig[0]);
+			creatorVestingStartTime = Number(creatorVestingConfig[4]);
+		} catch (error) {
+			console.warn(`Could not fetch creator vesting config for ${collectionId}:`, error);
+		}
+	}
+
 	if (existingCollectionId) {
 		// Update existing collection
 		await ctx.runMutation(internal.collections.updateCollectionFromBlockchain, {
@@ -216,6 +254,12 @@ async function syncCollectionData(
 				faCreatorVestingAmount: extractOption(viewData.fa_creator_vesting_amount)
 					? Number(extractOption(viewData.fa_creator_vesting_amount))
 					: undefined,
+				// Actual vesting info from vesting contract (after sale completion)
+				vestingStartTime,
+				vestingTotalPool,
+				vestingAmountPerNft,
+				creatorVestingStartTime,
+				creatorVestingTotalPool,
 				updatedAt: Date.now(),
 			},
 		});

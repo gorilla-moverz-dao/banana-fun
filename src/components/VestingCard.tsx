@@ -17,6 +17,15 @@ export function VestingCard({ type, collectionData }: VestingCardProps) {
 	const description = isHolder ? "Token vesting schedule for NFT holders" : "Token vesting schedule for team";
 	const beneficiaryAddress = collectionData.creatorVestingWalletAddress;
 
+	// Get vesting config from database (synced from contract)
+	const vestingStartTime = isHolder ? collectionData.vestingStartTime : collectionData.creatorVestingStartTime;
+	const vestingTotalPool = isHolder ? collectionData.vestingTotalPool : collectionData.creatorVestingTotalPool;
+	const vestingCliff = isHolder ? collectionData.vestingCliff : collectionData.creatorVestingCliff;
+	const vestingDuration = isHolder ? collectionData.vestingDuration : collectionData.creatorVestingDuration;
+
+	// Fall back to saleDeadline if vestingStartTime is not yet synced
+	const startTime = vestingStartTime || collectionData.saleDeadline || 0;
+
 	return (
 		<GlassCard className="w-full">
 			<CardHeader>
@@ -42,26 +51,24 @@ export function VestingCard({ type, collectionData }: VestingCardProps) {
 					)}
 
 					{/* When sale is completed, show full vesting schedule */}
-					{collectionData.saleCompleted && collectionData.saleDeadline && (
+					{collectionData.saleCompleted && (
 						<>
 							<div>
 								<div className="text-sm font-semibold text-muted-foreground mb-1">Vesting Start</div>
-								<div className="text-base">{new Date(collectionData.saleDeadline * 1000).toLocaleString()}</div>
+								<div className="text-base">{new Date(startTime * 1000).toLocaleString()}</div>
 							</div>
 							<div>
 								<div className="text-sm font-semibold text-muted-foreground mb-1">Cliff Period</div>
-								<div className="text-base">{formatDuration(collectionData.vestingCliff)}</div>
+								<div className="text-base">{formatDuration(vestingCliff || 0)}</div>
 								<div className="text-sm text-muted-foreground mt-1">
-									Cliff ends:{" "}
-									{new Date((collectionData.saleDeadline + collectionData.vestingCliff) * 1000).toLocaleString()}
+									Cliff ends: {new Date((startTime + (vestingCliff || 0)) * 1000).toLocaleString()}
 								</div>
 							</div>
 							<div>
 								<div className="text-sm font-semibold text-muted-foreground mb-1">Vesting Duration</div>
-								<div className="text-base">{formatDuration(collectionData.vestingDuration)}</div>
+								<div className="text-base">{formatDuration(vestingDuration || 0)}</div>
 								<div className="text-sm text-muted-foreground mt-1">
-									Full vesting ends:{" "}
-									{new Date((collectionData.saleDeadline + collectionData.vestingDuration) * 1000).toLocaleString()}
+									Full vesting ends: {new Date((startTime + (vestingDuration || 0)) * 1000).toLocaleString()}
 								</div>
 							</div>
 						</>
@@ -73,7 +80,7 @@ export function VestingCard({ type, collectionData }: VestingCardProps) {
 							<div>
 								<div className="text-sm font-semibold text-muted-foreground mb-1">Cliff Period</div>
 								<div className="text-base flex items-center gap-2">
-									{formatDuration(collectionData.vestingCliff)}
+									{formatDuration(vestingCliff || 0)}
 									<Tooltip>
 										<TooltipTrigger asChild>
 											<InfoIcon className="w-4 h-4 text-muted-foreground cursor-help" />
@@ -87,7 +94,7 @@ export function VestingCard({ type, collectionData }: VestingCardProps) {
 							<div>
 								<div className="text-sm font-semibold text-muted-foreground mb-1">Vesting Duration</div>
 								<div className="text-base flex items-center gap-2">
-									{formatDuration(collectionData.vestingDuration)}
+									{formatDuration(vestingDuration || 0)}
 									<Tooltip>
 										<TooltipTrigger asChild>
 											<InfoIcon className="w-4 h-4 text-muted-foreground cursor-help" />
@@ -102,11 +109,16 @@ export function VestingCard({ type, collectionData }: VestingCardProps) {
 					)}
 
 					{/* Vesting Amount */}
-					{collectionData.faVestingAmount && (
+					{(vestingTotalPool ||
+						(isHolder ? collectionData.faVestingAmount : collectionData.faCreatorVestingAmount)) && (
 						<div>
 							<div className="text-sm font-semibold text-muted-foreground mb-1">Total Vesting Pool</div>
 							<div className="text-base">
-								{oaptToApt(collectionData.faVestingAmount || 0).toLocaleString()} {collectionData.faSymbol}
+								{oaptToApt(
+									vestingTotalPool ||
+										(isHolder ? collectionData.faVestingAmount || 0 : collectionData.faCreatorVestingAmount || 0),
+								).toLocaleString()}{" "}
+								{collectionData.faSymbol}
 							</div>
 						</div>
 					)}

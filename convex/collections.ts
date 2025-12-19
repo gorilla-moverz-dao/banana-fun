@@ -218,6 +218,12 @@ export const updateCollectionFromBlockchain = internalMutation({
 			faVestingAmount: v.optional(v.number()),
 			faDevWalletAmount: v.optional(v.number()),
 			faCreatorVestingAmount: v.optional(v.number()),
+			// Actual vesting info from vesting contract (after sale completion)
+			vestingStartTime: v.optional(v.number()),
+			vestingTotalPool: v.optional(v.number()),
+			vestingAmountPerNft: v.optional(v.number()),
+			creatorVestingStartTime: v.optional(v.number()),
+			creatorVestingTotalPool: v.optional(v.number()),
 			updatedAt: v.number(),
 		}),
 	},

@@ -3,6 +3,7 @@
 import { Account, Aptos, AptosConfig, Ed25519PrivateKey, Network } from "@aptos-labs/ts-sdk";
 import { createSurfClient } from "@thalalabs/surf";
 import { ABI as launchpadABI } from "../src/abi/nft_launchpad";
+import { ABI as vestingABI } from "../src/abi/vesting";
 import { NETWORKS } from "../src/lib/networks";
 
 const MOVE_NETWORK = NETWORKS.TESTNET;
@@ -18,6 +19,7 @@ export function createAptosClient() {
 
 	const aptos = new Aptos(config);
 	const launchpadClient = createSurfClient(aptos).useABI(launchpadABI, LAUNCHPAD_MODULE_ADDRESS);
+	const vestingClient = createSurfClient(aptos).useABI(vestingABI, LAUNCHPAD_MODULE_ADDRESS);
 
 	const privateKeyHex = process.env.APTOS_PRIVATE_KEY;
 	if (!privateKeyHex) {
@@ -27,5 +29,5 @@ export function createAptosClient() {
 	const privateKey = new Ed25519PrivateKey(privateKeyHex);
 	const account = Account.fromPrivateKey({ privateKey });
 
-	return { aptos, launchpadClient, account };
+	return { aptos, launchpadClient, vestingClient, account };
 }
