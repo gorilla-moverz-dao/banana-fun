@@ -206,12 +206,12 @@ function RouteComponent() {
 				</GlassCard>
 
 				{/* NFTs Grid/List */}
-				{nftsLoading ? (
-					<div className="flex items-center justify-center min-h-[400px]">
-						<div className="text-lg">Loading NFTs...</div>
-					</div>
-				) : nfts.length === 0 ? (
-					<GlassCard>
+				<GlassCard className="px-6">
+					{nftsLoading ? (
+						<div className="flex items-center justify-center min-h-[400px]">
+							<div className="text-lg">Loading NFTs...</div>
+						</div>
+					) : nfts.length === 0 ? (
 						<CardContent className="flex items-center justify-center min-h-[200px]">
 							<div className="text-center space-y-2">
 								<div className="text-lg font-medium">No NFTs found</div>
@@ -220,86 +220,86 @@ function RouteComponent() {
 								</div>
 							</div>
 						</CardContent>
-					</GlassCard>
-				) : (
-					<>
-						{search.view === "grid" ? (
-							<div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-								{nfts.map((nft) => (
-									<NFTThumbnail key={nft.token_data_id} nft={nft} collectionData={collectionData} />
-								))}
-							</div>
-						) : (
-							<div className="space-y-2">
-								{nfts.map((nft) => (
-									<GlassCard
-										hoverEffect={true}
-										key={nft.token_data_id}
-										className="p-2 cursor-pointer hover:bg-white/10 transition-all duration-200 backdrop-blur-sm bg-white/5 border border-white/20 group"
-									>
-										<div className="flex items-center gap-4">
-											<div className="w-20 h-20 rounded-lg overflow-hidden border border-white/20 transition-transform duration-300 group-hover:scale-120">
-												<img
-													src={nft.current_token_data?.token_uri}
-													alt={nft.current_token_data?.token_name || "NFT"}
-													className="w-full h-full object-cover"
-													onError={(e) => {
-														e.currentTarget.src = collectionData.uri;
-													}}
-												/>
-											</div>
-											<div className="flex-3">
-												<h4 className="font-medium">
-													{nft.current_token_data?.token_name || `Token ${nft.token_data_id}`}
-												</h4>
-												<p className="text-sm text-muted-foreground">{nft.current_token_data?.description}</p>
-												<p className="text-xs text-muted-foreground">Token ID: {toShortAddress(nft.token_data_id)}</p>
-											</div>
-											<div className="flex-2 text-right">
-												{Object.entries(nft.current_token_data?.token_properties || {}).map(([traitType, value]) => (
-													<Badge key={traitType} variant="outline">
-														{traitType}: {value as string}
-													</Badge>
-												))}
-											</div>
-										</div>
-									</GlassCard>
-								))}
-							</div>
-						)}
-
-						{/* Pagination */}
-						{totalPages > 1 && (
-							<div className="flex items-center justify-center gap-2">
-								<Button
-									variant="outline"
-									size="sm"
-									disabled={search.page <= 1}
-									onClick={() => {
-										updateSearchParams({ page: search.page - 1 });
-									}}
-								>
-									<ChevronLeft className="w-4 h-4" />
-									Previous
-								</Button>
-								<div className="text-sm">
-									Page {search.page} of {totalPages}
+					) : (
+						<>
+							{search.view === "grid" ? (
+								<div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+									{nfts.map((nft) => (
+										<NFTThumbnail key={nft.token_data_id} nft={nft} collectionData={collectionData} />
+									))}
 								</div>
-								<Button
-									variant="outline"
-									size="sm"
-									disabled={search.page >= totalPages}
-									onClick={() => {
-										updateSearchParams({ page: search.page + 1 });
-									}}
-								>
-									Next
-									<ChevronRight className="w-4 h-4" />
-								</Button>
-							</div>
-						)}
-					</>
-				)}
+							) : (
+								<div className="space-y-2">
+									{nfts.map((nft) => (
+										<GlassCard
+											hoverEffect={true}
+											key={nft.token_data_id}
+											className="p-2 cursor-pointer hover:bg-white/10 transition-all duration-200 backdrop-blur-sm bg-white/5 border border-white/20 group"
+										>
+											<div className="flex items-center gap-4">
+												<div className="w-20 h-20 rounded-lg overflow-hidden border border-white/20 transition-transform duration-300 group-hover:scale-120">
+													<img
+														src={nft.current_token_data?.token_uri}
+														alt={nft.current_token_data?.token_name || "NFT"}
+														className="w-full h-full object-cover"
+														onError={(e) => {
+															e.currentTarget.src = collectionData.uri;
+														}}
+													/>
+												</div>
+												<div className="flex-3">
+													<h4 className="font-medium">
+														{nft.current_token_data?.token_name || `Token ${nft.token_data_id}`}
+													</h4>
+													<p className="text-sm text-muted-foreground">{nft.current_token_data?.description}</p>
+													<p className="text-xs text-muted-foreground">Token ID: {toShortAddress(nft.token_data_id)}</p>
+												</div>
+												<div className="flex-2 text-right">
+													{Object.entries(nft.current_token_data?.token_properties || {}).map(([traitType, value]) => (
+														<Badge key={traitType} variant="outline">
+															{traitType}: {value as string}
+														</Badge>
+													))}
+												</div>
+											</div>
+										</GlassCard>
+									))}
+								</div>
+							)}
+
+							{/* Pagination */}
+							{totalPages > 1 && (
+								<div className="flex items-center justify-center gap-2">
+									<Button
+										variant="outline"
+										size="sm"
+										disabled={search.page <= 1}
+										onClick={() => {
+											updateSearchParams({ page: search.page - 1 });
+										}}
+									>
+										<ChevronLeft className="w-4 h-4" />
+										Previous
+									</Button>
+									<div className="text-sm">
+										Page {search.page} of {totalPages}
+									</div>
+									<Button
+										variant="outline"
+										size="sm"
+										disabled={search.page >= totalPages}
+										onClick={() => {
+											updateSearchParams({ page: search.page + 1 });
+										}}
+									>
+										Next
+										<ChevronRight className="w-4 h-4" />
+									</Button>
+								</div>
+							)}
+						</>
+					)}
+				</GlassCard>
 			</div>
 
 			{/* Asset Detail Dialog */}
