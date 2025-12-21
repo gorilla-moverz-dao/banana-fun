@@ -1,10 +1,20 @@
 import { Link } from "@tanstack/react-router";
 import { History, Home, Menu, Rocket, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { WalletSelector } from "@/components/WalletSelector";
 
 export default function Header() {
 	const [isOpen, setIsOpen] = useState(false);
+	const [isScrolled, setIsScrolled] = useState(false);
+
+	useEffect(() => {
+		const handleScroll = () => {
+			setIsScrolled(window.scrollY > 10);
+		};
+
+		window.addEventListener("scroll", handleScroll, { passive: true });
+		return () => window.removeEventListener("scroll", handleScroll);
+	}, []);
 
 	const links = [
 		{
@@ -26,7 +36,11 @@ export default function Header() {
 
 	return (
 		<>
-			<header className="p-4 flex items-center bg-black/20 text-white z-50 overflow-x-hidden">
+			<header
+				className={`sticky top-0 p-4 flex items-center text-white z-50 overflow-x-hidden transition-all duration-300 ${
+					isScrolled ? "bg-black/30 backdrop-blur-xl shadow-lg" : "bg-black/30"
+				}`}
+			>
 				<div className="flex w-full max-w-7xl mx-auto items-center gap-2 md:gap-4 min-w-0">
 					<button
 						type="button"
