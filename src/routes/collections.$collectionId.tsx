@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { ChevronLeft, ChevronRight, ExternalLinkIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Coins, ExternalLinkIcon, Images } from "lucide-react";
 import { useState } from "react";
 import { AssetDetailDialog } from "@/components/AssetDetailDialog";
 import { CollectionFilters } from "@/components/CollectionFilters";
@@ -13,6 +13,7 @@ import { TokenInfoCard } from "@/components/TokenInfoCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VestingCard } from "@/components/VestingCard";
 import { MOVE_NETWORK } from "@/constants";
 import type { NFT } from "@/fragments/nft";
@@ -157,150 +158,170 @@ function RouteComponent() {
 				<TokenInfoCard collectionData={collectionData} />
 			</div>
 
-			{/* Vesting Cards - Side by side on larger screens */}
-			{(hasHolderVesting || hasTeamVesting) && (
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-					{hasHolderVesting && <VestingCard type="holder" collectionData={collectionData} />}
-					{hasTeamVesting && <VestingCard type="team" collectionData={collectionData} />}
-				</div>
-			)}
+			{/* Tabs */}
+			<Tabs defaultValue="token" className="w-full">
+				<TabsList className="grid w-full grid-cols-2 bg-black/20 backdrop-blur-sm">
+					<TabsTrigger value="token" className="flex items-center gap-2 data-[state=active]:bg-yellow-500/80">
+						<Coins className="w-4 h-4" />
+						Vesting
+					</TabsTrigger>
+					<TabsTrigger value="collection" className="flex items-center gap-2 data-[state=active]:bg-yellow-500/80">
+						<Images className="w-4 h-4" />
+						Collection
+					</TabsTrigger>
+				</TabsList>
 
-			{/* Creator Vesting Card - Show when user is the dev wallet and sale is completed */}
-			{isCreatorVestingBeneficiary && <CreatorVestingCard collectionData={collectionData} />}
-
-			{/* My NFTs Card - Show refund card for failed launches, claim card for successful */}
-			{connected &&
-				isFetchedMyNFTs &&
-				myNfts.length > 0 &&
-				(isFailedLaunch ? (
-					<RefundNFTsCard
-						nfts={myNfts}
-						collectionData={collectionData}
-						onRefundSuccess={() => {
-							// Refetch NFTs after refund
-							refetchMyNFTs();
-						}}
-					/>
-				) : (
-					<MyNFTsCard
-						nfts={myNfts}
-						collectionData={collectionData}
-						onNFTClick={handleNFTClick}
-						gridCols="grid-cols-2 md:grid-cols-4 lg:grid-cols-6"
-					/>
-				))}
-
-			{/* Collection Browser Section */}
-			<div className="space-y-4">
-				<GlassCard className="p-3 flex flex-col gap-2 backdrop-blur-3xl dark:bg-secondary/20">
-					{/* Filters */}
-					<CollectionFilters />
-
-					{/* Results Count */}
-					<div className="flex items-center justify-between">
-						<div className="text-sm text-muted-foreground">
-							Showing {startIndex + 1}-{startIndex + nfts.length} of {collectionData.currentSupply} NFTs
-							{search.search && ` matching "${search.search}"`}
+				{/* Vesting Tab */}
+				<TabsContent value="token" className="space-y-6 mt-6">
+					{/* Vesting Cards - Side by side on larger screens */}
+					{(hasHolderVesting || hasTeamVesting) && (
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+							{hasHolderVesting && <VestingCard type="holder" collectionData={collectionData} />}
+							{hasTeamVesting && <VestingCard type="team" collectionData={collectionData} />}
 						</div>
-					</div>
-				</GlassCard>
-
-				{/* NFTs Grid/List */}
-				<GlassCard className="px-6">
-					{nftsLoading ? (
-						<div className="flex items-center justify-center min-h-[400px]">
-							<div className="text-lg">Loading NFTs...</div>
-						</div>
-					) : nfts.length === 0 ? (
-						<CardContent className="flex items-center justify-center min-h-[200px]">
-							<div className="text-center space-y-2">
-								<div className="text-lg font-medium">No NFTs found</div>
-								<div className="text-sm text-muted-foreground">
-									{search.search ? `No NFTs match "${search.search}"` : "This collection has no NFTs yet"}
-								</div>
-							</div>
-						</CardContent>
-					) : (
-						<>
-							{search.view === "grid" ? (
-								<div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-									{nfts.map((nft) => (
-										<NFTThumbnail key={nft.token_data_id} nft={nft} collectionData={collectionData} />
-									))}
-								</div>
-							) : (
-								<div className="space-y-2">
-									{nfts.map((nft) => (
-										<GlassCard
-											hoverEffect={true}
-											key={nft.token_data_id}
-											className="p-2 cursor-pointer hover:bg-white/10 transition-all duration-200 backdrop-blur-sm bg-white/5 border border-white/20 group"
-										>
-											<div className="flex items-center gap-4">
-												<div className="w-20 h-20 rounded-lg overflow-hidden border border-white/20 transition-transform duration-300 group-hover:scale-120">
-													<img
-														src={nft.current_token_data?.token_uri}
-														alt={nft.current_token_data?.token_name || "NFT"}
-														className="w-full h-full object-cover"
-														onError={(e) => {
-															e.currentTarget.src = collectionData.uri;
-														}}
-													/>
-												</div>
-												<div className="flex-3">
-													<h4 className="font-medium">
-														{nft.current_token_data?.token_name || `Token ${nft.token_data_id}`}
-													</h4>
-													<p className="text-sm text-muted-foreground">{nft.current_token_data?.description}</p>
-													<p className="text-xs text-muted-foreground">Token ID: {toShortAddress(nft.token_data_id)}</p>
-												</div>
-												<div className="flex-2 text-right">
-													{Object.entries(nft.current_token_data?.token_properties || {}).map(([traitType, value]) => (
-														<Badge key={traitType} variant="outline">
-															{traitType}: {value as string}
-														</Badge>
-													))}
-												</div>
-											</div>
-										</GlassCard>
-									))}
-								</div>
-							)}
-
-							{/* Pagination */}
-							{totalPages > 1 && (
-								<div className="flex items-center justify-center gap-2">
-									<Button
-										variant="outline"
-										size="sm"
-										disabled={search.page <= 1}
-										onClick={() => {
-											updateSearchParams({ page: search.page - 1 });
-										}}
-									>
-										<ChevronLeft className="w-4 h-4" />
-										Previous
-									</Button>
-									<div className="text-sm">
-										Page {search.page} of {totalPages}
-									</div>
-									<Button
-										variant="outline"
-										size="sm"
-										disabled={search.page >= totalPages}
-										onClick={() => {
-											updateSearchParams({ page: search.page + 1 });
-										}}
-									>
-										Next
-										<ChevronRight className="w-4 h-4" />
-									</Button>
-								</div>
-							)}
-						</>
 					)}
-				</GlassCard>
-			</div>
+
+					{/* Creator Vesting Card - Show when user is the dev wallet and sale is completed */}
+					{isCreatorVestingBeneficiary && <CreatorVestingCard collectionData={collectionData} />}
+
+					{/* My NFTs Card - Show refund card for failed launches, claim card for successful */}
+					{connected &&
+						isFetchedMyNFTs &&
+						myNfts.length > 0 &&
+						(isFailedLaunch ? (
+							<RefundNFTsCard
+								nfts={myNfts}
+								collectionData={collectionData}
+								onRefundSuccess={() => {
+									refetchMyNFTs();
+								}}
+							/>
+						) : (
+							<MyNFTsCard
+								nfts={myNfts}
+								collectionData={collectionData}
+								onNFTClick={handleNFTClick}
+								gridCols="grid-cols-2 md:grid-cols-4 lg:grid-cols-6"
+							/>
+						))}
+				</TabsContent>
+
+				{/* Collection Browser Tab */}
+				<TabsContent value="collection" className="space-y-4 mt-6">
+					<GlassCard className="p-3 flex flex-col gap-2 backdrop-blur-3xl dark:bg-secondary/20">
+						{/* Filters */}
+						<CollectionFilters />
+
+						{/* Results Count */}
+						<div className="flex items-center justify-between">
+							<div className="text-sm text-muted-foreground">
+								Showing {startIndex + 1}-{startIndex + nfts.length} of {collectionData.currentSupply} NFTs
+								{search.search && ` matching "${search.search}"`}
+							</div>
+						</div>
+					</GlassCard>
+
+					{/* NFTs Grid/List */}
+					<GlassCard className="px-6">
+						{nftsLoading ? (
+							<div className="flex items-center justify-center min-h-[400px]">
+								<div className="text-lg">Loading NFTs...</div>
+							</div>
+						) : nfts.length === 0 ? (
+							<CardContent className="flex items-center justify-center min-h-[200px]">
+								<div className="text-center space-y-2">
+									<div className="text-lg font-medium">No NFTs found</div>
+									<div className="text-sm text-muted-foreground">
+										{search.search ? `No NFTs match "${search.search}"` : "This collection has no NFTs yet"}
+									</div>
+								</div>
+							</CardContent>
+						) : (
+							<>
+								{search.view === "grid" ? (
+									<div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+										{nfts.map((nft) => (
+											<NFTThumbnail key={nft.token_data_id} nft={nft} collectionData={collectionData} />
+										))}
+									</div>
+								) : (
+									<div className="space-y-2">
+										{nfts.map((nft) => (
+											<GlassCard
+												hoverEffect={true}
+												key={nft.token_data_id}
+												className="p-2 cursor-pointer hover:bg-white/10 transition-all duration-200 backdrop-blur-sm bg-white/5 border border-white/20 group"
+											>
+												<div className="flex items-center gap-4">
+													<div className="w-20 h-20 rounded-lg overflow-hidden border border-white/20 transition-transform duration-300 group-hover:scale-120">
+														<img
+															src={nft.current_token_data?.token_uri}
+															alt={nft.current_token_data?.token_name || "NFT"}
+															className="w-full h-full object-cover"
+															onError={(e) => {
+																e.currentTarget.src = collectionData.uri;
+															}}
+														/>
+													</div>
+													<div className="flex-3">
+														<h4 className="font-medium">
+															{nft.current_token_data?.token_name || `Token ${nft.token_data_id}`}
+														</h4>
+														<p className="text-sm text-muted-foreground">{nft.current_token_data?.description}</p>
+														<p className="text-xs text-muted-foreground">
+															Token ID: {toShortAddress(nft.token_data_id)}
+														</p>
+													</div>
+													<div className="flex-2 text-right">
+														{Object.entries(nft.current_token_data?.token_properties || {}).map(
+															([traitType, value]) => (
+																<Badge key={traitType} variant="outline">
+																	{traitType}: {value as string}
+																</Badge>
+															),
+														)}
+													</div>
+												</div>
+											</GlassCard>
+										))}
+									</div>
+								)}
+
+								{/* Pagination */}
+								{totalPages > 1 && (
+									<div className="flex items-center justify-center gap-2">
+										<Button
+											variant="outline"
+											size="sm"
+											disabled={search.page <= 1}
+											onClick={() => {
+												updateSearchParams({ page: search.page - 1 });
+											}}
+										>
+											<ChevronLeft className="w-4 h-4" />
+											Previous
+										</Button>
+										<div className="text-sm">
+											Page {search.page} of {totalPages}
+										</div>
+										<Button
+											variant="outline"
+											size="sm"
+											disabled={search.page >= totalPages}
+											onClick={() => {
+												updateSearchParams({ page: search.page + 1 });
+											}}
+										>
+											Next
+											<ChevronRight className="w-4 h-4" />
+										</Button>
+									</div>
+								)}
+							</>
+						)}
+					</GlassCard>
+				</TabsContent>
+			</Tabs>
 
 			{/* Asset Detail Dialog */}
 			<AssetDetailDialog
