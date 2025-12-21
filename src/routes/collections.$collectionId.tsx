@@ -130,7 +130,7 @@ function RouteComponent() {
 						</div>
 						<div className="flex-1 space-y-3">
 							<div>
-								<h1 className="text-2xl font-bold">{collectionData.collectionName}</h1>
+								<h1 className="text-2xl font-bold text-shadow-lg">{collectionData.collectionName}</h1>
 								<p className="text-muted-foreground mt-1 text-sm">{collectionData.description}</p>
 							</div>
 							<div className="flex flex-wrap gap-2">

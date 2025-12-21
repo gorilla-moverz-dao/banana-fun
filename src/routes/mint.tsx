@@ -22,7 +22,7 @@ function RouteComponent() {
 		return (
 			<>
 				<div className="flex items-center justify-between">
-					<h1 className="text-2xl pb-4">Active & Upcoming Launches</h1>
+					<h1 className="text-2xl pb-4 text-shadow-lg font-bold">Active & Upcoming Launches</h1>
 				</div>
 				<CollectionBrowser path="mint" />
 			</>

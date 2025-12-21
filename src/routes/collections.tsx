@@ -85,7 +85,7 @@ function CollectionGroup({
 		<section className="mb-10">
 			<div className="flex items-center gap-2 mb-4">
 				{icon}
-				<h2 className="text-xl font-bold">{title}</h2>
+				<h2 className="text-xl font-bold text-shadow-lg">{title}</h2>
 				<Badge variant="secondary" className="ml-2">
 					{collections.length}
 				</Badge>
@@ -119,7 +119,7 @@ function RouteComponent() {
 
 	return (
 		<div>
-			<h1 className="text-2xl font-bold mb-6">All Launches</h1>
+			<h1 className="text-2xl font-bold mb-6 text-shadow-lg">All Launches</h1>
 
 			{/* Ongoing Launches */}
 			<CollectionGroup

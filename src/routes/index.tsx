@@ -23,16 +23,13 @@ function HomePage() {
 			<div className="lg:w-2/3 space-y-8 pb-12">
 				{/* Hero Section */}
 				<GlassCard>
-					<section className="flex flex-col md:flex-row items-center gap-6">
+					<section className="flex flex-col md:flex-row items-center gap-6 px-4">
 						<img src="/images/logo1.webp" alt="Banana Fun" className="w-2/3 md:w-1/3 object-contain" />
 						<div>
-							<h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-500 bg-clip-text text-transparent">
-								Banana Fun
-							</h1>
-							<p className="text-lg text-muted-foreground">
+							<p className="text-2xl text-muted-foreground">
 								An NFT-backed token launchpad platform that combines NFT sales, token generation, and liquidity pool
-								creation into a single streamlined mechanism. Launch NFT collections while simultaneously bootstrapping
-								token liquidity on decentralized exchanges.
+								creation into a single streamlined mechanism. <br />
+								Launch NFT collections while simultaneously bootstrapping token liquidity on decentralized exchanges.
 							</p>
 						</div>
 					</section>
@@ -40,7 +37,7 @@ function HomePage() {
 
 				{/* How It Works */}
 				<section>
-					<h2 className="text-2xl font-bold mb-6">How It Works</h2>
+					<h2 className="text-2xl font-bold mb-6 text-shadow-lg">How It Works</h2>
 					<div className="grid gap-4 md:grid-cols-3">
 						<GlassCard className="p-5 text-center">
 							<div className="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-400/20 to-orange-400/20 flex items-center justify-center mx-auto mb-3">
@@ -74,7 +71,7 @@ function HomePage() {
 
 				{/* Key Features */}
 				<section>
-					<h2 className="text-2xl font-bold mb-6">Why Banana Fun?</h2>
+					<h2 className="text-2xl font-bold mb-6 text-shadow-lg">Why Banana Fun?</h2>
 					<div className="grid gap-4 md:grid-cols-2">
 						<GlassCard className="p-5">
 							<div className="flex items-start gap-3">
@@ -131,7 +128,7 @@ function HomePage() {
 
 				{/* Token Distribution */}
 				<section>
-					<h2 className="text-2xl font-bold mb-6">Token Distribution</h2>
+					<h2 className="text-2xl font-bold mb-6 text-shadow-lg">Token Distribution</h2>
 					<GlassCard className="p-6">
 						<div className="space-y-4">
 							<div className="flex items-center gap-4">
@@ -191,7 +188,7 @@ function HomePage() {
 			<div className="lg:w-1/3">
 				<div>
 					<div className="flex items-center justify-between mb-4">
-						<h2 className="text-xl font-bold">Active Launches</h2>
+						<h2 className="text-xl font-bold text-shadow-lg">Active Launches</h2>
 						<Link to="/mint" className="text-white hover:underline flex items-center gap-1 text-sm">
 							View all <ArrowRight className="w-4 h-4" />
 						</Link>
