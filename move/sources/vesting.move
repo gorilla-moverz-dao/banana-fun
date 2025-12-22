@@ -396,7 +396,7 @@ module deployment_addr::vesting {
         exists<CreatorVestingConfig>(object::object_address(&collection_obj))
     }
 
-    // TODO: Check if this is needed
+    // TODO: Remove _nft_obj parameter
     #[view]
     public fun get_vested_amount(
         collection_obj: Object<Collection>, _nft_obj: Object<Token>

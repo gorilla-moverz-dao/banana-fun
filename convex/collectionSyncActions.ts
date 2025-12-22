@@ -547,15 +547,17 @@ export const syncCollectionDataAction = internalAction({
 });
 
 /**
- * Public action to sync collection supply after minting
- * Called from the client after a successful mint to update supply and owner count immediately
+ * Public action to sync collection supply after minting and trigger reveals
+ * Called from the client after a successful mint to update supply, owner count, and reveal NFTs
  */
 export const afterMint = action({
 	args: {
 		collectionId: v.string(),
+		nftTokenIds: v.optional(v.array(v.string())), // NFT token IDs to reveal
 	},
-	handler: async (ctx, args): Promise<boolean> => {
+	handler: async (ctx, args): Promise<{ synced: boolean; reveals: { nftTokenId: string; success: boolean }[] }> => {
 		const { aptos, launchpadClient, account } = createAptosClient();
+		const reveals: { nftTokenId: string; success: boolean }[] = [];
 
 		// Get the collection from database
 		const collection = await ctx.runQuery(internal.collections.getCollectionByAddress, {
@@ -564,9 +566,11 @@ export const afterMint = action({
 
 		if (!collection) {
 			console.warn(`Collection ${args.collectionId} not found in database`);
-			return false;
+			return { synced: false, reveals };
 		}
 
+		// Sync collection supply
+		let synced = false;
 		try {
 			await syncCollectionSupply(ctx, aptos, launchpadClient, account, {
 				_id: collection._id,
@@ -577,10 +581,27 @@ export const afterMint = action({
 				saleCompleted: collection.saleCompleted,
 				totalFundsCollected: collection.totalFundsCollected,
 			});
-			return true;
+			synced = true;
 		} catch (error) {
 			console.error(`afterMint: Error syncing ${args.collectionId}:`, error);
-			return false;
 		}
+
+		// Reveal NFTs if token IDs provided
+		if (args.nftTokenIds && args.nftTokenIds.length > 0) {
+			for (const nftTokenId of args.nftTokenIds) {
+				try {
+					const result = await ctx.runAction(internal.revealActions.revealNft, {
+						collectionId: args.collectionId,
+						nftTokenId,
+					});
+					reveals.push({ nftTokenId, success: result.success });
+				} catch (error) {
+					console.error(`afterMint: Error revealing NFT ${nftTokenId}:`, error);
+					reveals.push({ nftTokenId, success: false });
+				}
+			}
+		}
+
+		return { synced, reveals };
 	},
 });

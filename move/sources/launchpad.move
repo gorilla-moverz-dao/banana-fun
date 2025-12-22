@@ -69,8 +69,6 @@ module deployment_addr::nft_launchpad {
     const EONLY_COLLECTION_CREATOR_CAN_UPDATE_MINT_TIMES: u64 = 21;
     /// Only admin can recover funds
     const EONLY_ADMIN_CAN_RECOVER_FUNDS: u64 = 22;
-    /// Only collection creator can reveal collection
-    const EONLY_COLLECTION_CREATOR_CAN_REVEAL_COLLECTION: u64 = 18;
     /// Only collection creator can modify allowlist
     const EONLY_COLLECTION_CREATOR_CAN_MODIFY_ALLOWLIST: u64 = 17;
     /// Only collection creator can update max supply
@@ -99,6 +97,8 @@ module deployment_addr::nft_launchpad {
     const EINVALID_DEADLINE: u64 = 1009;
     /// Sale threshold not met
     const ESALE_THRESHOLD_NOT_MET: u64 = 1010;
+    /// Only admin can reveal NFTs
+    const EONLY_ADMIN_CAN_REVEAL: u64 = 1100;
 
     /// 100 years in seconds, we consider mint end time to be infinite when it is set to 100 years after start time
     const ONE_HUNDRED_YEARS_IN_SECONDS: u64 = 100 * 365 * 24 * 60 * 60;
@@ -727,7 +727,7 @@ module deployment_addr::nft_launchpad {
         nft_objs
     }
 
-    /// Batch reveal NFTs for performance
+    /// Batch reveal NFTs for performance (admin only)
     public entry fun reveal_nfts(
         sender: &signer,
         collection_obj: Object<Collection>,
@@ -737,10 +737,8 @@ module deployment_addr::nft_launchpad {
         uris: vector<String>,
         prop_names_vec: vector<vector<String>>,
         prop_values_vec: vector<vector<String>>
-    ) acquires CollectionOwnerObjConfig, CollectionConfig {
-        verify_collection_creator(
-            sender, &collection_obj, EONLY_COLLECTION_CREATOR_CAN_REVEAL_COLLECTION
-        );
+    ) acquires CollectionOwnerObjConfig, CollectionConfig, Config {
+        verify_admin(sender, EONLY_ADMIN_CAN_REVEAL);
 
         let collection_owner_obj_signer = &get_collection_owner_signer(&collection_obj);
         let n = nft_objs.length();
@@ -783,7 +781,7 @@ module deployment_addr::nft_launchpad {
         }
     }
 
-    // Reveal a single NFT
+    // Reveal a single NFT (admin only)
     public entry fun reveal_nft(
         sender: &signer,
         collection_obj: Object<Collection>,
@@ -793,7 +791,7 @@ module deployment_addr::nft_launchpad {
         uri: String,
         prop_names: vector<String>,
         prop_values: vector<String>
-    ) acquires CollectionOwnerObjConfig, CollectionConfig {
+    ) acquires CollectionOwnerObjConfig, CollectionConfig, Config {
         let nft_objs = vector[nft_obj];
         let names = vector[name];
         let descriptions = vector[description];
@@ -1405,6 +1403,13 @@ module deployment_addr::nft_launchpad {
         let sender_addr = signer::address_of(sender);
         let collection_config = borrow_collection_config(collection_obj);
         assert!(is_collection_creator(collection_config, sender_addr), error_code);
+    }
+
+    /// Helper function to verify admin permissions
+    fun verify_admin(sender: &signer, error_code: u64) acquires Config {
+        let sender_addr = signer::address_of(sender);
+        let config = borrow_global<Config>(@deployment_addr);
+        assert!(is_admin(config, sender_addr), error_code);
     }
 
     /// Gets the collection owner signer from a collection object

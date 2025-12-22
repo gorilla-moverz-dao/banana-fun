@@ -12,6 +12,8 @@ import type * as aptos from "../aptos.js";
 import type * as collectionSyncActions from "../collectionSyncActions.js";
 import type * as collections from "../collections.js";
 import type * as crons from "../crons.js";
+import type * as reveal from "../reveal.js";
+import type * as revealActions from "../revealActions.js";
 
 import type {
   ApiFromModules,
@@ -24,6 +26,8 @@ declare const fullApi: ApiFromModules<{
   collectionSyncActions: typeof collectionSyncActions;
   collections: typeof collections;
   crons: typeof crons;
+  reveal: typeof reveal;
+  revealActions: typeof revealActions;
 }>;
 
 /**
