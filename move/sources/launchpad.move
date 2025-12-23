@@ -71,6 +71,8 @@ module deployment_addr::nft_launchpad {
     const EONLY_COLLECTION_CREATOR_CAN_MODIFY_ALLOWLIST: u64 = 17;
     /// Only collection creator can update max supply
     const EONLY_COLLECTION_CREATOR_CAN_UPDATE_MAX_SUPPLY: u64 = 26;
+    /// Max supply cannot be updated if mint is enabled
+    const EMAX_SUPPLY_CANNOT_BE_UPDATED_IF_MINT_IS_ENABLED: u64 = 28;
     /// Invalid max supply
     const EINVALID_MAX_SUPPLY: u64 = 27;
     /// Invalid stage type
@@ -351,6 +353,11 @@ module deployment_addr::nft_launchpad {
     ) acquires CollectionConfig, CollectionOwnerObjConfig {
         verify_collection_creator(
             sender, &collection_obj, EONLY_COLLECTION_CREATOR_CAN_UPDATE_MAX_SUPPLY
+        );
+
+        // We cannot update max supply if mint is enabled
+        assert!(
+            !is_mint_enabled(collection_obj), EMAX_SUPPLY_CANNOT_BE_UPDATED_IF_MINT_IS_ENABLED
         );
 
         // Get current supply to ensure new max supply is not less than current supply

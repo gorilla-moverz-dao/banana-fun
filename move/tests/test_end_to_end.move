@@ -1163,8 +1163,10 @@ module deployment_addr::test_end_to_end {
                 DURATION_SHORT // duration
             );
 
+        nft_launchpad::update_mint_enabled(admin, collection_obj, false);
         // Update max supply to 20
         nft_launchpad::update_max_supply(admin, collection_obj, 20);
+        nft_launchpad::update_mint_enabled(admin, collection_obj, true);
 
         // Mint some NFTs to verify the new max supply works
         let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 5);
@@ -1206,6 +1208,7 @@ module deployment_addr::test_end_to_end {
             );
 
         // Try to update max supply as non-creator (should fail)
+        nft_launchpad::update_mint_enabled(admin, collection_obj, false);
         nft_launchpad::update_max_supply(user1, collection_obj, 20);
     }
 
@@ -1236,6 +1239,7 @@ module deployment_addr::test_end_to_end {
         nft_launchpad::mint_nft(user1, collection_obj, 5, vector[]);
 
         // Try to set max supply to 3 when 5 NFTs are already minted (should fail)
+        nft_launchpad::update_mint_enabled(admin, collection_obj, false);
         nft_launchpad::update_max_supply(admin, collection_obj, 3);
     }
 
