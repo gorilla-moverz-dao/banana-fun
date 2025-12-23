@@ -79,3 +79,20 @@ export const getRandomUnrevealedItem = internalQuery({
 		return unrevealedItems[randomIndex];
 	},
 });
+
+/**
+ * Internal query to count all reveal items for a collection
+ */
+export const countRevealItems = internalQuery({
+	args: {
+		collectionId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const items = await ctx.db
+			.query("nftRevealItems")
+			.withIndex("by_collection_id", (q) => q.eq("collectionId", args.collectionId))
+			.collect();
+
+		return items.length;
+	},
+});

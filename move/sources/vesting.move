@@ -329,7 +329,7 @@ module deployment_addr::vesting {
         let i = 0;
         while (i < len) {
             claim_internal(sender_addr, collection_obj, nft_objs[i]);
-            i = i + 1;
+            i += 1;
         };
     }
 
@@ -396,11 +396,8 @@ module deployment_addr::vesting {
         exists<CreatorVestingConfig>(object::object_address(&collection_obj))
     }
 
-    // TODO: Remove _nft_obj parameter
     #[view]
-    public fun get_vested_amount(
-        collection_obj: Object<Collection>, _nft_obj: Object<Token>
-    ): u64 acquires NftVestingConfig {
+    public fun get_vested_amount(collection_obj: Object<Collection>): u64 acquires NftVestingConfig {
         let collection_addr = object::object_address(&collection_obj);
         if (!exists<NftVestingConfig>(collection_addr)) {
             return 0
@@ -434,7 +431,7 @@ module deployment_addr::vesting {
     public fun get_claimable_amount(
         collection_obj: Object<Collection>, nft_obj: Object<Token>
     ): u64 acquires NftVestingConfig {
-        let vested = get_vested_amount(collection_obj, nft_obj);
+        let vested = get_vested_amount(collection_obj);
         let claimed = get_claimed_amount(collection_obj, nft_obj);
         if (vested > claimed) {
             vested - claimed
@@ -453,7 +450,7 @@ module deployment_addr::vesting {
         while (i < len) {
             let claimable = get_claimable_amount(collection_obj, nft_objs[i]);
             results.push_back(claimable);
-            i = i + 1;
+            i += 1;
         };
         results
     }

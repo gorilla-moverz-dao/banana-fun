@@ -9,13 +9,14 @@ import { revealItemValidator } from "./reveal";
 /**
  * Public action to upload reveal data for a collection
  * Handles batching for large datasets (10k+ items)
+ * Automatically enables minting when reveal item count matches maxSupply
  */
 export const uploadRevealData = action({
 	args: {
 		collectionId: v.string(),
 		items: v.array(revealItemValidator),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx, args): Promise<{ inserted: number; mintEnabled: boolean }> => {
 		const BATCH_SIZE = 100;
 		let totalInserted = 0;
 
@@ -30,7 +31,29 @@ export const uploadRevealData = action({
 		}
 
 		console.log(`Uploaded ${totalInserted} reveal items for collection ${args.collectionId}`);
-		return { inserted: totalInserted };
+
+		// Check if we should enable minting (reveal item count matches maxSupply)
+		const [revealItemCount, collection] = await Promise.all([
+			ctx.runQuery(internal.reveal.countRevealItems, { collectionId: args.collectionId }),
+			ctx.runQuery(internal.collections.getCollectionByAddress, { collectionId: args.collectionId }),
+		]);
+
+		let mintEnabled = false;
+		if (collection && revealItemCount === collection.maxSupply) {
+			const { enabled } = await ctx.runAction(internal.collectionSyncActions.enableMintOnBlockchain, {
+				collectionId: args.collectionId,
+			});
+			mintEnabled = enabled;
+			console.log(
+				`Reveal items (${revealItemCount}) match maxSupply (${collection.maxSupply}), mint enabled: ${mintEnabled}`,
+			);
+		} else if (collection) {
+			console.log(
+				`Reveal items (${revealItemCount}) do not match maxSupply (${collection.maxSupply}), mint not enabled`,
+			);
+		}
+
+		return { inserted: totalInserted, mintEnabled };
 	},
 });
 
@@ -59,8 +82,8 @@ export const revealNft = internalAction({
 
 		try {
 			// Convert traits to prop_names and prop_values arrays
-			const propNames = item.traits.map((t) => t.trait_type);
-			const propValues = item.traits.map((t) => t.value);
+			const propNames = item.traits.map((t: { trait_type: string; value: string }) => t.trait_type);
+			const propValues = item.traits.map((t: { trait_type: string; value: string }) => t.value);
 
 			await launchpadClient.entry.reveal_nft({
 				typeArguments: [],

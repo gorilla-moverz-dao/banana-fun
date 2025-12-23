@@ -547,6 +547,48 @@ export const syncCollectionDataAction = internalAction({
 });
 
 /**
+ * Internal action to enable minting on the blockchain and sync the state back
+ * Called after all reveal items are uploaded and count matches maxSupply
+ */
+export const enableMintOnBlockchain = internalAction({
+	args: {
+		collectionId: v.string(),
+	},
+	handler: async (ctx, args): Promise<{ enabled: boolean }> => {
+		const { launchpadClient, aptos, account } = createAptosClient();
+
+		const collectionObject = args.collectionId as `0x${string}`;
+
+		try {
+			// Call update_mint_enabled on the blockchain
+			await launchpadClient.entry.update_mint_enabled({
+				typeArguments: [],
+				functionArguments: [collectionObject, true],
+				account,
+			});
+
+			console.log(`Enabled minting on blockchain for collection ${args.collectionId}`);
+
+			// Get the collection from database to sync
+			const collection = await ctx.runQuery(internal.collections.getCollectionByAddress, {
+				collectionId: args.collectionId,
+			});
+
+			if (collection) {
+				// Sync the collection data to update mintEnabled in Convex
+				await syncCollectionData(ctx, launchpadClient, aptos, collectionObject, collection._id, true);
+				console.log(`Synced collection ${args.collectionId} after enabling mint`);
+			}
+
+			return { enabled: true };
+		} catch (error) {
+			console.error(`Failed to enable minting for collection ${args.collectionId}:`, error);
+			return { enabled: false };
+		}
+	},
+});
+
+/**
  * Public action to sync collection supply after minting and trigger reveals
  * Called from the client after a successful mint to update supply, owner count, and reveal NFTs
  */
