@@ -326,9 +326,8 @@ module deployment_addr::nft_launchpad {
 
     /// Set pending admin of the contract, then pending admin can call accept_admin to become admin
     public entry fun set_pending_admin(sender: &signer, new_admin: address) acquires Config {
-        let sender_addr = signer::address_of(sender);
+        verify_admin(sender, EONLY_ADMIN_CAN_SET_PENDING_ADMIN);
         let config = borrow_global_mut<Config>(@deployment_addr);
-        assert!(is_admin(config, sender_addr), EONLY_ADMIN_CAN_SET_PENDING_ADMIN);
         config.pending_admin_addr = option::some(new_admin);
     }
 
@@ -387,9 +386,8 @@ module deployment_addr::nft_launchpad {
     public entry fun update_protocol_fee_collector(
         sender: &signer, new_protocol_fee_collector: address
     ) acquires Config {
-        let sender_addr = signer::address_of(sender);
+        verify_admin(sender, EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
         let config = borrow_global_mut<Config>(@deployment_addr);
-        assert!(is_admin(config, sender_addr), EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
         config.protocol_fee_collector_addr = new_protocol_fee_collector;
     }
 
@@ -414,10 +412,7 @@ module deployment_addr::nft_launchpad {
     public entry fun update_protocol_base_fee_for_collection(
         sender: &signer, collection_obj: Object<Collection>, new_protocol_base_fee: u64
     ) acquires Config, CollectionConfig {
-        let sender_addr = signer::address_of(sender);
-        let config = borrow_global<Config>(@deployment_addr);
-        assert!(is_admin(config, sender_addr), EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
-
+        verify_admin(sender, EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
         borrow_collection_config_mut(&collection_obj).protocol_base_fee = new_protocol_base_fee;
     }
 
@@ -425,10 +420,8 @@ module deployment_addr::nft_launchpad {
     public entry fun update_default_protocol_base_fee(
         sender: &signer, new_default_protocol_base_fee: u64
     ) acquires Config {
-        let sender_addr = signer::address_of(sender);
+        verify_admin(sender, EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
         let config = borrow_global_mut<Config>(@deployment_addr);
-        assert!(is_admin(config, sender_addr), EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
-
         config.default_protocol_base_fee = new_default_protocol_base_fee;
     }
 
@@ -436,9 +429,7 @@ module deployment_addr::nft_launchpad {
     public entry fun update_protocol_percentage_fee_for_collection(
         sender: &signer, collection_obj: Object<Collection>, new_protocol_percentage_fee: u64
     ) acquires Config, CollectionConfig {
-        let sender_addr = signer::address_of(sender);
-        let config = borrow_global<Config>(@deployment_addr);
-        assert!(is_admin(config, sender_addr), EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
+        verify_admin(sender, EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
         borrow_collection_config_mut(&collection_obj).protocol_percentage_fee =
             new_protocol_percentage_fee;
     }
@@ -447,9 +438,8 @@ module deployment_addr::nft_launchpad {
     public entry fun update_default_protocol_percentage_fee(
         sender: &signer, new_default_protocol_percentage_fee: u64
     ) acquires Config {
-        let sender_addr = signer::address_of(sender);
+        verify_admin(sender, EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
         let config = borrow_global_mut<Config>(@deployment_addr);
-        assert!(is_admin(config, sender_addr), EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
         config.default_protocol_percentage_fee = new_default_protocol_percentage_fee;
     }
 
