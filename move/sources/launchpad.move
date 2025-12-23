@@ -38,9 +38,7 @@ module deployment_addr::nft_launchpad {
     /// Only admin can update protocol fee config
     const EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG: u64 = 4;
     /// Only collection creator can update mint enabled
-    const EONLY_COLLECTION_CREATOR_CAN_UPDATE_MINT_ENABLED: u64 = 11;
-    /// Only collection creator can update listing enabled
-    const EONLY_COLLECTION_CREATOR_CAN_UPDATE_LISTING_ENABLED: u64 = 25;
+    const EONLY_ADMIN_CAN_UPDATE_MINT_ENABLED_FOR_COLLECTION: u64 = 11;
     /// No active mint stages
     const ENO_ACTIVE_STAGES: u64 = 6;
     /// Creator must set at least one mint stage
@@ -193,7 +191,6 @@ module deployment_addr::nft_launchpad {
         // Key is stage, value is mint fee denomination
         mint_fee_per_nft_by_stages: SimpleMap<String, u64>,
         mint_enabled: bool,
-        listing_enabled: bool,
         placeholder_uri: String,
         collection_owner_obj: Object<CollectionOwnerObjConfig>,
         extend_ref: object::ExtendRef,
@@ -255,7 +252,6 @@ module deployment_addr::nft_launchpad {
         max_supply: u64,
         current_supply: u64,
         mint_enabled: bool,
-        listing_enabled: bool,
         placeholder_uri: String,
         collection_settings: vector<String>,
         dev_wallet_addr: address,
@@ -341,25 +337,12 @@ module deployment_addr::nft_launchpad {
     }
 
     /// Update mint enabled
+    /// Only the backend should be able to update mint enabled once all nfts are available for reveal
     public entry fun update_mint_enabled(
         sender: &signer, collection_obj: Object<Collection>, enabled: bool
-    ) acquires CollectionConfig {
-        verify_collection_creator(
-            sender, &collection_obj, EONLY_COLLECTION_CREATOR_CAN_UPDATE_MINT_ENABLED
-        );
+    ) acquires CollectionConfig, Config {
+        verify_admin(sender, EONLY_ADMIN_CAN_UPDATE_MINT_ENABLED_FOR_COLLECTION);
         borrow_collection_config_mut(&collection_obj).mint_enabled = enabled;
-    }
-
-    /// Update listing enabled
-    public entry fun update_listing_enabled(
-        sender: &signer, collection_obj: Object<Collection>, enabled: bool
-    ) acquires CollectionConfig {
-        verify_collection_creator(
-            sender,
-            &collection_obj,
-            EONLY_COLLECTION_CREATOR_CAN_UPDATE_LISTING_ENABLED
-        );
-        borrow_collection_config_mut(&collection_obj).listing_enabled = enabled;
     }
 
     /// Update max supply for a collection
@@ -538,8 +521,7 @@ module deployment_addr::nft_launchpad {
             CollectionConfig {
                 creator_addr: sender_addr,
                 mint_fee_per_nft_by_stages: simple_map::new(),
-                mint_enabled: true,
-                listing_enabled: false,
+                mint_enabled: false,
                 placeholder_uri,
                 extend_ref: object::generate_extend_ref(collection_obj_constructor_ref),
                 collection_owner_obj,
@@ -1119,7 +1101,14 @@ module deployment_addr::nft_launchpad {
 
     #[view]
     /// Get all collections created using this contract where mint is enabled
-    public fun get_registry(): vector<Object<Collection>> acquires Registry, CollectionConfig {
+    public fun get_registry(): vector<Object<Collection>> acquires Registry {
+        let registry = borrow_global<Registry>(@deployment_addr);
+        registry.collection_objects
+    }
+
+    #[view]
+    /// Get all collections created using this contract where mint is enabled
+    public fun get_minting_collections(): vector<Object<Collection>> acquires Registry, CollectionConfig {
         let registry = borrow_global<Registry>(@deployment_addr);
         let collections = vector[];
         for (i in 0..registry.collection_objects.length()) {
@@ -1132,29 +1121,9 @@ module deployment_addr::nft_launchpad {
     }
 
     #[view]
-    /// Get all collections created using this contract where listing is enabled
-    public fun get_listed_collections(): vector<Object<Collection>> acquires Registry, CollectionConfig {
-        let registry = borrow_global<Registry>(@deployment_addr);
-        let collections = vector[];
-        for (i in 0..registry.collection_objects.length()) {
-            let collection_obj = registry.collection_objects[i];
-            if (is_listing_enabled(collection_obj)) {
-                collections.push_back(collection_obj);
-            }
-        };
-        collections
-    }
-
-    #[view]
     /// Is mint enabled for the collection
     public fun is_mint_enabled(collection_obj: Object<Collection>): bool acquires CollectionConfig {
         borrow_collection_config(&collection_obj).mint_enabled
-    }
-
-    #[view]
-    /// Is listing enabled for the collection
-    public fun is_listing_enabled(collection_obj: Object<Collection>): bool acquires CollectionConfig {
-        borrow_collection_config(&collection_obj).listing_enabled
     }
 
     #[view]
@@ -1331,7 +1300,6 @@ module deployment_addr::nft_launchpad {
             max_supply: collection_config.max_supply,
             current_supply: *collection::count(collection_obj).borrow(),
             mint_enabled: collection_config.mint_enabled,
-            listing_enabled: collection_config.listing_enabled,
             placeholder_uri: collection_config.placeholder_uri,
             collection_settings: collection_config.collection_settings,
             dev_wallet_addr: collection_config.dev_wallet_addr,

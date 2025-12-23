@@ -138,7 +138,11 @@ module deployment_addr::test_end_to_end {
         );
 
         let registry = nft_launchpad::get_registry();
-        registry[registry.length() - 1]
+        let collection_obj = registry[registry.length() - 1];
+
+        nft_launchpad::update_mint_enabled(sender, collection_obj, true);
+
+        collection_obj
     }
 
     /// Helper function to create a simple public-only collection
@@ -328,6 +332,7 @@ module deployment_addr::test_end_to_end {
         );
         let registry = nft_launchpad::get_registry();
         let collection_1 = registry[registry.length() - 1];
+        nft_launchpad::update_mint_enabled(sender, collection_1, true);
         assert!(collection::count(collection_1) == option::some(0));
 
         let total_fee = get_total_mint_fee(collection_1, utf8(STAGE_NAME_ALLOWLIST), 1);
@@ -551,6 +556,7 @@ module deployment_addr::test_end_to_end {
 
         let registry = nft_launchpad::get_registry();
         let collection = registry[registry.length() - 1];
+        nft_launchpad::update_mint_enabled(sender, collection, true);
 
         // Test FCFS allowlist stage
         let total_fee = get_total_mint_fee(collection, utf8(STAGE_NAME_ALLOWLIST), 1);
@@ -1140,111 +1146,6 @@ module deployment_addr::test_end_to_end {
     #[test(
         aptos_framework = @0x1, admin = @deployment_addr, user1 = @0x200, royalty_user = @0x300
     )]
-    fun test_update_listing_enabled_and_get_listed_collections(
-        aptos_framework: &signer,
-        admin: &signer,
-        user1: &signer,
-        royalty_user: &signer
-    ) {
-        setup_test_env(aptos_framework, user1, admin);
-
-        // Create first collection
-        let collection_1 =
-            create_public_only_collection(
-                admin,
-                royalty_user,
-                MINT_FEE_SMALL, // mint_fee
-                MINT_LIMIT_LARGE, // mint_limit
-                DURATION_SHORT // duration
-            );
-
-        // Create second collection
-        let collection_2 =
-            create_public_only_collection(
-                admin,
-                royalty_user,
-                MINT_FEE_MEDIUM, // mint_fee
-                MINT_LIMIT_MEDIUM, // mint_limit
-                DURATION_MEDIUM // duration
-            );
-
-        // Initially, both collections should have listing disabled (default)
-        assert!(!nft_launchpad::is_listing_enabled(collection_1));
-        assert!(!nft_launchpad::is_listing_enabled(collection_2));
-
-        // Initially, get_listed_collections should return empty vector
-        let listed_collections = nft_launchpad::get_listed_collections();
-        assert!(listed_collections.length() == 0);
-
-        // Enable listing for first collection
-        nft_launchpad::update_listing_enabled(admin, collection_1, true);
-        assert!(nft_launchpad::is_listing_enabled(collection_1));
-        assert!(!nft_launchpad::is_listing_enabled(collection_2));
-
-        // get_listed_collections should now return only collection_1
-        let listed_collections = nft_launchpad::get_listed_collections();
-        assert!(listed_collections.length() == 1);
-        let first_listed = listed_collections[0];
-        assert!(first_listed == collection_1);
-
-        // Enable listing for second collection
-        nft_launchpad::update_listing_enabled(admin, collection_2, true);
-        assert!(nft_launchpad::is_listing_enabled(collection_1));
-        assert!(nft_launchpad::is_listing_enabled(collection_2));
-
-        // get_listed_collections should now return both collections
-        let listed_collections = nft_launchpad::get_listed_collections();
-        assert!(listed_collections.length() == 2);
-
-        // Disable listing for first collection
-        nft_launchpad::update_listing_enabled(admin, collection_1, false);
-        assert!(!nft_launchpad::is_listing_enabled(collection_1));
-        assert!(nft_launchpad::is_listing_enabled(collection_2));
-
-        // get_listed_collections should now return only collection_2
-        let listed_collections = nft_launchpad::get_listed_collections();
-        assert!(listed_collections.length() == 1);
-        let first_listed = listed_collections[0];
-        assert!(first_listed == collection_2);
-
-        // Disable listing for second collection
-        nft_launchpad::update_listing_enabled(admin, collection_2, false);
-        assert!(!nft_launchpad::is_listing_enabled(collection_1));
-        assert!(!nft_launchpad::is_listing_enabled(collection_2));
-
-        // get_listed_collections should now return empty vector again
-        let listed_collections = nft_launchpad::get_listed_collections();
-        assert!(listed_collections.length() == 0);
-    }
-
-    #[test(
-        aptos_framework = @0x1, admin = @deployment_addr, user1 = @0x200, royalty_user = @0x300
-    )]
-    #[expected_failure(abort_code = 25, location = nft_launchpad)]
-    fun test_update_listing_enabled_non_creator(
-        aptos_framework: &signer,
-        admin: &signer,
-        user1: &signer,
-        royalty_user: &signer
-    ) {
-        setup_test_env(aptos_framework, user1, admin);
-
-        let collection_obj =
-            create_public_only_collection(
-                admin,
-                royalty_user,
-                MINT_FEE_SMALL, // mint_fee
-                MINT_LIMIT_LARGE, // mint_limit
-                DURATION_SHORT // duration
-            );
-
-        // Try to update listing enabled as non-creator (should fail)
-        nft_launchpad::update_listing_enabled(user1, collection_obj, true);
-    }
-
-    #[test(
-        aptos_framework = @0x1, admin = @deployment_addr, user1 = @0x200, royalty_user = @0x300
-    )]
     fun test_update_max_supply_success(
         aptos_framework: &signer,
         admin: &signer,
@@ -1543,6 +1444,7 @@ module deployment_addr::test_end_to_end {
 
         let registry = nft_launchpad::get_registry();
         let collection_obj = registry[registry.length() - 1];
+        nft_launchpad::update_mint_enabled(admin, collection_obj, true);
 
         // Mint all NFTs to reach max_supply
         let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), MAX_SUPPLY);
@@ -1627,6 +1529,7 @@ module deployment_addr::test_end_to_end {
 
         let registry = nft_launchpad::get_registry();
         let collection_obj = registry[registry.length() - 1];
+        nft_launchpad::update_mint_enabled(admin, collection_obj, true);
 
         // Mint only 3 NFTs (below max_supply of 10)
         let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 3);
@@ -1703,6 +1606,7 @@ module deployment_addr::test_end_to_end {
 
         let registry = nft_launchpad::get_registry();
         let collection_obj = registry[registry.length() - 1];
+        nft_launchpad::update_mint_enabled(admin, collection_obj, true);
 
         // Mint 3 NFTs (below max_supply of 10) and track them
         let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 3);
@@ -1844,6 +1748,7 @@ module deployment_addr::test_end_to_end {
 
         let registry = nft_launchpad::get_registry();
         let collection_obj = registry[registry.length() - 1];
+        nft_launchpad::update_mint_enabled(admin, collection_obj, true);
 
         // User1 mints 2 NFTs (with payment for refund testing)
         let total_fee_1 = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), 2);
