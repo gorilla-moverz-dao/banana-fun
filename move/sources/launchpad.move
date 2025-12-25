@@ -37,8 +37,8 @@ module deployment_addr::nft_launchpad {
     const ENOT_PENDING_ADMIN: u64 = 3;
     /// Only admin can update protocol fee config
     const EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG: u64 = 4;
-    /// Only collection creator can update mint enabled
-    const EONLY_ADMIN_CAN_UPDATE_MINT_ENABLED_FOR_COLLECTION: u64 = 11;
+    /// Only admin can update mint enabled
+    const EONLY_ADMIN_CAN_UPDATE_MINT_ENABLED: u64 = 11;
     /// No active mint stages
     const ENO_ACTIVE_STAGES: u64 = 6;
     /// Creator must set at least one mint stage
@@ -343,7 +343,7 @@ module deployment_addr::nft_launchpad {
     public entry fun update_mint_enabled(
         sender: &signer, collection_obj: Object<Collection>, enabled: bool
     ) acquires CollectionConfig, Config {
-        verify_admin(sender, EONLY_ADMIN_CAN_UPDATE_MINT_ENABLED_FOR_COLLECTION);
+        verify_admin(sender, EONLY_ADMIN_CAN_UPDATE_MINT_ENABLED);
         borrow_collection_config_mut(&collection_obj).mint_enabled = enabled;
     }
 
