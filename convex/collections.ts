@@ -184,6 +184,9 @@ export const createCollectionFromBlockchain = internalMutation({
 			creatorVestingWalletAddress: v.string(),
 			creatorVestingCliff: v.number(),
 			creatorVestingDuration: v.number(),
+			// Refund tracking (for failed launches)
+			refundNftsBurned: v.optional(v.number()),
+			refundTotalAmount: v.optional(v.number()),
 			createdAt: v.number(),
 			updatedAt: v.number(),
 		}),
@@ -239,6 +242,9 @@ export const updateCollectionFromBlockchain = internalMutation({
 			vestingAmountPerNft: v.optional(v.number()),
 			creatorVestingStartTime: v.optional(v.number()),
 			creatorVestingTotalPool: v.optional(v.number()),
+			// Refund tracking (for failed launches)
+			refundNftsBurned: v.optional(v.number()),
+			refundTotalAmount: v.optional(v.number()),
 			updatedAt: v.number(),
 		}),
 	},

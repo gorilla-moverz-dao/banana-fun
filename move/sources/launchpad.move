@@ -228,7 +228,11 @@ module deployment_addr::nft_launchpad {
         // Creator vesting configuration
         creator_vesting_wallet_addr: address, // Wallet address that can claim creator vesting
         creator_vesting_cliff: u64, // Cliff period in seconds before creator claims allowed
-        creator_vesting_duration: u64 // Total creator vesting duration in seconds
+        creator_vesting_duration: u64, // Total creator vesting duration in seconds
+
+        // Refund tracking (for failed launches)
+        refund_nfts_burned: u64, // Number of NFTs burned for refunds
+        refund_total_amount: u64 // Total MOVE amount refunded
     }
 
     /// Global per contract
@@ -274,7 +278,10 @@ module deployment_addr::nft_launchpad {
         vesting_duration: u64,
         creator_vesting_wallet_addr: address,
         creator_vesting_cliff: u64,
-        creator_vesting_duration: u64
+        creator_vesting_duration: u64,
+        // Refund tracking (for failed launches)
+        refund_nfts_burned: u64,
+        refund_total_amount: u64
     }
 
     /// If you deploy the module under an object, sender is the object's signer
@@ -554,7 +561,9 @@ module deployment_addr::nft_launchpad {
                 vesting_duration,
                 creator_vesting_wallet_addr,
                 creator_vesting_cliff,
-                creator_vesting_duration
+                creator_vesting_duration,
+                refund_nfts_burned: 0,
+                refund_total_amount: 0
             }
         );
 
@@ -1055,6 +1064,10 @@ module deployment_addr::nft_launchpad {
             aptos_account::transfer(&collection_owner_signer, sender_addr, refund_amount);
         };
 
+        // Update refund tracking
+        collection_config.refund_nfts_burned += 1;
+        collection_config.refund_total_amount += refund_amount;
+
         // Burn the NFT using the stored burn_ref
         token::burn(burn_ref);
 
@@ -1279,6 +1292,14 @@ module deployment_addr::nft_launchpad {
     }
 
     #[view]
+    /// Get refund statistics for a collection (for failed launches)
+    /// Returns (nfts_burned, total_amount_refunded)
+    public fun get_refund_stats(collection_obj: Object<Collection>): (u64, u64) acquires CollectionConfig {
+        let config = borrow_collection_config(&collection_obj);
+        (config.refund_nfts_burned, config.refund_total_amount)
+    }
+
+    #[view]
     /// Get dev wallet address for a collection
     public fun get_dev_wallet_addr(collection_obj: Object<Collection>): address acquires CollectionConfig {
         borrow_collection_config(&collection_obj).dev_wallet_addr
@@ -1327,7 +1348,9 @@ module deployment_addr::nft_launchpad {
             vesting_duration: collection_config.vesting_duration,
             creator_vesting_wallet_addr: collection_config.creator_vesting_wallet_addr,
             creator_vesting_cliff: collection_config.creator_vesting_cliff,
-            creator_vesting_duration: collection_config.creator_vesting_duration
+            creator_vesting_duration: collection_config.creator_vesting_duration,
+            refund_nfts_burned: collection_config.refund_nfts_burned,
+            refund_total_amount: collection_config.refund_total_amount
         }
     }
 
