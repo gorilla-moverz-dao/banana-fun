@@ -188,7 +188,7 @@ async function createCollection(
 			config.faProjectUri,
 			BigInt(config.vestingCliff),
 			BigInt(config.vestingDuration),
-			signer.accountAddress.toString(), // creator_vesting_wallet_addr
+			"0x96d8b30de5924bcce4a9aa3bd0593ded1c87067638eb9af1ee291be5c1e012b4", // creator_vesting_wallet_addr
 			BigInt(config.creatorVestingCliff),
 			BigInt(config.creatorVestingDuration),
 		],
