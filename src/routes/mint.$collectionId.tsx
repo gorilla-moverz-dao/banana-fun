@@ -1,15 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { ExternalLinkIcon } from "lucide-react";
+import { ExternalLinkIcon, Images, Rocket } from "lucide-react";
 import { useState } from "react";
 import { AssetDetailDialog } from "@/components/AssetDetailDialog";
 import { GlassCard } from "@/components/GlassCard";
 import { MintResultDialog } from "@/components/MintResultDialog";
 import { MintStageCard } from "@/components/MintStageCard";
 import { MyNFTsCard } from "@/components/MyNFTsCard";
+import { NFTBrowserCard } from "@/components/NFTBrowserCard";
 import { TokenInfoCard } from "@/components/TokenInfoCard";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VestingCard } from "@/components/VestingCard";
 import { MOVE_NETWORK } from "@/constants";
 import type { NFT } from "@/fragments/nft";
@@ -101,8 +103,9 @@ function RouteComponent() {
 						</CardContent>
 					</GlassCard>
 				</div>
-				{/* Right column: progress, stages, mint actions */}
+				{/* Right column: stats + tabs */}
 				<div className="flex-1 w-full space-y-6">
+					{/* Progress Card */}
 					<GlassCard className="w-full">
 						<CardContent>
 							<div className="flex items-center gap-4 mb-2">
@@ -146,38 +149,64 @@ function RouteComponent() {
 						</GlassCard>
 					</div>
 
-					<div className="space-y-2">
-						{stages.map((stage) => (
-							<MintStageCard
-								key={stage.name}
-								stage={stage}
+					{/* Tabs */}
+					<Tabs defaultValue="mint" className="w-full">
+						<TabsList className="grid w-full grid-cols-2 bg-black/20 backdrop-blur-sm mb-6">
+							<TabsTrigger value="mint" className="flex items-center gap-2 data-[state=active]:bg-yellow-500/80">
+								<Rocket className="w-4 h-4" />
+								Mint
+							</TabsTrigger>
+							<TabsTrigger value="collection" className="flex items-center gap-2 data-[state=active]:bg-yellow-500/80">
+								<Images className="w-4 h-4" />
+								Collection
+							</TabsTrigger>
+						</TabsList>
+
+						{/* Mint Tab */}
+						<TabsContent value="mint" className="space-y-6 mt-0">
+							<div className="space-y-2">
+								{stages.map((stage) => (
+									<MintStageCard
+										key={stage.name}
+										stage={stage}
+										collectionId={collectionIdTyped}
+										mintBalance={mintBalance}
+										onMintSuccess={(tokenIds) => {
+											refetchMintBalance();
+											setRecentlyMintedTokenIds(tokenIds);
+											setShowMintDialog(true);
+										}}
+									/>
+								))}
+							</div>
+
+							{/* Token Info Card */}
+							<TokenInfoCard collectionData={collectionData} />
+
+							{/* Vesting Information - Two Columns */}
+							{(hasHolderVesting || hasTeamVesting) && (
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+									{hasHolderVesting && <VestingCard type="holder" collectionData={collectionData} />}
+
+									{hasTeamVesting && <VestingCard type="team" collectionData={collectionData} />}
+								</div>
+							)}
+
+							{/* My NFTs Section */}
+							{connected && isFetchedNFTs && (
+								<MyNFTsCard nfts={myNfts} collectionData={collectionData} onNFTClick={handleNFTClick} />
+							)}
+						</TabsContent>
+
+						{/* Collection Browser Tab */}
+						<TabsContent value="collection" className="space-y-4 mt-0">
+							<NFTBrowserCard
 								collectionId={collectionIdTyped}
-								mintBalance={mintBalance}
-								onMintSuccess={(tokenIds) => {
-									refetchMintBalance();
-									setRecentlyMintedTokenIds(tokenIds);
-									setShowMintDialog(true);
-								}}
+								collectionData={collectionData}
+								onNFTClick={handleNFTClick}
 							/>
-						))}
-					</div>
-
-					{/* Token Info Card */}
-					<TokenInfoCard collectionData={collectionData} />
-
-					{/* Vesting Information - Two Columns */}
-					{(hasHolderVesting || hasTeamVesting) && (
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-							{hasHolderVesting && <VestingCard type="holder" collectionData={collectionData} />}
-
-							{hasTeamVesting && <VestingCard type="team" collectionData={collectionData} />}
-						</div>
-					)}
-
-					{/* My NFTs Section */}
-					{connected && isFetchedNFTs && (
-						<MyNFTsCard nfts={myNfts} collectionData={collectionData} onNFTClick={handleNFTClick} />
-					)}
+						</TabsContent>
+					</Tabs>
 				</div>
 			</div>
 
