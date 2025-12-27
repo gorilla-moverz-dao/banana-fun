@@ -6,15 +6,13 @@ import { internalMutation, internalQuery, query } from "./_generated/server";
  * Get all collections filtered by sale completion status
  */
 export const getMintingCollections = query({
-	args: {
-		saleCompleted: v.optional(v.boolean()),
-	},
-	handler: async (ctx, args) => {
-		const saleCompleted = args.saleCompleted ?? false; // Default to false (active sales)
-
+	args: {},
+	handler: async (ctx) => {
 		const collections = await ctx.db
 			.query("collections")
-			.withIndex("by_state", (q) => q.eq("saleCompleted", saleCompleted).eq("mintEnabled", true))
+			.withIndex("by_mint_enabled", (q) => q.eq("mintEnabled", true))
+			// filter out collections that are not completed at time of deadline
+			.filter((q) => q.gt(q.field("saleDeadline"), Date.now() / 1000))
 			.collect();
 
 		// Sort by createdAt descending (newest first)
