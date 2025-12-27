@@ -37,10 +37,8 @@ module deployment_addr::nft_launchpad {
     const ENOT_PENDING_ADMIN: u64 = 3;
     /// Only admin can update protocol fee config
     const EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG: u64 = 4;
-    /// Only collection creator can update mint enabled
-    const EONLY_COLLECTION_CREATOR_CAN_UPDATE_MINT_ENABLED: u64 = 11;
-    /// Only collection creator can update listing enabled
-    const EONLY_COLLECTION_CREATOR_CAN_UPDATE_LISTING_ENABLED: u64 = 25;
+    /// Only admin can update mint enabled
+    const EONLY_ADMIN_CAN_UPDATE_MINT_ENABLED: u64 = 11;
     /// No active mint stages
     const ENO_ACTIVE_STAGES: u64 = 6;
     /// Creator must set at least one mint stage
@@ -69,12 +67,12 @@ module deployment_addr::nft_launchpad {
     const EONLY_COLLECTION_CREATOR_CAN_UPDATE_MINT_TIMES: u64 = 21;
     /// Only admin can recover funds
     const EONLY_ADMIN_CAN_RECOVER_FUNDS: u64 = 22;
-    /// Only collection creator can reveal collection
-    const EONLY_COLLECTION_CREATOR_CAN_REVEAL_COLLECTION: u64 = 18;
     /// Only collection creator can modify allowlist
     const EONLY_COLLECTION_CREATOR_CAN_MODIFY_ALLOWLIST: u64 = 17;
     /// Only collection creator can update max supply
     const EONLY_COLLECTION_CREATOR_CAN_UPDATE_MAX_SUPPLY: u64 = 26;
+    /// Max supply cannot be updated if mint is enabled
+    const EMAX_SUPPLY_CANNOT_BE_UPDATED_IF_MINT_IS_ENABLED: u64 = 28;
     /// Invalid max supply
     const EINVALID_MAX_SUPPLY: u64 = 27;
     /// Invalid stage type
@@ -99,6 +97,10 @@ module deployment_addr::nft_launchpad {
     const EINVALID_DEADLINE: u64 = 1009;
     /// Sale threshold not met
     const ESALE_THRESHOLD_NOT_MET: u64 = 1010;
+    /// Only admin can reveal NFTs
+    const EONLY_ADMIN_CAN_REVEAL: u64 = 1100;
+    /// NFT is already revealed
+    const ENFT_ALREADY_REVEALED: u64 = 1101;
 
     /// 100 years in seconds, we consider mint end time to be infinite when it is set to 100 years after start time
     const ONE_HUNDRED_YEARS_IN_SECONDS: u64 = 100 * 365 * 24 * 60 * 60;
@@ -193,7 +195,6 @@ module deployment_addr::nft_launchpad {
         // Key is stage, value is mint fee denomination
         mint_fee_per_nft_by_stages: SimpleMap<String, u64>,
         mint_enabled: bool,
-        listing_enabled: bool,
         placeholder_uri: String,
         collection_owner_obj: Object<CollectionOwnerObjConfig>,
         extend_ref: object::ExtendRef,
@@ -229,7 +230,11 @@ module deployment_addr::nft_launchpad {
         // Creator vesting configuration
         creator_vesting_wallet_addr: address, // Wallet address that can claim creator vesting
         creator_vesting_cliff: u64, // Cliff period in seconds before creator claims allowed
-        creator_vesting_duration: u64 // Total creator vesting duration in seconds
+        creator_vesting_duration: u64, // Total creator vesting duration in seconds
+
+        // Refund tracking (for failed launches)
+        refund_nfts_burned: u64, // Number of NFTs burned for refunds
+        refund_total_amount: u64 // Total MOVE amount refunded
     }
 
     /// Global per contract
@@ -255,7 +260,6 @@ module deployment_addr::nft_launchpad {
         max_supply: u64,
         current_supply: u64,
         mint_enabled: bool,
-        listing_enabled: bool,
         placeholder_uri: String,
         collection_settings: vector<String>,
         dev_wallet_addr: address,
@@ -276,7 +280,10 @@ module deployment_addr::nft_launchpad {
         vesting_duration: u64,
         creator_vesting_wallet_addr: address,
         creator_vesting_cliff: u64,
-        creator_vesting_duration: u64
+        creator_vesting_duration: u64,
+        // Refund tracking (for failed launches)
+        refund_nfts_burned: u64,
+        refund_total_amount: u64
     }
 
     /// If you deploy the module under an object, sender is the object's signer
@@ -326,9 +333,8 @@ module deployment_addr::nft_launchpad {
 
     /// Set pending admin of the contract, then pending admin can call accept_admin to become admin
     public entry fun set_pending_admin(sender: &signer, new_admin: address) acquires Config {
-        let sender_addr = signer::address_of(sender);
+        verify_admin(sender, EONLY_ADMIN_CAN_SET_PENDING_ADMIN);
         let config = borrow_global_mut<Config>(@deployment_addr);
-        assert!(is_admin(config, sender_addr), EONLY_ADMIN_CAN_SET_PENDING_ADMIN);
         config.pending_admin_addr = option::some(new_admin);
     }
 
@@ -342,25 +348,12 @@ module deployment_addr::nft_launchpad {
     }
 
     /// Update mint enabled
+    /// Only the backend should be able to update mint enabled once all nfts are available for reveal
     public entry fun update_mint_enabled(
         sender: &signer, collection_obj: Object<Collection>, enabled: bool
-    ) acquires CollectionConfig {
-        verify_collection_creator(
-            sender, &collection_obj, EONLY_COLLECTION_CREATOR_CAN_UPDATE_MINT_ENABLED
-        );
+    ) acquires CollectionConfig, Config {
+        verify_admin(sender, EONLY_ADMIN_CAN_UPDATE_MINT_ENABLED);
         borrow_collection_config_mut(&collection_obj).mint_enabled = enabled;
-    }
-
-    /// Update listing enabled
-    public entry fun update_listing_enabled(
-        sender: &signer, collection_obj: Object<Collection>, enabled: bool
-    ) acquires CollectionConfig {
-        verify_collection_creator(
-            sender,
-            &collection_obj,
-            EONLY_COLLECTION_CREATOR_CAN_UPDATE_LISTING_ENABLED
-        );
-        borrow_collection_config_mut(&collection_obj).listing_enabled = enabled;
     }
 
     /// Update max supply for a collection
@@ -369,6 +362,11 @@ module deployment_addr::nft_launchpad {
     ) acquires CollectionConfig, CollectionOwnerObjConfig {
         verify_collection_creator(
             sender, &collection_obj, EONLY_COLLECTION_CREATOR_CAN_UPDATE_MAX_SUPPLY
+        );
+
+        // We cannot update max supply if mint is enabled
+        assert!(
+            !is_mint_enabled(collection_obj), EMAX_SUPPLY_CANNOT_BE_UPDATED_IF_MINT_IS_ENABLED
         );
 
         // Get current supply to ensure new max supply is not less than current supply
@@ -387,9 +385,8 @@ module deployment_addr::nft_launchpad {
     public entry fun update_protocol_fee_collector(
         sender: &signer, new_protocol_fee_collector: address
     ) acquires Config {
-        let sender_addr = signer::address_of(sender);
+        verify_admin(sender, EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
         let config = borrow_global_mut<Config>(@deployment_addr);
-        assert!(is_admin(config, sender_addr), EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
         config.protocol_fee_collector_addr = new_protocol_fee_collector;
     }
 
@@ -414,10 +411,7 @@ module deployment_addr::nft_launchpad {
     public entry fun update_protocol_base_fee_for_collection(
         sender: &signer, collection_obj: Object<Collection>, new_protocol_base_fee: u64
     ) acquires Config, CollectionConfig {
-        let sender_addr = signer::address_of(sender);
-        let config = borrow_global<Config>(@deployment_addr);
-        assert!(is_admin(config, sender_addr), EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
-
+        verify_admin(sender, EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
         borrow_collection_config_mut(&collection_obj).protocol_base_fee = new_protocol_base_fee;
     }
 
@@ -425,10 +419,8 @@ module deployment_addr::nft_launchpad {
     public entry fun update_default_protocol_base_fee(
         sender: &signer, new_default_protocol_base_fee: u64
     ) acquires Config {
-        let sender_addr = signer::address_of(sender);
+        verify_admin(sender, EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
         let config = borrow_global_mut<Config>(@deployment_addr);
-        assert!(is_admin(config, sender_addr), EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
-
         config.default_protocol_base_fee = new_default_protocol_base_fee;
     }
 
@@ -436,9 +428,7 @@ module deployment_addr::nft_launchpad {
     public entry fun update_protocol_percentage_fee_for_collection(
         sender: &signer, collection_obj: Object<Collection>, new_protocol_percentage_fee: u64
     ) acquires Config, CollectionConfig {
-        let sender_addr = signer::address_of(sender);
-        let config = borrow_global<Config>(@deployment_addr);
-        assert!(is_admin(config, sender_addr), EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
+        verify_admin(sender, EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
         borrow_collection_config_mut(&collection_obj).protocol_percentage_fee =
             new_protocol_percentage_fee;
     }
@@ -447,9 +437,8 @@ module deployment_addr::nft_launchpad {
     public entry fun update_default_protocol_percentage_fee(
         sender: &signer, new_default_protocol_percentage_fee: u64
     ) acquires Config {
-        let sender_addr = signer::address_of(sender);
+        verify_admin(sender, EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
         let config = borrow_global_mut<Config>(@deployment_addr);
-        assert!(is_admin(config, sender_addr), EONLY_ADMIN_CAN_UPDATE_PROTOCOL_FEE_CONFIG);
         config.default_protocol_percentage_fee = new_default_protocol_percentage_fee;
     }
 
@@ -548,8 +537,7 @@ module deployment_addr::nft_launchpad {
             CollectionConfig {
                 creator_addr: sender_addr,
                 mint_fee_per_nft_by_stages: simple_map::new(),
-                mint_enabled: true,
-                listing_enabled: false,
+                mint_enabled: false,
                 placeholder_uri,
                 extend_ref: object::generate_extend_ref(collection_obj_constructor_ref),
                 collection_owner_obj,
@@ -575,7 +563,9 @@ module deployment_addr::nft_launchpad {
                 vesting_duration,
                 creator_vesting_wallet_addr,
                 creator_vesting_cliff,
-                creator_vesting_duration
+                creator_vesting_duration,
+                refund_nfts_burned: 0,
+                refund_total_amount: 0
             }
         );
 
@@ -727,7 +717,7 @@ module deployment_addr::nft_launchpad {
         nft_objs
     }
 
-    /// Batch reveal NFTs for performance
+    /// Batch reveal NFTs for performance (admin only)
     public entry fun reveal_nfts(
         sender: &signer,
         collection_obj: Object<Collection>,
@@ -737,10 +727,8 @@ module deployment_addr::nft_launchpad {
         uris: vector<String>,
         prop_names_vec: vector<vector<String>>,
         prop_values_vec: vector<vector<String>>
-    ) acquires CollectionOwnerObjConfig, CollectionConfig {
-        verify_collection_creator(
-            sender, &collection_obj, EONLY_COLLECTION_CREATOR_CAN_REVEAL_COLLECTION
-        );
+    ) acquires CollectionOwnerObjConfig, CollectionConfig, Config {
+        verify_admin(sender, EONLY_ADMIN_CAN_REVEAL);
 
         let collection_owner_obj_signer = &get_collection_owner_signer(&collection_obj);
         let n = nft_objs.length();
@@ -761,6 +749,15 @@ module deployment_addr::nft_launchpad {
             token_components::set_uri(collection_owner_obj_signer, nft_obj, uri);
             let prop_len = prop_names.length();
             assert!(prop_len == prop_values.length(), EINVALID_REVEAL_DATA);
+
+            // If already revealed (has properties), abort
+            if (prop_len > 0) {
+                assert!(
+                    !aptos_token_objects::property_map::contains_key(&nft_obj, &prop_names[0]),
+                    ENFT_ALREADY_REVEALED
+                );
+            };
+
             for (j in 0..prop_len) {
                 let prop_name = prop_names[j];
                 let prop_value = prop_values[j];
@@ -783,7 +780,7 @@ module deployment_addr::nft_launchpad {
         }
     }
 
-    // Reveal a single NFT
+    // Reveal a single NFT (admin only)
     public entry fun reveal_nft(
         sender: &signer,
         collection_obj: Object<Collection>,
@@ -793,7 +790,7 @@ module deployment_addr::nft_launchpad {
         uri: String,
         prop_names: vector<String>,
         prop_values: vector<String>
-    ) acquires CollectionOwnerObjConfig, CollectionConfig {
+    ) acquires CollectionOwnerObjConfig, CollectionConfig, Config {
         let nft_objs = vector[nft_obj];
         let names = vector[name];
         let descriptions = vector[description];
@@ -1078,6 +1075,10 @@ module deployment_addr::nft_launchpad {
             aptos_account::transfer(&collection_owner_signer, sender_addr, refund_amount);
         };
 
+        // Update refund tracking
+        collection_config.refund_nfts_burned += 1;
+        collection_config.refund_total_amount += refund_amount;
+
         // Burn the NFT using the stored burn_ref
         token::burn(burn_ref);
 
@@ -1131,7 +1132,14 @@ module deployment_addr::nft_launchpad {
 
     #[view]
     /// Get all collections created using this contract where mint is enabled
-    public fun get_registry(): vector<Object<Collection>> acquires Registry, CollectionConfig {
+    public fun get_registry(): vector<Object<Collection>> acquires Registry {
+        let registry = borrow_global<Registry>(@deployment_addr);
+        registry.collection_objects
+    }
+
+    #[view]
+    /// Get all collections created using this contract where mint is enabled
+    public fun get_minting_collections(): vector<Object<Collection>> acquires Registry, CollectionConfig {
         let registry = borrow_global<Registry>(@deployment_addr);
         let collections = vector[];
         for (i in 0..registry.collection_objects.length()) {
@@ -1144,29 +1152,9 @@ module deployment_addr::nft_launchpad {
     }
 
     #[view]
-    /// Get all collections created using this contract where listing is enabled
-    public fun get_listed_collections(): vector<Object<Collection>> acquires Registry, CollectionConfig {
-        let registry = borrow_global<Registry>(@deployment_addr);
-        let collections = vector[];
-        for (i in 0..registry.collection_objects.length()) {
-            let collection_obj = registry.collection_objects[i];
-            if (is_listing_enabled(collection_obj)) {
-                collections.push_back(collection_obj);
-            }
-        };
-        collections
-    }
-
-    #[view]
     /// Is mint enabled for the collection
     public fun is_mint_enabled(collection_obj: Object<Collection>): bool acquires CollectionConfig {
         borrow_collection_config(&collection_obj).mint_enabled
-    }
-
-    #[view]
-    /// Is listing enabled for the collection
-    public fun is_listing_enabled(collection_obj: Object<Collection>): bool acquires CollectionConfig {
-        borrow_collection_config(&collection_obj).listing_enabled
     }
 
     #[view]
@@ -1315,6 +1303,14 @@ module deployment_addr::nft_launchpad {
     }
 
     #[view]
+    /// Get refund statistics for a collection (for failed launches)
+    /// Returns (nfts_burned, total_amount_refunded)
+    public fun get_refund_stats(collection_obj: Object<Collection>): (u64, u64) acquires CollectionConfig {
+        let config = borrow_collection_config(&collection_obj);
+        (config.refund_nfts_burned, config.refund_total_amount)
+    }
+
+    #[view]
     /// Get dev wallet address for a collection
     public fun get_dev_wallet_addr(collection_obj: Object<Collection>): address acquires CollectionConfig {
         borrow_collection_config(&collection_obj).dev_wallet_addr
@@ -1343,7 +1339,6 @@ module deployment_addr::nft_launchpad {
             max_supply: collection_config.max_supply,
             current_supply: *collection::count(collection_obj).borrow(),
             mint_enabled: collection_config.mint_enabled,
-            listing_enabled: collection_config.listing_enabled,
             placeholder_uri: collection_config.placeholder_uri,
             collection_settings: collection_config.collection_settings,
             dev_wallet_addr: collection_config.dev_wallet_addr,
@@ -1364,7 +1359,9 @@ module deployment_addr::nft_launchpad {
             vesting_duration: collection_config.vesting_duration,
             creator_vesting_wallet_addr: collection_config.creator_vesting_wallet_addr,
             creator_vesting_cliff: collection_config.creator_vesting_cliff,
-            creator_vesting_duration: collection_config.creator_vesting_duration
+            creator_vesting_duration: collection_config.creator_vesting_duration,
+            refund_nfts_burned: collection_config.refund_nfts_burned,
+            refund_total_amount: collection_config.refund_total_amount
         }
     }
 
@@ -1405,6 +1402,13 @@ module deployment_addr::nft_launchpad {
         let sender_addr = signer::address_of(sender);
         let collection_config = borrow_collection_config(collection_obj);
         assert!(is_collection_creator(collection_config, sender_addr), error_code);
+    }
+
+    /// Helper function to verify admin permissions
+    fun verify_admin(sender: &signer, error_code: u64) acquires Config {
+        let sender_addr = signer::address_of(sender);
+        let config = borrow_global<Config>(@deployment_addr);
+        assert!(is_admin(config, sender_addr), error_code);
     }
 
     /// Gets the collection owner signer from a collection object

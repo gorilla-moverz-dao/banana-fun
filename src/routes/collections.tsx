@@ -122,31 +122,37 @@ function RouteComponent() {
 			<h1 className="text-2xl font-bold mb-6 text-shadow-lg">All Launches</h1>
 
 			{/* Ongoing Launches */}
-			<CollectionGroup
-				title="Ongoing Launches"
-				icon={<Clock className="w-6 h-6 text-blue-400" />}
-				collections={data.ongoing}
-				status="ongoing"
-				emptyMessage="No ongoing launches at the moment."
-			/>
+			{data.ongoing.length > 0 && (
+				<CollectionGroup
+					title="Ongoing Launches"
+					icon={<Clock className="w-6 h-6 text-blue-400" />}
+					collections={data.ongoing}
+					status="ongoing"
+					emptyMessage="No ongoing launches at the moment."
+				/>
+			)}
 
 			{/* Successful Launches */}
-			<CollectionGroup
-				title="Successful Launches"
-				icon={<CheckCircle className="w-6 h-6 text-green-400" />}
-				collections={data.successful}
-				status="successful"
-				emptyMessage="No successful launches yet."
-			/>
+			{data.successful.length > 0 && (
+				<CollectionGroup
+					title="Successful Launches"
+					icon={<CheckCircle className="w-6 h-6 text-green-400" />}
+					collections={data.successful}
+					status="successful"
+					emptyMessage="No successful launches yet."
+				/>
+			)}
 
 			{/* Failed Launches */}
-			<CollectionGroup
-				title="Failed Launches"
-				icon={<AlertTriangle className="w-6 h-6 text-red-400" />}
-				collections={data.failed}
-				status="failed"
-				emptyMessage="No failed launches."
-			/>
+			{data.failed.length > 0 && (
+				<CollectionGroup
+					title="Failed Launches"
+					icon={<AlertTriangle className="w-6 h-6 text-red-400" />}
+					collections={data.failed}
+					status="failed"
+					emptyMessage="No failed launches."
+				/>
+			)}
 		</div>
 	);
 }

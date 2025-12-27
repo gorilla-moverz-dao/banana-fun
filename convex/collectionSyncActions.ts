@@ -7,6 +7,109 @@ import type { Id } from "./_generated/dataModel";
 import { type ActionCtx, action, internalAction } from "./_generated/server";
 import { createAptosClient } from "./aptos";
 
+// ================================= Shared Types =================================
+
+interface SupplyAndOwnerData {
+	currentSupply: number;
+	ownerCount: number;
+}
+
+interface CollectionViewData {
+	total_funds_collected: string;
+	sale_deadline: string;
+	current_supply: string;
+	sale_completed: boolean;
+	mint_enabled: boolean;
+	max_supply: string;
+	description: string;
+	uri: string;
+	placeholder_uri: string;
+	name: string;
+	dev_wallet_addr: string;
+	fa_symbol: string;
+	fa_name: string;
+	fa_icon_uri: string;
+	fa_project_uri: string;
+	vesting_cliff: string;
+	vesting_duration: string;
+	creator_vesting_wallet_addr: string;
+	creator_vesting_cliff: string;
+	creator_vesting_duration: string;
+	fa_metadata_addr?: { vec: string[] };
+	fa_total_minted?: { vec: string[] };
+	fa_lp_amount?: { vec: string[] };
+	fa_vesting_amount?: { vec: string[] };
+	fa_dev_wallet_amount?: { vec: string[] };
+	fa_creator_vesting_amount?: { vec: string[] };
+	refund_nfts_burned: string;
+	refund_total_amount: string;
+}
+
+// ================================= Helper Functions =================================
+
+/**
+ * Query indexer for current supply and owner count
+ */
+async function querySupplyAndOwnerCount(
+	aptos: ReturnType<typeof createAptosClient>["aptos"],
+	collectionId: `0x${string}`,
+	fallbackSupply: number,
+	fallbackOwnerCount: number,
+): Promise<SupplyAndOwnerData> {
+	const indexerResult = await aptos.queryIndexer({
+		query: {
+			query: `
+				query GetCollectionSupply($collection_id: String!) {
+					current_collections_v2(where: { collection_id: { _eq: $collection_id } }, limit: 1) {
+						current_supply
+					}
+					current_collection_ownership_v2_view_aggregate(where: { collection_id: { _eq: $collection_id } }) {
+						aggregate {
+							count(distinct: true, columns: owner_address)
+						}
+					}
+				}
+			`,
+			variables: {
+				collection_id: collectionId,
+			},
+		},
+	});
+
+	const data = indexerResult as {
+		current_collections_v2: Array<{ current_supply: string }>;
+		current_collection_ownership_v2_view_aggregate: {
+			aggregate: { count: number } | null;
+		};
+	};
+
+	return {
+		currentSupply: Number(data.current_collections_v2[0]?.current_supply ?? fallbackSupply),
+		ownerCount: data.current_collection_ownership_v2_view_aggregate.aggregate?.count ?? fallbackOwnerCount,
+	};
+}
+
+/**
+ * Get collection view data from blockchain
+ */
+async function getCollectionViewData(
+	launchpadClient: ReturnType<typeof createAptosClient>["launchpadClient"],
+	collectionId: `0x${string}`,
+): Promise<CollectionViewData> {
+	const [collectionViewItem] = await launchpadClient.view.get_collection_view_item({
+		typeArguments: [],
+		functionArguments: [collectionId],
+	});
+	return collectionViewItem as CollectionViewData;
+}
+
+/**
+ * Helper to extract value from Move Option (serialized as { vec: T[] })
+ */
+function extractOption<T>(opt: { vec: T[] } | undefined): T | undefined {
+	return opt?.vec?.[0];
+}
+
 /**
  * Helper function to sync a single collection's data from blockchain
  * Used for both existing and newly discovered collections
@@ -19,54 +122,12 @@ async function syncCollectionData(
 	existingCollectionId?: Id<"collections">, // Database ID if collection already exists
 	isActive: boolean = true,
 ) {
-	// Use collection ID directly as Object<Collection> (Aptos SDK handles the conversion)
-	const collectionObject = collectionId as `0x${string}`;
-
-	const [collectionViewItem] = await launchpadClient.view.get_collection_view_item({
-		typeArguments: [],
-		functionArguments: [collectionObject],
-	});
-
-	// Extract data from collectionViewItem
-	const viewData = collectionViewItem as {
-		total_funds_collected: string;
-		sale_deadline: string;
-		current_supply: string;
-		sale_completed: boolean;
-		mint_enabled: boolean;
-		max_supply: string;
-		description: string;
-		uri: string;
-		placeholder_uri: string;
-		name: string;
-		dev_wallet_addr: string;
-		fa_symbol: string;
-		fa_name: string;
-		fa_icon_uri: string;
-		fa_project_uri: string;
-		vesting_cliff: string;
-		vesting_duration: string;
-		creator_vesting_wallet_addr: string;
-		creator_vesting_cliff: string;
-		creator_vesting_duration: string;
-		// FA info (populated after sale completion) - Move Option<T> serializes as { vec: T[] }
-		fa_metadata_addr?: { vec: string[] };
-		fa_total_minted?: { vec: string[] };
-		fa_lp_amount?: { vec: string[] };
-		fa_vesting_amount?: { vec: string[] };
-		fa_dev_wallet_amount?: { vec: string[] };
-		fa_creator_vesting_amount?: { vec: string[] };
-	};
-
-	// Helper to extract value from Move Option (serialized as { vec: T[] })
-	const extractOption = <T>(opt: { vec: T[] } | undefined): T | undefined => {
-		return opt?.vec?.[0];
-	};
+	const viewData = await getCollectionViewData(launchpadClient, collectionId);
 
 	// Get creator address from blockchain
 	const [creatorAddress] = await launchpadClient.view.get_collection_creator_addr({
 		typeArguments: [],
-		functionArguments: [collectionObject],
+		functionArguments: [collectionId],
 	});
 
 	// Query indexer for royalty info and other metadata
@@ -120,7 +181,7 @@ async function syncCollectionData(
 	try {
 		const [mintStagesInfo] = await launchpadClient.view.get_mint_stages_info({
 			typeArguments: [],
-			functionArguments: ["0x0", collectionObject, []],
+			functionArguments: ["0x0", collectionId, []],
 		});
 
 		if (mintStagesInfo && Array.isArray(mintStagesInfo)) {
@@ -149,37 +210,9 @@ async function syncCollectionData(
 	let ownerCount = 0;
 
 	try {
-		const indexerResult = await aptos.queryIndexer({
-			query: {
-				query: `
-					query GetCollectionSupply($collection_id: String!) {
-						current_collections_v2(where: { collection_id: { _eq: $collection_id } }, limit: 1) {
-							current_supply
-						}
-						current_collection_ownership_v2_view_aggregate(where: { collection_id: { _eq: $collection_id } }) {
-							aggregate {
-								count(distinct: true, columns: owner_address)
-							}
-						}
-					}
-				`,
-				variables: {
-					collection_id: collectionId,
-				},
-			},
-		});
-
-		const supplyData = indexerResult as {
-			current_collections_v2: Array<{ current_supply: string }>;
-			current_collection_ownership_v2_view_aggregate: {
-				aggregate: { count: number } | null;
-			};
-		};
-
-		if (supplyData.current_collections_v2.length > 0) {
-			currentSupply = Number(supplyData.current_collections_v2[0].current_supply);
-		}
-		ownerCount = supplyData.current_collection_ownership_v2_view_aggregate.aggregate?.count ?? 0;
+		const supplyData = await querySupplyAndOwnerCount(aptos, collectionId, currentSupply, 0);
+		currentSupply = supplyData.currentSupply;
+		ownerCount = supplyData.ownerCount;
 	} catch (error) {
 		console.warn(`Could not fetch supply data from indexer for ${collectionId}:`, error);
 	}
@@ -261,6 +294,9 @@ async function syncCollectionData(
 				vestingAmountPerNft,
 				creatorVestingStartTime,
 				creatorVestingTotalPool,
+				// Refund tracking (for failed launches)
+				refundNftsBurned: Number(viewData.refund_nfts_burned),
+				refundTotalAmount: Number(viewData.refund_total_amount),
 				updatedAt: Date.now(),
 			},
 		});
@@ -301,6 +337,9 @@ async function syncCollectionData(
 				creatorVestingWalletAddress: viewData.creator_vesting_wallet_addr,
 				creatorVestingCliff: Number(viewData.creator_vesting_cliff),
 				creatorVestingDuration: Number(viewData.creator_vesting_duration),
+				// Refund tracking (for failed launches)
+				refundNftsBurned: Number(viewData.refund_nfts_burned),
+				refundTotalAmount: Number(viewData.refund_total_amount),
 				createdAt: createdAt,
 				updatedAt: Date.now(),
 			},
@@ -346,36 +385,12 @@ async function syncCollectionSupply(
 	const collectionId = collection.collectionId as `0x${string}`;
 
 	// Query indexer for current supply and owner count
-	const indexerResult = await aptos.queryIndexer({
-		query: {
-			query: `
-				query GetCollectionSupply($collection_id: String!) {
-					current_collections_v2(where: { collection_id: { _eq: $collection_id } }, limit: 1) {
-						current_supply
-					}
-					current_collection_ownership_v2_view_aggregate(where: { collection_id: { _eq: $collection_id } }) {
-						aggregate {
-							count(distinct: true, columns: owner_address)
-						}
-					}
-				}
-			`,
-			variables: {
-				collection_id: collectionId,
-			},
-		},
-	});
-
-	const collectionData = indexerResult as {
-		current_collections_v2: Array<{ current_supply: string }>;
-		current_collection_ownership_v2_view_aggregate: {
-			aggregate: { count: number } | null;
-		};
-	};
-
-	const currentSupply = Number(collectionData.current_collections_v2[0]?.current_supply ?? collection.currentSupply);
-	const ownerCount =
-		collectionData.current_collection_ownership_v2_view_aggregate.aggregate?.count ?? collection.ownerCount ?? 0;
+	const { currentSupply, ownerCount } = await querySupplyAndOwnerCount(
+		aptos,
+		collectionId,
+		collection.currentSupply,
+		collection.ownerCount ?? 0,
+	);
 
 	// Query blockchain for total_funds_collected
 	const [totalFundsCollectedRaw] = await launchpadClient.view.get_collected_funds({
@@ -547,15 +562,116 @@ export const syncCollectionDataAction = internalAction({
 });
 
 /**
- * Public action to sync collection supply after minting
- * Called from the client after a successful mint to update supply and owner count immediately
+ * Internal action to enable minting on the blockchain and sync the state back
+ * Called after all reveal items are uploaded and count matches maxSupply
+ */
+export const enableMintOnBlockchain = internalAction({
+	args: {
+		collectionId: v.string(),
+	},
+	handler: async (ctx, args): Promise<{ enabled: boolean }> => {
+		const { launchpadClient, aptos, account } = createAptosClient();
+
+		const collectionObject = args.collectionId as `0x${string}`;
+
+		try {
+			// Call update_mint_enabled on the blockchain
+			await launchpadClient.entry.update_mint_enabled({
+				typeArguments: [],
+				functionArguments: [collectionObject, true],
+				account,
+			});
+
+			console.log(`Enabled minting on blockchain for collection ${args.collectionId}`);
+
+			// Get the collection from database to sync
+			const collection = await ctx.runQuery(internal.collections.getCollectionByAddress, {
+				collectionId: args.collectionId,
+			});
+
+			if (collection) {
+				// Sync the collection data to update mintEnabled in Convex
+				await syncCollectionData(ctx, launchpadClient, aptos, collectionObject, collection._id, true);
+				console.log(`Synced collection ${args.collectionId} after enabling mint`);
+			}
+
+			return { enabled: true };
+		} catch (error) {
+			console.error(`Failed to enable minting for collection ${args.collectionId}:`, error);
+			return { enabled: false };
+		}
+	},
+});
+
+/**
+ * Public action to sync collection stats after a refund
+ * Called from the client after a successful refund to update supply, owner count, and refund stats
+ */
+export const afterRefund = action({
+	args: {
+		collectionId: v.string(),
+	},
+	handler: async (ctx, args): Promise<{ synced: boolean }> => {
+		const { aptos, launchpadClient } = createAptosClient();
+
+		// Get the collection from database
+		const collection = await ctx.runQuery(internal.collections.getCollectionByAddress, {
+			collectionId: args.collectionId,
+		});
+
+		if (!collection) {
+			console.warn(`afterRefund: Collection ${args.collectionId} not found in database`);
+			return { synced: false };
+		}
+
+		const collectionId = args.collectionId as `0x${string}`;
+
+		try {
+			// Query indexer for current supply and owner count (burned NFTs reduce supply)
+			const { currentSupply, ownerCount } = await querySupplyAndOwnerCount(
+				aptos,
+				collectionId,
+				collection.currentSupply,
+				collection.ownerCount ?? 0,
+			);
+
+			// Get refund stats from blockchain
+			const viewData = await getCollectionViewData(launchpadClient, collectionId);
+
+			// Update the database with refund stats
+			await ctx.runMutation(internal.collections.updateCollectionRefundStats, {
+				collectionId: collection._id,
+				currentSupply,
+				ownerCount,
+				refundNftsBurned: Number(viewData.refund_nfts_burned),
+				refundTotalAmount: Number(viewData.refund_total_amount),
+				totalFundsCollected: Number(viewData.total_funds_collected),
+			});
+
+			console.log(
+				`afterRefund: Synced ${collectionId}: supply=${currentSupply}, owners=${ownerCount}, burned=${viewData.refund_nfts_burned}, refunded=${viewData.refund_total_amount}`,
+			);
+
+			return { synced: true };
+		} catch (error) {
+			console.error(`afterRefund: Error syncing ${args.collectionId}:`, error);
+			return { synced: false };
+		}
+	},
+});
+
+/**
+ * Public action to sync collection supply after minting and trigger reveals
+ * Called from the client after a successful mint to update supply, owner count, and reveal NFTs
  */
 export const afterMint = action({
 	args: {
 		collectionId: v.string(),
+		nftTokenIds: v.optional(v.array(v.string())), // NFT token IDs to reveal
 	},
-	handler: async (ctx, args): Promise<boolean> => {
+	handler: async (ctx, args): Promise<{ synced: boolean; reveals: { nftTokenId: string; success: boolean }[] }> => {
 		const { aptos, launchpadClient, account } = createAptosClient();
+		const reveals: { nftTokenId: string; success: boolean }[] = [];
 
 		// Get the collection from database
 		const collection = await ctx.runQuery(internal.collections.getCollectionByAddress, {
@@ -564,9 +680,11 @@ export const afterMint = action({
 
 		if (!collection) {
 			console.warn(`Collection ${args.collectionId} not found in database`);
-			return false;
+			return { synced: false, reveals };
 		}
 
+		// Sync collection supply
+		let synced = false;
 		try {
 			await syncCollectionSupply(ctx, aptos, launchpadClient, account, {
 				_id: collection._id,
@@ -577,10 +695,27 @@ export const afterMint = action({
 				saleCompleted: collection.saleCompleted,
 				totalFundsCollected: collection.totalFundsCollected,
 			});
-			return true;
+			synced = true;
 		} catch (error) {
 			console.error(`afterMint: Error syncing ${args.collectionId}:`, error);
-			return false;
 		}
+
+		// Reveal NFTs if token IDs provided
+		if (args.nftTokenIds && args.nftTokenIds.length > 0) {
+			for (const nftTokenId of args.nftTokenIds) {
+				try {
+					const result = await ctx.runAction(internal.revealActions.revealNft, {
+						collectionId: args.collectionId,
+						nftTokenId,
+					});
+					reveals.push({ nftTokenId, success: result.success });
+				} catch (error) {
+					console.error(`afterMint: Error revealing NFT ${nftTokenId}:`, error);
+					reveals.push({ nftTokenId, success: false });
+				}
+			}
+		}
+
+		return { synced, reveals };
 	},
 });

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { ChevronLeft, ChevronRight, Coins, ExternalLinkIcon, Images } from "lucide-react";
+import { ChevronLeft, ChevronRight, Coins, ExternalLinkIcon, Flame, Images } from "lucide-react";
 import { useState } from "react";
 import { AssetDetailDialog } from "@/components/AssetDetailDialog";
 import { CollectionFilters } from "@/components/CollectionFilters";
@@ -9,6 +9,7 @@ import { GlassCard } from "@/components/GlassCard";
 import { MyNFTsCard } from "@/components/MyNFTsCard";
 import { NFTThumbnail } from "@/components/NFTThumbnail";
 import { RefundNFTsCard } from "@/components/RefundNFTsCard";
+import { RefundStatsCard } from "@/components/RefundStatsCard";
 import { TokenInfoCard } from "@/components/TokenInfoCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -162,8 +163,8 @@ function RouteComponent() {
 			<Tabs defaultValue="token" className="w-full">
 				<TabsList className="grid w-full grid-cols-2 bg-black/20 backdrop-blur-sm">
 					<TabsTrigger value="token" className="flex items-center gap-2 data-[state=active]:bg-yellow-500/80">
-						<Coins className="w-4 h-4" />
-						Vesting
+						{isFailedLaunch ? <Flame className="w-4 h-4" /> : <Coins className="w-4 h-4" />}
+						{isFailedLaunch ? "Refund" : "Vesting"}
 					</TabsTrigger>
 					<TabsTrigger value="collection" className="flex items-center gap-2 data-[state=active]:bg-yellow-500/80">
 						<Images className="w-4 h-4" />
@@ -173,37 +174,47 @@ function RouteComponent() {
 
 				{/* Vesting Tab */}
 				<TabsContent value="token" className="space-y-6 mt-6">
-					{/* Vesting Cards - Side by side on larger screens */}
-					{(hasHolderVesting || hasTeamVesting) && (
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-							{hasHolderVesting && <VestingCard type="holder" collectionData={collectionData} />}
-							{hasTeamVesting && <VestingCard type="team" collectionData={collectionData} />}
-						</div>
+					{/* For failed launches: Show refund stats instead of vesting cards */}
+					{isFailedLaunch ? (
+						<>
+							{/* Refund Stats Card */}
+							<RefundStatsCard collectionData={collectionData} />
+
+							{/* User's NFTs for refund */}
+							{connected && isFetchedMyNFTs && myNfts.length > 0 && (
+								<RefundNFTsCard
+									nfts={myNfts}
+									collectionData={collectionData}
+									onRefundSuccess={() => {
+										refetchMyNFTs();
+									}}
+								/>
+							)}
+						</>
+					) : (
+						<>
+							{/* Vesting Cards - Side by side on larger screens */}
+							{(hasHolderVesting || hasTeamVesting) && (
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+									{hasHolderVesting && <VestingCard type="holder" collectionData={collectionData} />}
+									{hasTeamVesting && <VestingCard type="team" collectionData={collectionData} />}
+								</div>
+							)}
+
+							{/* Creator Vesting Card - Show when user is the dev wallet and sale is completed */}
+							{isCreatorVestingBeneficiary && <CreatorVestingCard collectionData={collectionData} />}
+
+							{/* My NFTs Card - Show claim card for successful sales */}
+							{connected && isFetchedMyNFTs && myNfts.length > 0 && (
+								<MyNFTsCard
+									nfts={myNfts}
+									collectionData={collectionData}
+									onNFTClick={handleNFTClick}
+									gridCols="grid-cols-2 md:grid-cols-4 lg:grid-cols-6"
+								/>
+							)}
+						</>
 					)}
-
-					{/* Creator Vesting Card - Show when user is the dev wallet and sale is completed */}
-					{isCreatorVestingBeneficiary && <CreatorVestingCard collectionData={collectionData} />}
-
-					{/* My NFTs Card - Show refund card for failed launches, claim card for successful */}
-					{connected &&
-						isFetchedMyNFTs &&
-						myNfts.length > 0 &&
-						(isFailedLaunch ? (
-							<RefundNFTsCard
-								nfts={myNfts}
-								collectionData={collectionData}
-								onRefundSuccess={() => {
-									refetchMyNFTs();
-								}}
-							/>
-						) : (
-							<MyNFTsCard
-								nfts={myNfts}
-								collectionData={collectionData}
-								onNFTClick={handleNFTClick}
-								gridCols="grid-cols-2 md:grid-cols-4 lg:grid-cols-6"
-							/>
-						))}
 				</TabsContent>
 
 				{/* Collection Browser Tab */}

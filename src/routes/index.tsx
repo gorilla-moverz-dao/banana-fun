@@ -10,10 +10,7 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-	const collections = useQuery(api.collections.getMintingCollections, {
-		saleCompleted: false,
-		requireMintEnabled: true,
-	});
+	const collections = useQuery(api.collections.getMintingCollections);
 
 	const featuredCollections = collections?.slice(0, 3) ?? [];
 

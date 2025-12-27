@@ -6,27 +6,14 @@ import { internalMutation, internalQuery, query } from "./_generated/server";
  * Get all collections filtered by sale completion status
  */
 export const getMintingCollections = query({
-	args: {
-		saleCompleted: v.optional(v.boolean()),
-		requireMintEnabled: v.optional(v.boolean()),
-	},
-	handler: async (ctx, args) => {
-		const saleCompleted = args.saleCompleted ?? false; // Default to false (active sales)
-		const requireMintEnabled = args.requireMintEnabled ?? true; // Default to true (only mint-enabled)
-
-		let collections: Doc<"collections">[];
-
-		if (requireMintEnabled) {
-			collections = await ctx.db
-				.query("collections")
-				.withIndex("by_state", (q) => q.eq("saleCompleted", saleCompleted).eq("mintEnabled", true))
-				.collect();
-		} else {
-			collections = await ctx.db
-				.query("collections")
-				.filter((q) => q.eq(q.field("saleCompleted"), saleCompleted))
-				.collect();
-		}
+	args: {},
+	handler: async (ctx) => {
+		const collections = await ctx.db
+			.query("collections")
+			.withIndex("by_mint_enabled", (q) => q.eq("mintEnabled", true))
+			// filter out collections that are not completed at time of deadline
+			.filter((q) => q.gt(q.field("saleDeadline"), Date.now() / 1000))
+			.collect();
 
 		// Sort by createdAt descending (newest first)
 		collections.sort((a, b) => b.createdAt - a.createdAt);
@@ -49,7 +36,10 @@ export const getMintingCollections = query({
 export const getCollectionsGrouped = query({
 	args: {},
 	handler: async (ctx) => {
-		const allCollections = await ctx.db.query("collections").collect();
+		const allCollections = await ctx.db
+			.query("collections")
+			.withIndex("by_mint_enabled", (q) => q.eq("mintEnabled", true))
+			.collect();
 		const now = Math.floor(Date.now() / 1000);
 
 		const ongoing: Doc<"collections">[] = [];
@@ -184,6 +174,9 @@ export const createCollectionFromBlockchain = internalMutation({
 			creatorVestingWalletAddress: v.string(),
 			creatorVestingCliff: v.number(),
 			creatorVestingDuration: v.number(),
+			// Refund tracking (for failed launches)
+			refundNftsBurned: v.optional(v.number()),
+			refundTotalAmount: v.optional(v.number()),
 			createdAt: v.number(),
 			updatedAt: v.number(),
 		}),
@@ -239,6 +232,9 @@ export const updateCollectionFromBlockchain = internalMutation({
 			vestingAmountPerNft: v.optional(v.number()),
 			creatorVestingStartTime: v.optional(v.number()),
 			creatorVestingTotalPool: v.optional(v.number()),
+			// Refund tracking (for failed launches)
+			refundNftsBurned: v.optional(v.number()),
+			refundTotalAmount: v.optional(v.number()),
 			updatedAt: v.number(),
 		}),
 	},
@@ -299,6 +295,38 @@ export const updateCollectionSupply = internalMutation({
 		}
 
 		await ctx.db.patch("collections", args.collectionId, patch);
+
+		return { updated: true };
+	},
+});
+
+/**
+ * Internal mutation to update refund stats after a refund
+ */
+export const updateCollectionRefundStats = internalMutation({
+	args: {
+		collectionId: v.id("collections"),
+		currentSupply: v.number(),
+		ownerCount: v.number(),
+		refundNftsBurned: v.number(),
+		refundTotalAmount: v.number(),
+		totalFundsCollected: v.number(),
+	},
+	handler: async (ctx, args) => {
+		const existing = await ctx.db.get("collections", args.collectionId);
+		if (!existing) {
+			console.error(`Collection ${args.collectionId} not found in database`);
+			return { updated: false };
+		}
+
+		await ctx.db.patch("collections", args.collectionId, {
+			currentSupply: args.currentSupply,
+			ownerCount: args.ownerCount,
+			refundNftsBurned: args.refundNftsBurned,
+			refundTotalAmount: args.refundTotalAmount,
+			totalFundsCollected: args.totalFundsCollected,
+			updatedAt: Date.now(),
+		});
 
 		return { updated: true };
 	},

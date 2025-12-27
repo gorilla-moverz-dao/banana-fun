@@ -88,14 +88,14 @@ export function MintStageCard({ stage, collectionId, mintBalance, onMintSuccess 
 				type_arguments: [],
 			}),
 		);
-		await refetchNFTs();
 
+		const newTokenIds = extractTokenIds(result as { events: MintNftEvent[] });
 		// Sync collection supply data after successful mint
-		afterMint({ collectionId }).catch((error) => {
+		await afterMint({ collectionId, nftTokenIds: newTokenIds }).catch((error) => {
 			console.error("Failed to sync collection after mint:", error);
 		});
 
-		const newTokenIds = extractTokenIds(result as { events: MintNftEvent[] });
+		await refetchNFTs();
 		onMintSuccess(newTokenIds);
 	}
 
