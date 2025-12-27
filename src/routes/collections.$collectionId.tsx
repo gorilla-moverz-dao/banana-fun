@@ -252,7 +252,13 @@ function RouteComponent() {
 								{search.view === "grid" ? (
 									<div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
 										{nfts.map((nft) => (
-											<NFTThumbnail key={nft.token_data_id} nft={nft} collectionData={collectionData} />
+											<NFTThumbnail
+												key={nft.token_data_id}
+												nft={nft}
+												collectionData={collectionData}
+												onClick={() => handleNFTClick(nft)}
+												className="cursor-pointer"
+											/>
 										))}
 									</div>
 								) : (
@@ -262,6 +268,7 @@ function RouteComponent() {
 												hoverEffect={true}
 												key={nft.token_data_id}
 												className="p-2 cursor-pointer hover:bg-white/10 transition-all duration-200 backdrop-blur-sm bg-white/5 border border-white/20 group"
+												onClick={() => handleNFTClick(nft)}
 											>
 												<div className="flex items-center gap-4">
 													<div className="w-20 h-20 rounded-lg overflow-hidden border border-white/20 transition-transform duration-300 group-hover:scale-120">
