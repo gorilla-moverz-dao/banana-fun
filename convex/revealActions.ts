@@ -32,6 +32,9 @@ export const uploadRevealData = action({
 
 		console.log(`Uploaded ${totalInserted} reveal items for collection ${args.collectionId}`);
 
+		// We might not have initially synced the collection, so we need to sync it
+		await ctx.runAction(internal.collectionSyncActions.syncCollectionDataAction, {});
+
 		// Check if we should enable minting (reveal item count matches maxSupply)
 		const [revealItemCount, collection] = await Promise.all([
 			ctx.runQuery(internal.reveal.countRevealItems, { collectionId: args.collectionId }),

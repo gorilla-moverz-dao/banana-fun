@@ -6,10 +6,8 @@ import { GlassCard } from "./GlassCard";
 export function CollectionBrowser({ path }: { path: "mint" | "collections" }) {
 	// Fetch active sales for "mint" path, completed sales for "collections" path
 	const saleCompleted = path === "collections";
-	const requireMintEnabled = path === "mint"; // Only require mint enabled for mint path
 	const data = useQuery(api.collections.getMintingCollections, {
 		saleCompleted: saleCompleted,
-		requireMintEnabled: requireMintEnabled,
 	});
 
 	if (data === undefined) return <div>Loading collections...</div>;

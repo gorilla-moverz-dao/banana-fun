@@ -7,7 +7,7 @@ import { ABI as vestingABI } from "../src/abi/vesting";
 import { NETWORKS } from "../src/lib/networks";
 
 const MOVE_NETWORK = NETWORKS.TESTNET;
-const LAUNCHPAD_MODULE_ADDRESS = "0x87af4d7e941f0a3850caa7fa7ff9e3f986dc096f1b899006c071f60851f57263";
+const LAUNCHPAD_MODULE_ADDRESS = "0x9c4f549f56f903e59eacd92bc7531b2190b7ebf99b951999fd65d6895efd0bfc";
 
 export function createAptosClient() {
 	const config = new AptosConfig({

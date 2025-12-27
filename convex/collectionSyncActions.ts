@@ -56,6 +56,9 @@ async function syncCollectionData(
 		fa_vesting_amount?: { vec: string[] };
 		fa_dev_wallet_amount?: { vec: string[] };
 		fa_creator_vesting_amount?: { vec: string[] };
+		// Refund tracking (for failed launches)
+		refund_nfts_burned: string;
+		refund_total_amount: string;
 	};
 
 	// Helper to extract value from Move Option (serialized as { vec: T[] })
@@ -261,6 +264,9 @@ async function syncCollectionData(
 				vestingAmountPerNft,
 				creatorVestingStartTime,
 				creatorVestingTotalPool,
+				// Refund tracking (for failed launches)
+				refundNftsBurned: Number(viewData.refund_nfts_burned),
+				refundTotalAmount: Number(viewData.refund_total_amount),
 				updatedAt: Date.now(),
 			},
 		});
@@ -301,6 +307,9 @@ async function syncCollectionData(
 				creatorVestingWalletAddress: viewData.creator_vesting_wallet_addr,
 				creatorVestingCliff: Number(viewData.creator_vesting_cliff),
 				creatorVestingDuration: Number(viewData.creator_vesting_duration),
+				// Refund tracking (for failed launches)
+				refundNftsBurned: Number(viewData.refund_nfts_burned),
+				refundTotalAmount: Number(viewData.refund_total_amount),
 				createdAt: createdAt,
 				updatedAt: Date.now(),
 			},
