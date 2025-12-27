@@ -303,6 +303,38 @@ export const updateCollectionSupply = internalMutation({
 });
 
 /**
+ * Internal mutation to update refund stats after a refund
+ */
+export const updateCollectionRefundStats = internalMutation({
+	args: {
+		collectionId: v.id("collections"),
+		currentSupply: v.number(),
+		ownerCount: v.number(),
+		refundNftsBurned: v.number(),
+		refundTotalAmount: v.number(),
+		totalFundsCollected: v.number(),
+	},
+	handler: async (ctx, args) => {
+		const existing = await ctx.db.get("collections", args.collectionId);
+		if (!existing) {
+			console.error(`Collection ${args.collectionId} not found in database`);
+			return { updated: false };
+		}
+
+		await ctx.db.patch("collections", args.collectionId, {
+			currentSupply: args.currentSupply,
+			ownerCount: args.ownerCount,
+			refundNftsBurned: args.refundNftsBurned,
+			refundTotalAmount: args.refundTotalAmount,
+			totalFundsCollected: args.totalFundsCollected,
+			updatedAt: Date.now(),
+		});
+
+		return { updated: true };
+	},
+});
+
+/**
  * Upsert mint stages for a collection
  * This replaces all existing stages for the collection
  */

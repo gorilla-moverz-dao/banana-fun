@@ -12,11 +12,9 @@ interface RefundStatsCardProps {
 export function RefundStatsCard({ collectionData }: RefundStatsCardProps) {
 	const nftsBurned = collectionData.refundNftsBurned ?? 0;
 	const totalRefunded = collectionData.refundTotalAmount ?? 0;
-	const totalMinted = collectionData.currentSupply ?? 0;
 	const totalCollected = collectionData.totalFundsCollected ?? 0;
 
 	// Calculate remaining (not yet refunded)
-	const nftsRemaining = totalMinted - nftsBurned;
 	const fundsRemaining = totalCollected;
 
 	return (
@@ -46,9 +44,7 @@ export function RefundStatsCard({ collectionData }: RefundStatsCardProps) {
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<div className="text-center p-4 rounded-lg bg-black/20 border border-orange-500/20">
-							<div className="text-2xl font-bold text-orange-400">
-								{oaptToApt(totalRefunded).toLocaleString()}
-							</div>
+							<div className="text-2xl font-bold text-orange-400">{oaptToApt(totalRefunded).toLocaleString()}</div>
 							<div className="text-sm text-muted-foreground">MOVE Refunded</div>
 						</div>
 					</TooltipTrigger>
@@ -61,7 +57,7 @@ export function RefundStatsCard({ collectionData }: RefundStatsCardProps) {
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<div className="text-center p-4 rounded-lg bg-black/20 border border-white/10">
-							<div className="text-2xl font-bold text-muted-foreground">{nftsRemaining}</div>
+							<div className="text-2xl font-bold text-muted-foreground">{collectionData.currentSupply}</div>
 							<div className="text-sm text-muted-foreground">NFTs Remaining</div>
 						</div>
 					</TooltipTrigger>
@@ -89,4 +85,3 @@ export function RefundStatsCard({ collectionData }: RefundStatsCardProps) {
 		</GlassCard>
 	);
 }
-
