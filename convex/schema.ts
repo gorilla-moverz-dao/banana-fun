@@ -63,7 +63,8 @@ export default defineSchema({
 		updatedAt: v.number(), // Last update timestamp
 	})
 		.index("by_collection_id", ["collectionId"])
-		.index("by_state", ["saleCompleted", "mintEnabled"]),
+		.index("by_state", ["saleCompleted", "mintEnabled"])
+		.index("by_mint_enabled", ["mintEnabled"]),
 
 	mintStages: defineTable({
 		collectionId: v.string(), // Reference to collection

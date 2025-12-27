@@ -11,6 +11,25 @@
  * Usage: bun run scripts/e2e-test-nft-sale.ts
  */
 
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+// Load .env.local file manually (for tsx compatibility)
+const envPath = join(process.cwd(), ".env.local");
+if (existsSync(envPath)) {
+	const envContent = readFileSync(envPath, "utf-8");
+	for (const line of envContent.split("\n")) {
+		const trimmed = line.trim();
+		if (trimmed && !trimmed.startsWith("#")) {
+			const [key, ...valueParts] = trimmed.split("=");
+			const value = valueParts.join("=").replace(/^["']|["']$/g, "");
+			if (key && !process.env[key]) {
+				process.env[key] = value;
+			}
+		}
+	}
+}
+
 import type { Account, UserTransactionResponse } from "@aptos-labs/ts-sdk";
 import { ConvexHttpClient } from "convex/browser";
 import { LAUNCHPAD_MODULE_ADDRESS, MOVE_NETWORK } from "@/constants";
@@ -25,6 +44,7 @@ import { dateToSeconds, getSigner, sleep } from "./helper";
 const CONVEX_URL = process.env.VITE_CONVEX_URL || process.env.CONVEX_URL;
 if (!CONVEX_URL) {
 	console.warn("⚠️  CONVEX_URL not set. Reveal data upload will be skipped.");
+	throw new Error("CONVEX_URL not set");
 }
 const convex = CONVEX_URL ? new ConvexHttpClient(CONVEX_URL) : null;
 
@@ -35,7 +55,7 @@ const MOVEMENT_CONFIG_PATH = `${MOVE_DIR}.movement/config.yaml`;
 
 // Collection configuration for testing
 const TEST_COLLECTION_CONFIG = {
-	name: "BF Collection",
+	name: "BF Collection V2",
 	description: "BF Collection for testing the NFT launchpad",
 	uri: "https://banana-fun.gorilla-moverz.xyz/favicon.png",
 	maxSupply: 50,
@@ -43,8 +63,8 @@ const TEST_COLLECTION_CONFIG = {
 	mintFeePerNFT: 100_000_000, // 0.1 MOVE (8 decimals)
 	royaltyPercentage: 5,
 	// Fungible asset config
-	faSymbol: "BF_",
-	faName: "BF Token",
+	faSymbol: "BFV2_",
+	faName: "BFV2 Token",
 	faIconUri: "https://banana-fun.gorilla-moverz.xyz/favicon.png",
 	faProjectUri: "https://banana-fun.gorilla-moverz.xyz",
 	// Vesting config
@@ -63,25 +83,43 @@ interface RevealItem {
 	traits: { trait_type: string; value: string }[];
 }
 
-/**
- * Generate sample reveal data for a collection
- */
-function generateRevealData(maxSupply: number, collectionName: string): RevealItem[] {
-	const backgrounds = ["Blue", "Red", "Green", "Purple", "Orange", "Yellow"];
-	const rarities = ["Common", "Uncommon", "Rare", "Epic", "Legendary"];
-	const types = ["Warrior", "Mage", "Archer", "Healer", "Tank"];
+interface MetadataJson {
+	name: string;
+	description: string;
+	image: string;
+	attributes: { trait_type: string; value: string }[];
+}
 
-	return Array.from({ length: maxSupply }, (_, i) => ({
-		name: `${collectionName} #${i + 1}`,
-		description: `A unique NFT from ${collectionName}. Token number ${i + 1} of ${maxSupply}.`,
-		uri: `https://banana-fun.gorilla-moverz.xyz/nft/${i + 1}.json`,
-		traits: [
-			{ trait_type: "Background", value: backgrounds[i % backgrounds.length] },
-			{ trait_type: "Rarity", value: rarities[i % rarities.length] },
-			{ trait_type: "Type", value: types[i % types.length] },
-			{ trait_type: "Number", value: String(i + 1) },
-		],
-	}));
+const METADATA_DIR = "test-collection/metadata";
+
+/**
+ * Load reveal data from JSON files in test-collection/metadata
+ */
+function loadRevealDataFromFiles(maxSupply: number): RevealItem[] {
+	const files = readdirSync(METADATA_DIR)
+		.filter((f) => f.endsWith(".json"))
+		.sort((a, b) => {
+			// Sort numerically by filename (1.json, 2.json, ..., 50.json)
+			const numA = Number.parseInt(a.replace(".json", ""), 10);
+			const numB = Number.parseInt(b.replace(".json", ""), 10);
+			return numA - numB;
+		})
+		.slice(0, maxSupply);
+
+	console.log(`📂 Loading ${files.length} metadata files from ${METADATA_DIR}...`);
+
+	return files.map((file) => {
+		const filePath = join(METADATA_DIR, file);
+		const content = readFileSync(filePath, "utf-8");
+		const metadata: MetadataJson = JSON.parse(content);
+
+		return {
+			name: metadata.name,
+			description: metadata.description,
+			uri: metadata.image,
+			traits: metadata.attributes,
+		};
+	});
 }
 
 /**
@@ -500,8 +538,8 @@ async function main() {
 	// Wait a bit for indexer to catch up
 	await sleep(2000);
 
-	// Generate and upload reveal data
-	const revealData = generateRevealData(config.maxSupply, config.name);
+	// Load and upload reveal data from metadata files
+	const revealData = loadRevealDataFromFiles(config.maxSupply);
 	const revealDataUploaded = await uploadRevealData(collectionId, revealData);
 
 	// Get collection info
@@ -513,7 +551,7 @@ async function main() {
 	let totalReveals = 0;
 
 	// Mint in batches to avoid transaction size limits
-	const supplyToMint = TEST_COLLECTION_CONFIG.maxSupply - 10;
+	const supplyToMint = 5;
 	const batchSize = 5;
 	for (let i = 0; i < supplyToMint; i += batchSize) {
 		const amount = Math.min(batchSize, TEST_COLLECTION_CONFIG.maxSupply - i);

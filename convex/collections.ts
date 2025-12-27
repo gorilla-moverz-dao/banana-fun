@@ -8,25 +8,14 @@ import { internalMutation, internalQuery, query } from "./_generated/server";
 export const getMintingCollections = query({
 	args: {
 		saleCompleted: v.optional(v.boolean()),
-		requireMintEnabled: v.optional(v.boolean()),
 	},
 	handler: async (ctx, args) => {
 		const saleCompleted = args.saleCompleted ?? false; // Default to false (active sales)
-		const requireMintEnabled = args.requireMintEnabled ?? true; // Default to true (only mint-enabled)
 
-		let collections: Doc<"collections">[];
-
-		if (requireMintEnabled) {
-			collections = await ctx.db
-				.query("collections")
-				.withIndex("by_state", (q) => q.eq("saleCompleted", saleCompleted).eq("mintEnabled", true))
-				.collect();
-		} else {
-			collections = await ctx.db
-				.query("collections")
-				.filter((q) => q.eq(q.field("saleCompleted"), saleCompleted))
-				.collect();
-		}
+		const collections = await ctx.db
+			.query("collections")
+			.withIndex("by_state", (q) => q.eq("saleCompleted", saleCompleted).eq("mintEnabled", true))
+			.collect();
 
 		// Sort by createdAt descending (newest first)
 		collections.sort((a, b) => b.createdAt - a.createdAt);
@@ -49,7 +38,10 @@ export const getMintingCollections = query({
 export const getCollectionsGrouped = query({
 	args: {},
 	handler: async (ctx) => {
-		const allCollections = await ctx.db.query("collections").collect();
+		const allCollections = await ctx.db
+			.query("collections")
+			.withIndex("by_mint_enabled", (q) => q.eq("mintEnabled", true))
+			.collect();
 		const now = Math.floor(Date.now() / 1000);
 
 		const ongoing: Doc<"collections">[] = [];
