@@ -489,6 +489,71 @@ module deployment_addr::test_end_to_end {
 
     }
 
+    #[test(
+        aptos_framework = @0x1, sender = @deployment_addr, user1 = @0x200, royalty_user = @0x300
+    )]
+    #[expected_failure(abort_code = 1101, location = nft_launchpad)]
+    fun test_reveal_already_revealed_nft_should_fail(
+        aptos_framework: &signer,
+        sender: &signer,
+        user1: &signer,
+        royalty_user: &signer
+    ) {
+        let user1_addr = setup_test_env(aptos_framework, user1, sender);
+
+        let collection_1 =
+            create_allowlist_then_public_collection(
+                sender,
+                royalty_user,
+                vector[user1_addr], // allowlist_addresses
+                vector[MINT_LIMIT_SMALL], // allowlist_mint_limits
+                MINT_FEE_MEDIUM, // allowlist_mint_fee
+                MINT_FEE_LARGE, // public_mint_fee
+                MINT_LIMIT_MEDIUM, // public_mint_limit
+                DURATION_SHORT, // allowlist_duration
+                DURATION_SHORT // public_duration
+            );
+
+        assert!(nft_launchpad::is_mint_enabled(collection_1));
+
+        let total_fee = get_total_mint_fee(collection_1, utf8(STAGE_NAME_ALLOWLIST), 1);
+        mint(user1_addr, total_fee);
+
+        let nft_obj = nft_launchpad::test_mint_nft(user1_addr, collection_1);
+
+        // Prepare batch vectors for reveal_nfts
+        let nft_objs = vector[nft_obj];
+        let names = vector[utf8(REVEALED_NAME)];
+        let descriptions = vector[utf8(REVEALED_DESCRIPTION)];
+        let uris = vector[utf8(REVEALED_URI)];
+        let prop_names_vec = vector[vector[utf8(PROPERTY_NAME)]];
+        let prop_values_vec = vector[vector[utf8(PROPERTY_VALUE)]];
+
+        // First reveal should succeed
+        nft_launchpad::reveal_nfts(
+            sender,
+            collection_1,
+            nft_objs,
+            names,
+            descriptions,
+            uris,
+            prop_names_vec,
+            prop_values_vec
+        );
+
+        // Second reveal should fail with ENFT_ALREADY_REVEALED (1101)
+        nft_launchpad::reveal_nfts(
+            sender,
+            collection_1,
+            nft_objs,
+            names,
+            descriptions,
+            uris,
+            prop_names_vec,
+            prop_values_vec
+        );
+    }
+
     #[
         test(
             aptos_framework = @0x1,

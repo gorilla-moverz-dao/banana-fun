@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { ChevronLeft, ChevronRight, Coins, ExternalLinkIcon, Images } from "lucide-react";
+import { ChevronLeft, ChevronRight, Coins, ExternalLinkIcon, Flame, Images } from "lucide-react";
 import { useState } from "react";
 import { AssetDetailDialog } from "@/components/AssetDetailDialog";
 import { CollectionFilters } from "@/components/CollectionFilters";
@@ -163,8 +163,8 @@ function RouteComponent() {
 			<Tabs defaultValue="token" className="w-full">
 				<TabsList className="grid w-full grid-cols-2 bg-black/20 backdrop-blur-sm">
 					<TabsTrigger value="token" className="flex items-center gap-2 data-[state=active]:bg-yellow-500/80">
-						<Coins className="w-4 h-4" />
-						Vesting
+						{isFailedLaunch ? <Flame className="w-4 h-4" /> : <Coins className="w-4 h-4" />}
+						{isFailedLaunch ? "Refund" : "Vesting"}
 					</TabsTrigger>
 					<TabsTrigger value="collection" className="flex items-center gap-2 data-[state=active]:bg-yellow-500/80">
 						<Images className="w-4 h-4" />

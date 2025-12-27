@@ -99,6 +99,8 @@ module deployment_addr::nft_launchpad {
     const ESALE_THRESHOLD_NOT_MET: u64 = 1010;
     /// Only admin can reveal NFTs
     const EONLY_ADMIN_CAN_REVEAL: u64 = 1100;
+    /// NFT is already revealed
+    const ENFT_ALREADY_REVEALED: u64 = 1101;
 
     /// 100 years in seconds, we consider mint end time to be infinite when it is set to 100 years after start time
     const ONE_HUNDRED_YEARS_IN_SECONDS: u64 = 100 * 365 * 24 * 60 * 60;
@@ -747,6 +749,15 @@ module deployment_addr::nft_launchpad {
             token_components::set_uri(collection_owner_obj_signer, nft_obj, uri);
             let prop_len = prop_names.length();
             assert!(prop_len == prop_values.length(), EINVALID_REVEAL_DATA);
+
+            // If already revealed (has properties), abort
+            if (prop_len > 0) {
+                assert!(
+                    !aptos_token_objects::property_map::contains_key(&nft_obj, &prop_names[0]),
+                    ENFT_ALREADY_REVEALED
+                );
+            };
+
             for (j in 0..prop_len) {
                 let prop_name = prop_names[j];
                 let prop_value = prop_values[j];
