@@ -3,19 +3,50 @@
  *
  * This script tests the full NFT launchpad flow:
  * 1. Create a collection with mint stages
- * 2. Mint NFTs
- * 3. Complete the sale (if threshold met)
- * 4. Test vesting claims
+ * 2. Upload reveal data to Convex
+ * 3. Mint NFTs (with automatic reveal)
+ * 4. Complete the sale (if threshold met)
+ * 5. Test vesting claims
  *
  * Usage: bun run scripts/e2e-test-nft-sale.ts
  */
 
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+// Load .env.local file manually (for tsx compatibility)
+const envPath = join(process.cwd(), ".env.local");
+if (existsSync(envPath)) {
+	const envContent = readFileSync(envPath, "utf-8");
+	for (const line of envContent.split("\n")) {
+		const trimmed = line.trim();
+		if (trimmed && !trimmed.startsWith("#")) {
+			const [key, ...valueParts] = trimmed.split("=");
+			const value = valueParts.join("=").replace(/^["']|["']$/g, "");
+			if (key && !process.env[key]) {
+				process.env[key] = value;
+			}
+		}
+	}
+}
+
 import type { Account, UserTransactionResponse } from "@aptos-labs/ts-sdk";
+import { ConvexHttpClient } from "convex/browser";
 import { LAUNCHPAD_MODULE_ADDRESS, MOVE_NETWORK } from "@/constants";
 import { aptos, launchpadClient, vestingClient } from "@/lib/aptos";
 import { normalizeHexAddress } from "@/lib/utils";
+import { api } from "../convex/_generated/api";
 import type { Doc } from "../convex/_generated/dataModel";
 import { dateToSeconds, getSigner, sleep } from "./helper";
+
+// ================================= Convex Client =================================
+
+const CONVEX_URL = process.env.VITE_CONVEX_URL || process.env.CONVEX_URL;
+if (!CONVEX_URL) {
+	console.warn("⚠️  CONVEX_URL not set. Reveal data upload will be skipped.");
+	throw new Error("CONVEX_URL not set");
+}
+const convex = CONVEX_URL ? new ConvexHttpClient(CONVEX_URL) : null;
 
 // ================================= Configuration =================================
 
@@ -24,24 +55,96 @@ const MOVEMENT_CONFIG_PATH = `${MOVE_DIR}.movement/config.yaml`;
 
 // Collection configuration for testing
 const TEST_COLLECTION_CONFIG = {
-	name: "BF Collection",
+	name: "BF Collection V2",
 	description: "BF Collection for testing the NFT launchpad",
 	uri: "https://banana-fun.gorilla-moverz.xyz/favicon.png",
-	maxSupply: 30,
+	maxSupply: 50,
 	placeholderUri: "https://banana-fun.gorilla-moverz.xyz/favicon.png",
 	mintFeePerNFT: 100_000_000, // 0.1 MOVE (8 decimals)
 	royaltyPercentage: 5,
 	// Fungible asset config
-	faSymbol: "BF_",
-	faName: "BF Token",
+	faSymbol: "BFV2_",
+	faName: "BFV2 Token",
 	faIconUri: "https://banana-fun.gorilla-moverz.xyz/favicon.png",
 	faProjectUri: "https://banana-fun.gorilla-moverz.xyz",
 	// Vesting config
 	vestingCliff: 60, // 1 minute cliff
-	vestingDuration: 120, // 2 minutes duration
+	vestingDuration: 3 * 24 * 60 * 60, // 24 hours duration
 	creatorVestingCliff: 60,
-	creatorVestingDuration: 120,
+	creatorVestingDuration: 3 * 24 * 60 * 60,
 };
+
+// ================================= Reveal Data Functions =================================
+
+interface RevealItem {
+	name: string;
+	description: string;
+	uri: string;
+	traits: { trait_type: string; value: string }[];
+}
+
+interface MetadataJson {
+	name: string;
+	description: string;
+	image: string;
+	attributes: { trait_type: string; value: string }[];
+}
+
+const METADATA_DIR = "test-collection/metadata";
+
+/**
+ * Load reveal data from JSON files in test-collection/metadata
+ */
+function loadRevealDataFromFiles(maxSupply: number): RevealItem[] {
+	const files = readdirSync(METADATA_DIR)
+		.filter((f) => f.endsWith(".json"))
+		.sort((a, b) => {
+			// Sort numerically by filename (1.json, 2.json, ..., 50.json)
+			const numA = Number.parseInt(a.replace(".json", ""), 10);
+			const numB = Number.parseInt(b.replace(".json", ""), 10);
+			return numA - numB;
+		})
+		.slice(0, maxSupply);
+
+	console.log(`📂 Loading ${files.length} metadata files from ${METADATA_DIR}...`);
+
+	return files.map((file) => {
+		const filePath = join(METADATA_DIR, file);
+		const content = readFileSync(filePath, "utf-8");
+		const metadata: MetadataJson = JSON.parse(content);
+
+		return {
+			name: metadata.name,
+			description: metadata.description,
+			uri: metadata.image,
+			traits: metadata.attributes,
+		};
+	});
+}
+
+/**
+ * Upload reveal data to Convex
+ */
+async function uploadRevealData(collectionId: string, items: RevealItem[]): Promise<boolean> {
+	if (!convex) {
+		console.log("⚠️  Convex client not initialized, skipping reveal data upload");
+		return false;
+	}
+
+	console.log(`\n📤 Uploading ${items.length} reveal items to Convex...`);
+
+	try {
+		const result = await convex.action(api.revealActions.uploadRevealData, {
+			collectionId,
+			items,
+		});
+		console.log(`✅ Uploaded ${result.inserted} reveal items`);
+		return true;
+	} catch (error) {
+		console.error("❌ Failed to upload reveal data:", error);
+		return false;
+	}
+}
 
 // ================================= Test Functions =================================
 
@@ -84,6 +187,7 @@ async function createCollection(
 
 	const now = dateToSeconds(new Date());
 	const saleDeadline = now + 7 * 24 * 60 * 60; // 1 week from now
+	// const saleDeadline = now + 60 * 60; // 60 seconds from now
 
 	// Create a public mint stage
 	const stageNames = ["Public Sale"];
@@ -93,7 +197,7 @@ async function createCollection(
 	const startTimes = [BigInt(now)];
 	const endTimes = [BigInt(saleDeadline)];
 	const mintFeesPerNFT = [BigInt(config.mintFeePerNFT)];
-	const mintLimitsPerAddr = [BigInt(config.maxSupply)]; // Allow minting up to max supply per user
+	const mintLimitsPerAddr = [BigInt(3)]; // Allow minting up to max supply per user
 
 	const response = (await launchpadClient.entry.create_collection({
 		typeArguments: [],
@@ -122,7 +226,7 @@ async function createCollection(
 			config.faProjectUri,
 			BigInt(config.vestingCliff),
 			BigInt(config.vestingDuration),
-			signer.accountAddress.toString(), // creator_vesting_wallet_addr
+			"0x96d8b30de5924bcce4a9aa3bd0593ded1c87067638eb9af1ee291be5c1e012b4", // creator_vesting_wallet_addr
 			BigInt(config.creatorVestingCliff),
 			BigInt(config.creatorVestingDuration),
 		],
@@ -434,20 +538,41 @@ async function main() {
 	// Wait a bit for indexer to catch up
 	await sleep(2000);
 
+	// Load and upload reveal data from metadata files
+	const revealData = loadRevealDataFromFiles(config.maxSupply);
+	const revealDataUploaded = await uploadRevealData(collectionId, revealData);
+
 	// Get collection info
 	await getCollectionInfo(collectionId);
 
 	// Mint all NFTs to meet the threshold
 	console.log("\n📈 Minting NFTs to meet sale threshold...");
 	const allNftIds: `0x${string}`[] = [];
+	let totalReveals = 0;
 
 	// Mint in batches to avoid transaction size limits
-	const supplyToMint = TEST_COLLECTION_CONFIG.maxSupply - 10;
+	const supplyToMint = 5;
 	const batchSize = 5;
 	for (let i = 0; i < supplyToMint; i += batchSize) {
 		const amount = Math.min(batchSize, TEST_COLLECTION_CONFIG.maxSupply - i);
 		const { nftIds } = await mintNFT(admin, collectionId, amount);
 		allNftIds.push(...nftIds);
+
+		// Trigger reveal via Convex afterMint action (if reveal data was uploaded)
+		if (convex && revealDataUploaded && nftIds.length > 0) {
+			try {
+				const afterMintResult = await convex.action(api.collectionSyncActions.afterMint, {
+					collectionId,
+					nftTokenIds: nftIds,
+				});
+				const successfulReveals = afterMintResult.reveals.filter((r) => r.success).length;
+				totalReveals += successfulReveals;
+				console.log(`   Reveals: ${successfulReveals}/${nftIds.length} successful`);
+			} catch (error) {
+				console.warn(`   ⚠️  afterMint failed:`, error);
+			}
+		}
+
 		await sleep(1000); // Wait between mints
 	}
 
@@ -480,6 +605,8 @@ async function main() {
 	console.log("=".repeat(60));
 	console.log(`Collection ID: ${collectionId}`);
 	console.log(`NFTs Minted: ${allNftIds.length}`);
+	console.log(`Reveal Data Uploaded: ${revealDataUploaded}`);
+	console.log(`NFTs Revealed: ${totalReveals}`);
 	console.log(`Sale Completed: ${saleCompleted}`);
 
 	// Get final balance

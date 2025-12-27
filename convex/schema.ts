@@ -54,12 +54,17 @@ export default defineSchema({
 		creatorVestingStartTime: v.optional(v.number()), // Actual vesting start time from contract
 		creatorVestingTotalPool: v.optional(v.number()), // Actual total pool from contract
 
+		// Refund tracking (for failed launches)
+		refundNftsBurned: v.optional(v.number()), // Number of NFTs burned for refunds
+		refundTotalAmount: v.optional(v.number()), // Total MOVE amount refunded
+
 		// Timestamps
 		createdAt: v.number(), // When collection was created
 		updatedAt: v.number(), // Last update timestamp
 	})
 		.index("by_collection_id", ["collectionId"])
-		.index("by_state", ["saleCompleted", "mintEnabled"]),
+		.index("by_state", ["saleCompleted", "mintEnabled"])
+		.index("by_mint_enabled", ["mintEnabled"]),
 
 	mintStages: defineTable({
 		collectionId: v.string(), // Reference to collection
@@ -71,4 +76,22 @@ export default defineSchema({
 		mintLimitPerAddr: v.optional(v.number()), // Max mints per address for this stage
 		updatedAt: v.number(), // Last update timestamp
 	}).index("by_collection_id", ["collectionId"]),
+
+	// NFT reveal data - stores metadata for unrevealed NFTs
+	nftRevealItems: defineTable({
+		collectionId: v.string(), // Reference to collection
+		name: v.string(),
+		description: v.string(),
+		uri: v.string(),
+		traits: v.array(
+			v.object({
+				trait_type: v.string(),
+				value: v.string(),
+			}),
+		),
+		revealed: v.boolean(), // Whether assigned to an NFT
+		nftTokenId: v.optional(v.string()), // Token ID after reveal
+	})
+		.index("by_collection_id", ["collectionId"])
+		.index("by_collection_unrevealed", ["collectionId", "revealed"]),
 });

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { Doc } from "convex/_generated/dataModel";
+import { useAction } from "convex/react";
 import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { GlassCard } from "@/components/GlassCard";
@@ -11,6 +11,8 @@ import { useClients } from "@/hooks/useClients";
 import { useTransaction } from "@/hooks/useTransaction";
 import { launchpadClient } from "@/lib/aptos";
 import { oaptToApt } from "@/lib/utils";
+import { api } from "../../convex/_generated/api";
+import type { Doc } from "../../convex/_generated/dataModel";
 
 interface RefundNFTsCardProps {
 	nfts: NFT[];
@@ -21,6 +23,7 @@ interface RefundNFTsCardProps {
 export function RefundNFTsCard({ nfts, collectionData, onRefundSuccess }: RefundNFTsCardProps) {
 	const { launchpadClient: walletLaunchpadClient, connected, correctNetwork } = useClients();
 	const { transactionInProgress: refunding, executeTransaction } = useTransaction();
+	const afterRefund = useAction(api.collectionSyncActions.afterRefund);
 
 	const nftTokenIds = nfts.map((nft) => nft.token_data_id as `0x${string}`);
 
@@ -68,6 +71,14 @@ export function RefundNFTsCard({ nfts, collectionData, onRefundSuccess }: Refund
 				}),
 			);
 			toast.success(`Successfully refunded ${oaptToApt(refundAmount).toLocaleString()} MOVE!`);
+
+			// Sync refund stats to Convex
+			try {
+				await afterRefund({ collectionId: collectionData.collectionId });
+			} catch (syncError) {
+				console.warn("Failed to sync refund stats:", syncError);
+			}
+
 			await refetchRefunds();
 			onRefundSuccess?.();
 		} catch {

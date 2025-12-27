@@ -69,7 +69,7 @@ module deployment_addr::test_nft_reduction_manager {
         (user1, user2, user3, collection_owner)
     }
 
-    fun create_test_collection(owner: &signer): object::Object<collection::Collection> {
+    fun create_test_collection(admin: &signer, owner: &signer): object::Object<collection::Collection> {
         let stage_names = vector[utf8(b"Public Stage")];
         let stage_types = vector[nft_launchpad::get_stage_type_public()];
         let allowlist_addresses = vector[option::none<vector<address>>()];
@@ -113,8 +113,9 @@ module deployment_addr::test_nft_reduction_manager {
         // Get the collection from registry (get the last one, which is the newly created one)
         let collections = nft_launchpad::get_registry();
         assert!(collections.length() > 0, 0);
-        let last_index = collections.length() - 1;
-        collections[last_index]
+        let collection_obj = collections[collections.length() - 1];
+        nft_launchpad::update_mint_enabled(admin, collection_obj, true);
+        collection_obj
     }
 
     // ================================= Admin Function Tests ================================= //
@@ -269,7 +270,7 @@ module deployment_addr::test_nft_reduction_manager {
         assert!(nft_reduction_manager::get_admin() == USER1, 0);
 
         // Create a collection to test with
-        let collection_obj = create_test_collection(&collection_owner);
+        let collection_obj = create_test_collection(admin, &collection_owner);
         let collection_addr = object::object_address(&collection_obj);
 
         // New admin should be able to set protocol fee reduction
@@ -364,7 +365,7 @@ module deployment_addr::test_nft_reduction_manager {
         let (user1, _user2, _user3, collection_owner) = setup_test(aptos_framework, admin);
 
         // Create collection first
-        let collection_obj = create_test_collection(&collection_owner);
+        let collection_obj = create_test_collection(admin, &collection_owner);
         let collection_addr = object::object_address(&collection_obj);
 
         // Set up collection with protocol fee reduction using the actual collection address
@@ -396,7 +397,7 @@ module deployment_addr::test_nft_reduction_manager {
         let (_user1, _user2, _user3, collection_owner) = setup_test(aptos_framework, admin);
 
         // Create collection first
-        let collection_obj = create_test_collection(&collection_owner);
+        let collection_obj = create_test_collection(admin, &collection_owner);
         let collection_addr = object::object_address(&collection_obj);
 
         // Set up collection with protocol fee reduction using the actual collection address
@@ -429,7 +430,7 @@ module deployment_addr::test_nft_reduction_manager {
         let (user1, _user2, _user3, collection_owner) = setup_test(aptos_framework, admin);
 
         // Create collection first
-        let collection_obj = create_test_collection(&collection_owner);
+        let collection_obj = create_test_collection(admin, &collection_owner);
         let collection_addr = object::object_address(&collection_obj);
 
         // Set up collection with protocol fee reduction using the actual collection address
@@ -581,7 +582,7 @@ module deployment_addr::test_nft_reduction_manager {
         let (user1, _user2, _user3, collection_owner) = setup_test(aptos_framework, admin);
 
         // Create two collections: one for protocol fee reduction NFTs, one for minting
-        let reduction_collection = create_test_collection(&collection_owner);
+        let reduction_collection = create_test_collection(admin, &collection_owner);
         let reduction_collection_addr = object::object_address(&reduction_collection);
 
         // Set up protocol fee reduction for the reduction collection (25% reduction)
@@ -612,13 +613,13 @@ module deployment_addr::test_nft_reduction_manager {
         let (user1, _user2, _user3, collection_owner) = setup_test(aptos_framework, admin);
 
         // Create multiple collections with different protocol fee reduction percentages
-        let collection_10 = create_test_collection(&collection_owner);
+        let collection_10 = create_test_collection(admin, &collection_owner);
         let collection_10_addr = object::object_address(&collection_10);
 
-        let collection_25 = create_test_collection(&collection_owner);
+        let collection_25 = create_test_collection(admin, &collection_owner);
         let collection_25_addr = object::object_address(&collection_25);
 
-        let collection_50 = create_test_collection(&collection_owner);
+        let collection_50 = create_test_collection(admin, &collection_owner);
         let collection_50_addr = object::object_address(&collection_50);
 
         // Set different protocol fee reduction percentages
@@ -658,7 +659,7 @@ module deployment_addr::test_nft_reduction_manager {
         let (user1, _user2, _user3, collection_owner) = setup_test(aptos_framework, admin);
 
         // Create collection with 100% protocol fee reduction
-        let free_collection = create_test_collection(&collection_owner);
+        let free_collection = create_test_collection(admin, &collection_owner);
         let free_collection_addr = object::object_address(&free_collection);
 
         // Set 100% protocol fee reduction
@@ -688,7 +689,7 @@ module deployment_addr::test_nft_reduction_manager {
         let (user1, _user2, _user3, collection_owner) = setup_test(aptos_framework, admin);
 
         // Create collection with protocol fee reduction
-        let reduction_collection = create_test_collection(&collection_owner);
+        let reduction_collection = create_test_collection(admin, &collection_owner);
         let reduction_collection_addr = object::object_address(&reduction_collection);
 
         // Set protocol fee reduction
@@ -725,7 +726,7 @@ module deployment_addr::test_nft_reduction_manager {
         let (user1, _user2, _user3, collection_owner) = setup_test(aptos_framework, admin);
 
         // Create collection with protocol fee reduction
-        let reduction_collection = create_test_collection(&collection_owner);
+        let reduction_collection = create_test_collection(admin, &collection_owner);
         let reduction_collection_addr = object::object_address(&reduction_collection);
 
         // Set protocol fee reduction
@@ -758,7 +759,7 @@ module deployment_addr::test_nft_reduction_manager {
         let (user1, _user2, _user3, collection_owner) = setup_test(aptos_framework, admin);
 
         // Create collection with protocol fee reduction
-        let reduction_collection = create_test_collection(&collection_owner);
+        let reduction_collection = create_test_collection(admin, &collection_owner);
         let reduction_collection_addr = object::object_address(&reduction_collection);
 
         // Set protocol fee reduction
@@ -792,7 +793,7 @@ module deployment_addr::test_nft_reduction_manager {
         let (user1, _user2, _user3, collection_owner) = setup_test(aptos_framework, admin);
 
         // Step 1: Create a collection for protocol fee reduction NFTs
-        let reduction_collection = create_test_collection(&collection_owner);
+        let reduction_collection = create_test_collection(admin, &collection_owner);
         let reduction_collection_addr = object::object_address(&reduction_collection);
 
         // Step 2: Set protocol fee reduction percentage
@@ -807,7 +808,7 @@ module deployment_addr::test_nft_reduction_manager {
         nft_launchpad::update_default_protocol_percentage_fee(admin, protocol_percentage_fee);
 
         // Step 4: Create a collection for minting
-        let minting_collection = create_test_collection(&collection_owner);
+        let minting_collection = create_test_collection(admin, &collection_owner);
         let _minting_collection_addr = object::object_address(&minting_collection);
 
         // Step 5: Verify the setup
@@ -868,7 +869,7 @@ module deployment_addr::test_nft_reduction_manager {
         let (user1, user2, user3, collection_owner) = setup_test(aptos_framework, admin);
 
         // Create collection with protocol fee reduction
-        let reduction_collection = create_test_collection(&collection_owner);
+        let reduction_collection = create_test_collection(admin, &collection_owner);
         let reduction_collection_addr = object::object_address(&reduction_collection);
 
         // Set protocol fee reduction
@@ -919,16 +920,16 @@ module deployment_addr::test_nft_reduction_manager {
         let (user1, _user2, _user3, collection_owner) = setup_test(aptos_framework, admin);
 
         // Create multiple collections with different protocol fee reduction percentages
-        let collection_10 = create_test_collection(&collection_owner);
+        let collection_10 = create_test_collection(admin, &collection_owner);
         let collection_10_addr = object::object_address(&collection_10);
 
-        let collection_20 = create_test_collection(&collection_owner);
+        let collection_20 = create_test_collection(admin, &collection_owner);
         let collection_20_addr = object::object_address(&collection_20);
 
-        let collection_30 = create_test_collection(&collection_owner);
+        let collection_30 = create_test_collection(admin, &collection_owner);
         let collection_30_addr = object::object_address(&collection_30);
 
-        let collection_50 = create_test_collection(&collection_owner);
+        let collection_50 = create_test_collection(admin, &collection_owner);
         let collection_50_addr = object::object_address(&collection_50);
 
         // Set different protocol fee reduction percentages
@@ -1027,7 +1028,7 @@ module deployment_addr::test_nft_reduction_manager {
         let (user1, _user2, _user3, collection_owner) = setup_test(aptos_framework, admin);
 
         // Create collection with protocol fee reduction
-        let reduction_collection = create_test_collection(&collection_owner);
+        let reduction_collection = create_test_collection(admin, &collection_owner);
         let reduction_collection_addr = object::object_address(&reduction_collection);
 
         // Set protocol fee reduction
@@ -1055,7 +1056,7 @@ module deployment_addr::test_nft_reduction_manager {
         let (user1, _user2, _user3, collection_owner) = setup_test(aptos_framework, admin);
 
         // Create collection with protocol fee reduction
-        let reduction_collection = create_test_collection(&collection_owner);
+        let reduction_collection = create_test_collection(admin, &collection_owner);
         let reduction_collection_addr = object::object_address(&reduction_collection);
 
         // Set protocol fee reduction
@@ -1081,7 +1082,7 @@ module deployment_addr::test_nft_reduction_manager {
         let (user1, _user2, _user3, collection_owner) = setup_test(aptos_framework, admin);
 
         // Create collection with protocol fee reduction
-        let reduction_collection = create_test_collection(&collection_owner);
+        let reduction_collection = create_test_collection(admin, &collection_owner);
         let reduction_collection_addr = object::object_address(&reduction_collection);
 
         // Set protocol fee reduction

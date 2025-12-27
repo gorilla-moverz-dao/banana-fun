@@ -9,6 +9,7 @@ import { GlassCard } from "@/components/GlassCard";
 import { MyNFTsCard } from "@/components/MyNFTsCard";
 import { NFTThumbnail } from "@/components/NFTThumbnail";
 import { RefundNFTsCard } from "@/components/RefundNFTsCard";
+import { RefundStatsCard } from "@/components/RefundStatsCard";
 import { TokenInfoCard } from "@/components/TokenInfoCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -173,37 +174,47 @@ function RouteComponent() {
 
 				{/* Vesting Tab */}
 				<TabsContent value="token" className="space-y-6 mt-6">
-					{/* Vesting Cards - Side by side on larger screens */}
-					{(hasHolderVesting || hasTeamVesting) && (
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-							{hasHolderVesting && <VestingCard type="holder" collectionData={collectionData} />}
-							{hasTeamVesting && <VestingCard type="team" collectionData={collectionData} />}
-						</div>
+					{/* For failed launches: Show refund stats instead of vesting cards */}
+					{isFailedLaunch ? (
+						<>
+							{/* Refund Stats Card */}
+							<RefundStatsCard collectionData={collectionData} />
+
+							{/* User's NFTs for refund */}
+							{connected && isFetchedMyNFTs && myNfts.length > 0 && (
+								<RefundNFTsCard
+									nfts={myNfts}
+									collectionData={collectionData}
+									onRefundSuccess={() => {
+										refetchMyNFTs();
+									}}
+								/>
+							)}
+						</>
+					) : (
+						<>
+							{/* Vesting Cards - Side by side on larger screens */}
+							{(hasHolderVesting || hasTeamVesting) && (
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+									{hasHolderVesting && <VestingCard type="holder" collectionData={collectionData} />}
+									{hasTeamVesting && <VestingCard type="team" collectionData={collectionData} />}
+								</div>
+							)}
+
+							{/* Creator Vesting Card - Show when user is the dev wallet and sale is completed */}
+							{isCreatorVestingBeneficiary && <CreatorVestingCard collectionData={collectionData} />}
+
+							{/* My NFTs Card - Show claim card for successful sales */}
+							{connected && isFetchedMyNFTs && myNfts.length > 0 && (
+								<MyNFTsCard
+									nfts={myNfts}
+									collectionData={collectionData}
+									onNFTClick={handleNFTClick}
+									gridCols="grid-cols-2 md:grid-cols-4 lg:grid-cols-6"
+								/>
+							)}
+						</>
 					)}
-
-					{/* Creator Vesting Card - Show when user is the dev wallet and sale is completed */}
-					{isCreatorVestingBeneficiary && <CreatorVestingCard collectionData={collectionData} />}
-
-					{/* My NFTs Card - Show refund card for failed launches, claim card for successful */}
-					{connected &&
-						isFetchedMyNFTs &&
-						myNfts.length > 0 &&
-						(isFailedLaunch ? (
-							<RefundNFTsCard
-								nfts={myNfts}
-								collectionData={collectionData}
-								onRefundSuccess={() => {
-									refetchMyNFTs();
-								}}
-							/>
-						) : (
-							<MyNFTsCard
-								nfts={myNfts}
-								collectionData={collectionData}
-								onNFTClick={handleNFTClick}
-								gridCols="grid-cols-2 md:grid-cols-4 lg:grid-cols-6"
-							/>
-						))}
 				</TabsContent>
 
 				{/* Collection Browser Tab */}
