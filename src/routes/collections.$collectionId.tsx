@@ -17,11 +17,25 @@ import { MOVE_NETWORK } from "@/constants";
 import type { NFT } from "@/fragments/nft";
 import { useClients } from "@/hooks/useClients";
 import { useCollectionNFTs } from "@/hooks/useCollectionNFTs";
+import { type CollectionSearch, searchDefaults } from "@/hooks/useCollectionSearch";
 import { toShortAddress } from "@/lib/utils";
 import { api } from "../../convex/_generated/api";
 
 export const Route = createFileRoute("/collections/$collectionId")({
 	component: RouteComponent,
+	validateSearch: (search: Record<string, unknown>): CollectionSearch => ({
+		search: typeof search.search === "string" ? search.search : searchDefaults.search,
+		sort:
+			search.sort === "newest" || search.sort === "oldest" || search.sort === "name"
+				? search.sort
+				: searchDefaults.sort,
+		view: search.view === "grid" || search.view === "list" ? search.view : searchDefaults.view,
+		page: typeof search.page === "number" ? search.page : searchDefaults.page,
+		filter:
+			search.filter === "all" || search.filter === "owned" || search.filter === "available"
+				? search.filter
+				: searchDefaults.filter,
+	}),
 });
 
 function RouteComponent() {

@@ -1,3 +1,4 @@
+import { useLocation } from "@tanstack/react-router";
 import type { Doc } from "convex/_generated/dataModel";
 import { ChevronLeft, ChevronRight, Grid, List, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -16,6 +17,33 @@ type SortOption = "newest" | "oldest" | "name";
 type ViewOption = "grid" | "list";
 type FilterOption = "all" | "owned" | "available";
 
+interface BrowserSearch {
+	search?: string;
+	sort?: SortOption;
+	view?: ViewOption;
+	filter?: FilterOption;
+	page?: number;
+}
+
+const browserDefaults: Required<BrowserSearch> = {
+	search: "",
+	sort: "name",
+	view: "grid",
+	filter: "all",
+	page: 1,
+};
+
+function parseSearchParams(): BrowserSearch {
+	const params = new URLSearchParams(window.location.search);
+	return {
+		search: params.get("search") || undefined,
+		sort: (params.get("sort") as SortOption) || undefined,
+		view: (params.get("view") as ViewOption) || undefined,
+		filter: (params.get("filter") as FilterOption) || undefined,
+		page: params.get("page") ? Number(params.get("page")) : undefined,
+	};
+}
+
 interface NFTBrowserCardProps {
 	collectionId: string;
 	collectionData: Doc<"collections">;
@@ -31,15 +59,51 @@ export function NFTBrowserCard({
 	pageSize = 100,
 	showFilters = true,
 }: NFTBrowserCardProps) {
-	// Local state for search/filter/sort/view
-	const [search, setSearch] = useState("");
-	const [localSearch, setLocalSearch] = useState("");
-	const [sort, setSort] = useState<SortOption>("name");
-	const [view, setView] = useState<ViewOption>("grid");
-	const [filter, setFilter] = useState<FilterOption>("all");
-	const [page, setPage] = useState(1);
+	const location = useLocation();
 
-	// Sync local search with actual search
+	// Initialize state from URL params
+	const [params, setParams] = useState<BrowserSearch>(() => parseSearchParams());
+
+	// Parse params with defaults
+	const search = params.search ?? browserDefaults.search;
+	const sort = params.sort ?? browserDefaults.sort;
+	const view = params.view ?? browserDefaults.view;
+	const filter = params.filter ?? browserDefaults.filter;
+	const page = params.page ?? browserDefaults.page;
+
+	const [localSearch, setLocalSearch] = useState(search);
+
+	// Sync state from URL on external navigation (back/forward)
+	useEffect(() => {
+		const handlePopState = () => {
+			setParams(parseSearchParams());
+		};
+		window.addEventListener("popstate", handlePopState);
+		return () => window.removeEventListener("popstate", handlePopState);
+	}, []);
+
+	// Update URL search params and state
+	const updateParams = (updates: Partial<BrowserSearch>) => {
+		const newParams = { ...params, ...updates };
+
+		// Update state first (triggers re-render)
+		setParams(newParams);
+
+		// Update URL
+		const currentParams = new URLSearchParams(window.location.search);
+		for (const [key, value] of Object.entries(updates)) {
+			if (value === undefined || value === "" || value === browserDefaults[key as keyof BrowserSearch]) {
+				currentParams.delete(key);
+			} else {
+				currentParams.set(key, String(value));
+			}
+		}
+		const newSearch = currentParams.toString();
+		const newUrl = `${location.pathname}${newSearch ? `?${newSearch}` : ""}`;
+		window.history.replaceState(null, "", newUrl);
+	};
+
+	// Sync local search input with search param
 	useEffect(() => {
 		setLocalSearch(search);
 	}, [search]);
@@ -61,16 +125,17 @@ export function NFTBrowserCard({
 	const hasActiveFilters = search || sort !== "name" || filter !== "all";
 
 	const clearAllFilters = () => {
-		setSearch("");
 		setLocalSearch("");
-		setSort("name");
-		setFilter("all");
-		setPage(1);
+		updateParams({
+			search: undefined,
+			sort: undefined,
+			filter: undefined,
+			page: undefined,
+		});
 	};
 
 	const handleSearchSubmit = () => {
-		setSearch(localSearch);
-		setPage(1);
+		updateParams({ search: localSearch || undefined, page: 1 });
 	};
 
 	return (
@@ -100,7 +165,7 @@ export function NFTBrowserCard({
 							{/* Sort + View Toggle */}
 							<div className="flex items-center gap-2 w-full md:w-auto">
 								<div className="flex-1 md:flex-none md:w-48">
-									<Select value={sort} onValueChange={(value) => { setSort(value as SortOption); setPage(1); }}>
+									<Select value={sort} onValueChange={(value) => updateParams({ sort: value as SortOption, page: 1 })}>
 										<SelectTrigger className="w-full">
 											<SelectValue />
 										</SelectTrigger>
@@ -117,7 +182,7 @@ export function NFTBrowserCard({
 									<Button
 										variant={view === "grid" ? "default" : "ghost"}
 										size="sm"
-										onClick={() => setView("grid")}
+										onClick={() => updateParams({ view: "grid" })}
 										className="rounded-r-none"
 									>
 										<Grid className="w-4 h-4" />
@@ -125,7 +190,7 @@ export function NFTBrowserCard({
 									<Button
 										variant={view === "list" ? "default" : "ghost"}
 										size="sm"
-										onClick={() => setView("list")}
+										onClick={() => updateParams({ view: "list" })}
 										className="rounded-l-none"
 									>
 										<List className="w-4 h-4" />
@@ -134,7 +199,10 @@ export function NFTBrowserCard({
 							</div>
 
 							{/* Filter Dropdown */}
-							<Select value={filter} onValueChange={(value) => { setFilter(value as FilterOption); setPage(1); }}>
+							<Select
+								value={filter}
+								onValueChange={(value) => updateParams({ filter: value as FilterOption, page: 1 })}
+							>
 								<SelectTrigger className="w-full md:w-48">
 									<SelectValue />
 								</SelectTrigger>
@@ -155,7 +223,10 @@ export function NFTBrowserCard({
 											size="sm"
 											className="h-auto p-1"
 											style={{ paddingInline: "4px" }}
-											onClick={() => { setSearch(""); setLocalSearch(""); }}
+											onClick={() => {
+												updateParams({ search: undefined });
+												setLocalSearch("");
+											}}
 										>
 											<X className="w-3 h-3" />
 										</Button>
@@ -242,18 +313,14 @@ export function NFTBrowserCard({
 													{nft.current_token_data?.token_name || `Token ${nft.token_data_id}`}
 												</h4>
 												<p className="text-sm text-muted-foreground">{nft.current_token_data?.description}</p>
-												<p className="text-xs text-muted-foreground">
-													Token ID: {toShortAddress(nft.token_data_id)}
-												</p>
+												<p className="text-xs text-muted-foreground">Token ID: {toShortAddress(nft.token_data_id)}</p>
 											</div>
 											<div className="flex-2 text-right">
-												{Object.entries(nft.current_token_data?.token_properties || {}).map(
-													([traitType, value]) => (
-														<Badge key={traitType} variant="outline">
-															{traitType}: {value as string}
-														</Badge>
-													),
-												)}
+												{Object.entries(nft.current_token_data?.token_properties || {}).map(([traitType, value]) => (
+													<Badge key={traitType} variant="outline">
+														{traitType}: {value as string}
+													</Badge>
+												))}
 											</div>
 										</div>
 									</GlassCard>
@@ -268,7 +335,7 @@ export function NFTBrowserCard({
 									variant="outline"
 									size="sm"
 									disabled={page <= 1}
-									onClick={() => setPage(page - 1)}
+									onClick={() => updateParams({ page: page - 1 })}
 								>
 									<ChevronLeft className="w-4 h-4" />
 									Previous
@@ -280,7 +347,7 @@ export function NFTBrowserCard({
 									variant="outline"
 									size="sm"
 									disabled={page >= totalPages}
-									onClick={() => setPage(page + 1)}
+									onClick={() => updateParams({ page: page + 1 })}
 								>
 									Next
 									<ChevronRight className="w-4 h-4" />
@@ -293,4 +360,3 @@ export function NFTBrowserCard({
 		</div>
 	);
 }
-
