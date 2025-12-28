@@ -80,6 +80,8 @@ Both vesting systems are automatically initialized when a sale completes success
 - **Real-time Sync**: Automatic synchronization of collection state from blockchain every minute
 - **Data Caching**: Stores collection metadata, mint stages, sale status, supply, and funds collected
 - **Query API**: Provides efficient queries for frontend without direct blockchain calls
+- **Reveal System**: Upload reveal metadata and auto-enable minting when item count matches maxSupply
+- **Post-Mint Actions**: Sync supply/owner counts and trigger NFT reveals with random metadata assignment
 
 ### Frontend
 
