@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { ExternalLinkIcon, Images, Rocket } from "lucide-react";
 import { useState } from "react";
 import { AssetDetailDialog } from "@/components/AssetDetailDialog";
+import { Countdown } from "@/components/Countdown";
 import { GlassCard } from "@/components/GlassCard";
 import { MintResultDialog } from "@/components/MintResultDialog";
 import { MintStageCard } from "@/components/MintStageCard";
@@ -119,6 +120,9 @@ function RouteComponent() {
 							</div>
 							<Progress value={percent} className="h-3 mb-4 bg-muted/30" />
 
+							{collectionData.saleDeadline !== undefined && !collectionData.saleCompleted && (
+								<Countdown deadline={collectionData.saleDeadline} className="text-foreground/90" />
+							)}
 							{collectionData.saleCompleted && (
 								<div className="text-green-500 text-sm font-semibold">Sale completed</div>
 							)}
