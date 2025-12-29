@@ -6,19 +6,19 @@
 
 # Voiceover Script
 
-## CHAPTER 1 TO BE REFINED: Overview (~40 seconds)
+## [CHAPTER 1: Overview] (~40 seconds)
 
-The Problem:
+We have a problem:
 
-Launching a token in crypto is broken. Projects raise millions through presales, dump on investors, and disappear. Buyers have no protection, and communities are left holding worthless bags.
+Token launches are a mess. Platforms like pump.fun flood the market with thousands of low-effort memecoins daily. No quality filter, no accountability – just endless rugs. And traditional presales? Projects raise millions, dump on investors, and vanish.
 
-The Solution:
+I have a solution: Banana Fun.
 
-Banana Fun fixes this with a fundamentally different approach. It's an NFT-backed token launchpad where your investment is protected by design.
+And Banana Fun takes a different approach. By combining NFTs with token launches, you can actually see what you're investing in. Quality art signals a quality project. No more anonymous tokens with zero effort behind them. Plus, NFTs naturally build community – holders share a visual identity and become invested in the project's success.
 
-Here's how it works in three simple steps: First, you mint NFTs from a collection. Each NFT entitles you to a share of the project's token. Second, when the sale completes, liquidity is automatically created on a decentralized exchange. Third, you claim your vested tokens over time. More NFTs means more tokens.
+Here's how it works: You mint NFTs from a collection – each one entitles you to a share of the project's token. When the sale completes, liquidity is automatically created on a DEX. Then you claim your vested tokens over time.
 
-Why is this better? Safe launches with built-in refunds if targets aren't met. Instant NFT reveals so you know what you're getting. Automatic liquidity creation. And fair vesting that prevents early dumping and stabilizes the token price.
+In short: Banana Fun synchronizes community, tokens, and liquidity through smart contract logic – with built-in investor protection.
 
 ## [CHAPTER 2: Mint (Video keyframe ~0:14)] (~30 seconds)
 
