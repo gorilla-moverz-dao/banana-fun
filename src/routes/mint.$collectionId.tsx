@@ -168,21 +168,24 @@ function RouteComponent() {
 
 						{/* Mint Tab */}
 						<TabsContent value="mint" className="space-y-6 mt-0">
-							<div className="space-y-2">
-								{stages.map((stage) => (
-									<MintStageCard
-										key={stage.name}
-										stage={stage}
-										collectionId={collectionIdTyped}
-										mintBalance={mintBalance}
-										onMintSuccess={(tokenIds) => {
-											refetchMintBalance();
-											setRecentlyMintedTokenIds(tokenIds);
-											setShowMintDialog(true);
-										}}
-									/>
-								))}
-							</div>
+							{/* Hide mint stages when sale is completed by mint out */}
+							{minted < total && (
+								<div className="space-y-2">
+									{stages.map((stage) => (
+										<MintStageCard
+											key={stage.name}
+											stage={stage}
+											collectionId={collectionIdTyped}
+											mintBalance={mintBalance}
+											onMintSuccess={(tokenIds) => {
+												refetchMintBalance();
+												setRecentlyMintedTokenIds(tokenIds);
+												setShowMintDialog(true);
+											}}
+										/>
+									))}
+								</div>
+							)}
 
 							{/* Token Info Card */}
 							<TokenInfoCard collectionData={collectionData} />
