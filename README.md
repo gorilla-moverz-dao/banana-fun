@@ -108,3 +108,7 @@ Both vesting systems are automatically initialized when a sale completes success
 - Verify collection ownership on uploadRevealData
 - Code cleanup and review
 - Smart Contract checks & audit
+
+## Contributing
+
+Want to run this project locally or contribute? Check out the [Contributing Guide](./CONTRIBUTING.md) for detailed setup instructions, including:
