@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { ArrowRight, Coins, Droplets, Rocket, Shield, Sparkles, Timer } from "lucide-react";
+import { ChatFeed } from "@/components/ChatFeed";
 import { GlassCard } from "@/components/GlassCard";
 import { Button } from "@/components/ui/button";
 import { api } from "../../convex/_generated/api";
@@ -247,6 +248,11 @@ function HomePage() {
 							</Button>
 						</Link>
 					</GlassCard>
+
+					{/* Live Chat Feed */}
+					<div className="mt-4">
+						<ChatFeed />
+					</div>
 				</div>
 			</div>
 		</div>

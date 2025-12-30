@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { Coins, ExternalLinkIcon, Flame, Images } from "lucide-react";
 import { useState } from "react";
 import { AssetDetailDialog } from "@/components/AssetDetailDialog";
+import { ChatCard } from "@/components/ChatCard";
 import { CreatorVestingCard } from "@/components/CreatorVestingCard";
 import { GlassCard } from "@/components/GlassCard";
 import { MyNFTsCard } from "@/components/MyNFTsCard";
@@ -208,6 +209,9 @@ function RouteComponent() {
 					<NFTBrowserCard collectionId={collectionId} collectionData={collectionData} onNFTClick={handleNFTClick} />
 				</TabsContent>
 			</Tabs>
+
+			{/* Chat Section */}
+			<ChatCard collectionId={collectionId} />
 
 			{/* Asset Detail Dialog */}
 			<AssetDetailDialog

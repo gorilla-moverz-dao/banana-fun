@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { ExternalLinkIcon, Images, Rocket } from "lucide-react";
 import { useState } from "react";
 import { AssetDetailDialog } from "@/components/AssetDetailDialog";
+import { ChatCard } from "@/components/ChatCard";
 import { Countdown } from "@/components/Countdown";
 import { GlassCard } from "@/components/GlassCard";
 import { MintResultDialog } from "@/components/MintResultDialog";
@@ -74,8 +75,8 @@ function RouteComponent() {
 	return (
 		<div className="flex flex-col gap-8">
 			<div className="flex flex-col md:flex-row gap-8 items-start">
-				{/* Left column: image and basic info */}
-				<div className="w-full md:w-1/3 flex-shrink-0 md:sticky md:top-16 md:self-start">
+				{/* Left column: image, basic info, and chat */}
+				<div className="w-full md:w-1/3 flex-shrink-0 space-y-4">
 					<GlassCard className="w-full">
 						<CardHeader>
 							<div className="w-full aspect-square rounded-lg bg-background overflow-hidden border mb-2 flex items-center justify-center group">
@@ -103,6 +104,9 @@ function RouteComponent() {
 							</div>
 						</CardContent>
 					</GlassCard>
+
+					{/* Chat Section */}
+					<ChatCard collectionId={collectionIdTyped} />
 				</div>
 				{/* Right column: stats + tabs */}
 				<div className="flex-1 w-full space-y-6">

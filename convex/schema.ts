@@ -94,4 +94,21 @@ export default defineSchema({
 	})
 		.index("by_collection_id", ["collectionId"])
 		.index("by_collection_unrevealed", ["collectionId", "revealed"]),
+
+	// Chat users - maps device IDs to nicknames
+	chatUsers: defineTable({
+		deviceId: v.string(), // Unique device identifier from localStorage
+		nickname: v.string(),
+		walletAddress: v.optional(v.string()), // If user was connected when setting nickname
+		createdAt: v.number(),
+	}).index("by_device_id", ["deviceId"]),
+
+	// Chat messages - stores messages per collection
+	chatMessages: defineTable({
+		collectionId: v.string(), // Reference to collection
+		deviceId: v.string(), // Device that sent the message
+		nickname: v.string(), // Denormalized for display performance
+		message: v.string(),
+		createdAt: v.number(),
+	}).index("by_collection_id", ["collectionId", "createdAt"]),
 });

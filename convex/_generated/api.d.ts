@@ -9,6 +9,7 @@
  */
 
 import type * as aptos from "../aptos.js";
+import type * as chat from "../chat.js";
 import type * as collectionSyncActions from "../collectionSyncActions.js";
 import type * as collections from "../collections.js";
 import type * as crons from "../crons.js";
@@ -23,6 +24,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   aptos: typeof aptos;
+  chat: typeof chat;
   collectionSyncActions: typeof collectionSyncActions;
   collections: typeof collections;
   crons: typeof crons;
