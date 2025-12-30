@@ -1,0 +1,935 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Banana Fun - Pitch Deck</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reset.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/theme/black.css"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --banana-yellow: #ffd93d;
+        --banana-gold: #f5a623;
+        --jungle-dark: #0a1f0a;
+        --jungle-green: #1a4d1a;
+        --jungle-light: #2d7a2d;
+        --leaf-green: #3d9b3d;
+        --accent-green: #4ade80;
+        --soft-red: #ef4444;
+      }
+
+      .reveal {
+        font-family: "Outfit", sans-serif;
+      }
+
+      .reveal-viewport {
+        background:
+          radial-gradient(
+            ellipse at top left,
+            rgba(45, 122, 45, 0.3) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            ellipse at bottom right,
+            rgba(26, 77, 26, 0.4) 0%,
+            transparent 50%
+          ),
+          linear-gradient(180deg, #0a1f0a 0%, #0d2810 50%, #0a1f0a 100%);
+      }
+
+      /* Jungle leaf overlay effect */
+      .reveal::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><ellipse cx="10" cy="20" rx="15" ry="8" fill="rgba(30,80,30,0.15)" transform="rotate(-30 10 20)"/><ellipse cx="90" cy="15" rx="12" ry="6" fill="rgba(30,80,30,0.12)" transform="rotate(25 90 15)"/><ellipse cx="5" cy="80" rx="18" ry="7" fill="rgba(30,80,30,0.1)" transform="rotate(-15 5 80)"/><ellipse cx="95" cy="85" rx="14" ry="5" fill="rgba(30,80,30,0.13)" transform="rotate(20 95 85)"/></svg>');
+        pointer-events: none;
+        z-index: 0;
+        opacity: 0.6;
+      }
+
+      .reveal h1,
+      .reveal h2,
+      .reveal h3,
+      .reveal h4 {
+        font-family: "Outfit", sans-serif;
+        font-weight: 600;
+        text-transform: none;
+        letter-spacing: -0.02em;
+      }
+
+      .reveal h1 {
+        font-size: 2.8em;
+        background: linear-gradient(
+          135deg,
+          var(--banana-yellow) 0%,
+          var(--banana-gold) 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: none;
+      }
+
+      .reveal h2 {
+        font-size: 1.8em;
+        color: var(--banana-yellow);
+        margin-bottom: 0.5em;
+      }
+
+      .reveal h3 {
+        font-size: 1.2em;
+        color: var(--accent-green);
+        margin: 0 0 0.3em 0;
+      }
+
+      .reveal p,
+      .reveal li {
+        font-weight: 300;
+        line-height: 1.4;
+        font-size: 0.9em;
+      }
+
+      .reveal .slides section {
+        padding: 20px 40px;
+        box-sizing: border-box;
+      }
+
+      /* Logo slide */
+      .logo-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .logo-container img {
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        margin-bottom: 20px;
+        box-shadow:
+          0 0 60px rgba(255, 217, 61, 0.4),
+          0 0 120px rgba(74, 222, 128, 0.2);
+        animation: pulse 3s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          box-shadow:
+            0 0 60px rgba(255, 217, 61, 0.4),
+            0 0 120px rgba(74, 222, 128, 0.2);
+        }
+        50% {
+          box-shadow:
+            0 0 80px rgba(255, 217, 61, 0.6),
+            0 0 150px rgba(74, 222, 128, 0.3);
+        }
+      }
+
+      .tagline {
+        font-size: 1.2em;
+        color: rgba(255, 255, 255, 0.8);
+        margin-top: 15px;
+      }
+
+      /* Card styles */
+      .problem-card {
+        background: linear-gradient(
+          135deg,
+          rgba(239, 68, 68, 0.15) 0%,
+          rgba(239, 68, 68, 0.05) 100%
+        );
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 12px;
+        padding: 15px 20px;
+        margin: 8px auto;
+        max-width: 900px;
+      }
+
+      .problem-card h3 {
+        color: var(--soft-red);
+      }
+
+      .problem-card p {
+        margin: 5px 0;
+      }
+
+      .solution-card {
+        background: linear-gradient(
+          135deg,
+          rgba(74, 222, 128, 0.15) 0%,
+          rgba(74, 222, 128, 0.05) 100%
+        );
+        border: 1px solid rgba(74, 222, 128, 0.3);
+        border-radius: 12px;
+        padding: 15px 20px;
+        margin: 10px auto;
+        max-width: 900px;
+      }
+
+      /* Feature grid */
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin: 15px auto 0;
+        max-width: 900px;
+      }
+
+      .feature-card {
+        background: rgba(74, 222, 128, 0.08);
+        border: 1px solid rgba(74, 222, 128, 0.25);
+        border-radius: 10px;
+        padding: 12px 15px;
+        text-align: left;
+      }
+
+      .feature-card h4 {
+        color: var(--banana-yellow);
+        font-size: 0.8em;
+        margin-bottom: 6px;
+      }
+
+      .feature-card p {
+        font-size: 0.75em;
+        color: rgba(255, 255, 255, 0.7);
+        margin: 0;
+      }
+
+      /* Revenue slide */
+      .revenue-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin: 20px auto 0;
+        max-width: 900px;
+      }
+
+      .revenue-card {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 217, 61, 0.12) 0%,
+          rgba(245, 166, 35, 0.06) 100%
+        );
+        border: 2px solid var(--banana-gold);
+        border-radius: 12px;
+        padding: 18px 12px;
+        text-align: center;
+      }
+
+      .revenue-card .percentage {
+        font-size: 1.2em;
+        font-weight: 800;
+        background: linear-gradient(
+          135deg,
+          var(--banana-yellow) 0%,
+          var(--banana-gold) 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .revenue-card .label {
+        font-size: 0.85em;
+        color: rgba(255, 255, 255, 0.9);
+        margin-top: 6px;
+      }
+
+      .revenue-card .description {
+        font-size: 0.5em;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 4px;
+      }
+
+      /* Flow diagram */
+      .flow-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin: 25px auto 0;
+        max-width: 900px;
+      }
+
+      .flow-step {
+        background: rgba(74, 222, 128, 0.1);
+        border: 1px solid var(--accent-green);
+        border-radius: 10px;
+        padding: 12px 16px;
+        min-width: 100px;
+        text-align: center;
+      }
+
+      .flow-step .number {
+        font-size: 1.4em;
+        font-weight: 800;
+        color: var(--accent-green);
+      }
+
+      .flow-step .text {
+        font-size: 0.75em;
+        color: rgba(255, 255, 255, 0.8);
+        margin-top: 3px;
+      }
+
+      .flow-arrow {
+        font-size: 1.2em;
+        color: var(--accent-green);
+      }
+
+      /* Distribution list */
+      .distribution-list {
+        list-style: none;
+        padding: 0;
+        text-align: left;
+        margin: 15px auto;
+      }
+
+      .distribution-list li {
+        display: flex;
+        align-items: center;
+        margin: 10px 0;
+        font-size: 0.9em;
+      }
+
+      .distribution-list .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 12px;
+        flex-shrink: 0;
+      }
+
+      .distribution-list .dot.lp {
+        background: #00d4ff;
+      }
+      .distribution-list .dot.holders {
+        background: var(--accent-green);
+      }
+      .distribution-list .dot.team {
+        background: var(--banana-yellow);
+      }
+      .distribution-list .dot.dev {
+        background: #ff6b9d;
+      }
+
+      /* Stats row */
+      .stats-row {
+        display: flex;
+        justify-content: center;
+        gap: 50px;
+        margin: 20px auto 0;
+        max-width: 900px;
+      }
+
+      .stat-item {
+        text-align: center;
+      }
+
+      .stat-item .value {
+        font-size: 2em;
+        font-weight: 800;
+        color: var(--banana-yellow);
+      }
+
+      .stat-item .label {
+        font-size: 0.8em;
+        color: rgba(255, 255, 255, 0.6);
+        margin-top: 3px;
+      }
+
+      /* CTA slide */
+      .cta-container {
+        text-align: center;
+      }
+
+      .cta-button {
+        display: inline-block;
+        background: linear-gradient(
+          135deg,
+          var(--banana-yellow) 0%,
+          var(--banana-gold) 100%
+        );
+        color: #000;
+        font-weight: 700;
+        font-size: 1em;
+        padding: 14px 40px;
+        border-radius: 50px;
+        text-decoration: none;
+        margin-top: 20px;
+        transition:
+          transform 0.3s,
+          box-shadow 0.3s;
+      }
+
+      .cta-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 40px rgba(255, 217, 61, 0.4);
+      }
+
+      .social-links {
+        margin-top: 25px;
+        font-size: 0.8em;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      .social-links a {
+        color: var(--accent-green);
+        text-decoration: none;
+      }
+
+      /* Emphasis text */
+      .highlight {
+        color: var(--banana-yellow);
+        font-weight: 600;
+      }
+
+      .highlight-green {
+        color: var(--accent-green);
+        font-weight: 600;
+      }
+
+      .highlight-red {
+        color: var(--soft-red);
+        font-weight: 600;
+      }
+
+      /* Small text */
+      .small-text {
+        font-size: 0.65em;
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      /* Two column layout */
+      .two-columns {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        text-align: left;
+        margin: 0 auto;
+        max-width: 900px;
+      }
+
+      .column-card {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        padding: 15px 18px;
+      }
+
+      .column-card h4 {
+        font-size: 1em;
+        margin-bottom: 10px;
+      }
+
+      .column-card ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .column-card li {
+        font-size: 0.8em;
+        margin: 6px 0;
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      /* Sustainability highlight */
+      .sustainability-box {
+        background: linear-gradient(
+          135deg,
+          rgba(74, 222, 128, 0.15) 0%,
+          rgba(255, 217, 61, 0.1) 100%
+        );
+        border: 2px solid var(--accent-green);
+        border-radius: 14px;
+        padding: 18px 22px;
+        margin: 18px auto 0;
+        max-width: 900px;
+      }
+
+      .sustainability-box h3 {
+        color: var(--accent-green);
+        margin-bottom: 10px;
+        font-size: 1em;
+      }
+
+      .sustainability-box p {
+        font-size: 0.7em;
+        margin: 5px 0;
+      }
+
+      /* Table styles */
+      .comparison-table {
+        width: 100%;
+        margin: 15px auto 0;
+        border-collapse: collapse;
+        font-size: 0.75em;
+        max-width: 900px;
+      }
+
+      .comparison-table th,
+      .comparison-table td {
+        padding: 10px 12px;
+        text-align: center;
+      }
+
+      .comparison-table th:first-child,
+      .comparison-table td:first-child {
+        text-align: left;
+      }
+
+      .comparison-table thead tr {
+        border-bottom: 2px solid var(--banana-yellow);
+      }
+
+      .comparison-table tbody tr {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      /* Slide number styling */
+      .reveal .slide-number {
+        background: rgba(74, 222, 128, 0.2);
+        color: var(--accent-green);
+        font-family: "Outfit", sans-serif;
+        font-size: 14px;
+        padding: 5px 10px;
+        border-radius: 6px;
+      }
+
+      /* Screenshot slides */
+      .screenshot-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin: 10px auto 0;
+        max-width: 1050px;
+      }
+
+      .screenshot-item {
+        text-align: center;
+      }
+
+      .screenshot-item img {
+        width: 100%;
+        max-height: 480px;
+        object-fit: contain;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(74, 222, 128, 0.2);
+      }
+
+      .screenshot-item .caption {
+        font-size: 0.75em;
+        color: rgba(255, 255, 255, 0.7);
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <!-- Slide 1: Title -->
+        <section>
+          <div class="logo-container">
+            <img src="../images/logo1.webp" alt="Banana Fun Logo" />
+            <h1>Banana Fun</h1>
+            <p class="tagline">NFT-Backed Token Launchpad on Movement</p>
+          </div>
+        </section>
+
+        <!-- Slide 2: The Problem -->
+        <section>
+          <h2>The Problem</h2>
+          <div class="problem-card">
+            <h3>🎰 Token Launches Are Broken</h3>
+            <p>
+              Platforms like pump.fun flood the market with
+              <span class="highlight-red"
+                >thousands of low-effort memecoins daily</span
+              >.
+            </p>
+            <p>No quality filter. No accountability. Just endless rugs.</p>
+          </div>
+          <div class="problem-card">
+            <h3>💸 Traditional Presales Fail</h3>
+            <p>
+              Projects raise millions,
+              <span class="highlight-red">dump on investors</span>, and vanish.
+            </p>
+            <p>Investors have zero protection and no recourse.</p>
+          </div>
+        </section>
+
+        <!-- Slide 3: The Solution -->
+        <section>
+          <h2>The Solution</h2>
+          <div class="solution-card">
+            <h3 style="color: var(--accent-green)">🍌 Banana Fun</h3>
+            <p>
+              Combining
+              <span class="highlight">NFTs with token launches</span> creates
+              accountability.
+            </p>
+            <p>
+              Quality art signals quality projects. Visual identity builds
+              community.
+            </p>
+          </div>
+          <div class="stats-row">
+            <div class="stat-item">
+              <div class="value">✓</div>
+              <div class="label">Safe Launches</div>
+            </div>
+            <div class="stat-item">
+              <div class="value">✓</div>
+              <div class="label">Instant Liquidity</div>
+            </div>
+            <div class="stat-item">
+              <div class="value">✓</div>
+              <div class="label">Fair Distribution</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Slide 4: How It Works -->
+        <section>
+          <h2>How It Works</h2>
+          <div class="flow-container">
+            <div class="flow-step">
+              <div class="number">1</div>
+              <div class="text">Mint NFTs</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <div class="number">2</div>
+              <div class="text">Sale Completes</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <div class="number">3</div>
+              <div class="text">Auto LP Created</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <div class="number">4</div>
+              <div class="text">Claim Tokens</div>
+            </div>
+          </div>
+          <p
+            style="
+              margin-top: 25px;
+              color: rgba(255, 255, 255, 0.7);
+              text-align: center;
+            "
+          >
+            Each NFT entitles you to a
+            <span class="highlight">share of the project's token</span>.<br />
+            Liquidity is automatically created on
+            <span class="highlight-green">Yuzu DEX</span>.
+          </p>
+        </section>
+
+        <!-- Slide 5: Key Features -->
+        <section>
+          <h2>Key Features</h2>
+          <div class="feature-grid">
+            <div class="feature-card">
+              <h4>🛡️ Conditional Launch</h4>
+              <p>
+                If threshold not met, buyers get full refund by burning NFTs.
+                Zero risk.
+              </p>
+            </div>
+            <div class="feature-card">
+              <h4>🎯 Multi-Stage Minting</h4>
+              <p>
+                Whitelist tiers, different pricing, time windows. Sybil
+                protection built-in.
+              </p>
+            </div>
+            <div class="feature-card">
+              <h4>⚡ Instant Reveal</h4>
+              <p>
+                NFTs reveal immediately. Quality evaluation from launch day.
+              </p>
+            </div>
+            <div class="feature-card">
+              <h4>🔒 Dual Vesting</h4>
+              <p>
+                Both holders and team vest tokens. Long-term alignment
+                guaranteed.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Slide 6: Token Distribution -->
+        <section>
+          <h2>Token Distribution</h2>
+          <p style="color: rgba(255, 255, 255, 0.7); text-align: center">
+            When sale completes, tokens are distributed automatically:
+          </p>
+          <ul class="distribution-list">
+            <li>
+              <span class="dot lp"></span><strong>Liquidity Pool</strong> —
+              Instant trading on Yuzu DEX
+            </li>
+            <li>
+              <span class="dot holders"></span
+              ><strong>NFT Holder Vesting</strong> — Proportional to ownership
+            </li>
+            <li>
+              <span class="dot team"></span><strong>Creator Vesting</strong> —
+              Team alignment
+            </li>
+            <li>
+              <span class="dot dev"></span><strong>Dev Wallet</strong> —
+              Airdrops, marketing, operations
+            </li>
+          </ul>
+          <p class="small-text" style="text-align: center">
+            All distributions happen atomically via smart contract
+          </p>
+        </section>
+
+        <!-- Slide 7: Protocol Revenue -->
+        <section>
+          <h2>💰 Protocol Revenue</h2>
+          <p style="margin-bottom: 8px; text-align: center; font-size: 0.85em">
+            Sustainable & configurable fees that align incentives
+          </p>
+          <div class="revenue-grid">
+            <div class="revenue-card">
+              <div class="percentage">X%</div>
+              <div class="label">Percentage Fee</div>
+              <div class="description">% of mint price</div>
+            </div>
+            <div class="revenue-card">
+              <div class="percentage">+</div>
+              <div class="label">Base Fee</div>
+              <div class="description">Fixed amount per NFT</div>
+            </div>
+            <div class="revenue-card">
+              <div class="percentage">→</div>
+              <div class="label">Fee Collector</div>
+              <div class="description">Protocol treasury address</div>
+            </div>
+          </div>
+          <div class="sustainability-box">
+            <h3>📈 Sustainable Revenue Model</h3>
+            <p>
+              Admin-configurable fees per collection. Protocol earns on every
+              mint.
+            </p>
+            <p>
+              <span class="highlight"
+                >Revenue scales with adoption. No token inflation or
+                unsustainable incentives.</span
+              >
+            </p>
+          </div>
+        </section>
+
+        <!-- Slide 8: Investor Protection -->
+        <section>
+          <h2>Investor Protection</h2>
+          <div class="two-columns">
+            <div
+              class="column-card"
+              style="border: 1px solid rgba(239, 68, 68, 0.3)"
+            >
+              <h4 style="color: var(--soft-red)">❌ If Launch Fails</h4>
+              <ul>
+                <li>Deadline passes without sellout</li>
+                <li>Launch marked as failed</li>
+                <li>
+                  <span class="highlight-green">Burn NFT → Full Refund</span>
+                </li>
+                <li>Zero loss for investors</li>
+              </ul>
+            </div>
+            <div
+              class="column-card"
+              style="border: 1px solid rgba(74, 222, 128, 0.3)"
+            >
+              <h4 style="color: var(--accent-green)">✅ If Launch Succeeds</h4>
+              <ul>
+                <li>All NFTs sold</li>
+                <li>Auto-create liquidity pool</li>
+                <li>Initialize vesting contracts</li>
+                <li>
+                  <span class="highlight">Immediate trading enabled</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- Slide 9: Tech Stack -->
+        <section>
+          <h2>Built on Movement</h2>
+          <div class="feature-grid">
+            <div class="feature-card">
+              <h4>📜 Move Smart Contracts</h4>
+              <p>Launchpad, DEX integration, vesting modules.</p>
+            </div>
+            <div class="feature-card">
+              <h4>⚡ Convex Backend</h4>
+              <p>
+                Real-time sync, data caching, efficient queries for optimal UX.
+              </p>
+            </div>
+            <div class="feature-card">
+              <h4>🔄 Yuzu DEX Integration</h4>
+              <p>
+                Automatic liquidity pool creation. Instant trading from day one.
+              </p>
+            </div>
+            <div class="feature-card">
+              <h4>🎨 Modern Frontend</h4>
+              <p>React 19, TypeScript, TanStack. Beautiful, responsive UI.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Slide 10: Screenshots - Overview & Mint -->
+        <section>
+          <h2>App Screenshots</h2>
+          <div class="screenshot-grid">
+            <div class="screenshot-item">
+              <img
+                data-preview-image
+                src="../images/screenshots/1-overview.webp"
+                alt="Collection Overview"
+              />
+              <div class="caption">Collection Overview</div>
+            </div>
+            <div class="screenshot-item">
+              <img
+                data-preview-image
+                src="../images/screenshots/2-mint.webp"
+                alt="Minting Interface"
+              />
+              <div class="caption">Minting Interface</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Slide 11: Screenshots - Failed & Successful Launch -->
+        <section>
+          <h2>Launch Outcomes</h2>
+          <div class="screenshot-grid">
+            <div class="screenshot-item">
+              <img
+                data-preview-image
+                src="../images/screenshots/3-failed-launch.webp"
+                alt="Failed Launch - Refund"
+              />
+              <div class="caption">Failed Launch → Full Refund</div>
+            </div>
+            <div class="screenshot-item">
+              <img
+                data-preview-image
+                src="../images/screenshots/4-successful-launch.webp"
+                alt="Successful Launch"
+              />
+              <div class="caption">Successful Launch → Claim Tokens</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Slide 12: Screenshots - DEX & Vesting -->
+        <section>
+          <h2>Trading & Vesting</h2>
+          <div class="screenshot-grid">
+            <div class="screenshot-item">
+              <img
+                data-preview-image
+                src="../images/screenshots/5-yuzu-dex.webp"
+                alt="Yuzu DEX Trading"
+              />
+              <div class="caption">Instant Trading on Yuzu DEX</div>
+            </div>
+            <div class="screenshot-item">
+              <img
+                data-preview-image
+                src="../images/screenshots/6-team-vesting.webp"
+                alt="Team Vesting"
+              />
+              <div class="caption">Transparent Team Vesting</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Slide 13: CTA -->
+        <section>
+          <div class="cta-container">
+            <h1>Ready to Launch?</h1>
+            <p
+              style="
+                font-size: 1.1em;
+                color: rgba(255, 255, 255, 0.8);
+                margin-top: 15px;
+              "
+            >
+              Safe launches. Instant liquidity. Fair distribution.<br />
+              <span class="highlight">The way token launches should be.</span>
+            </p>
+            <a
+              href="https://banana-fun.gorilla-moverz.xyz/"
+              class="cta-button"
+              target="_blank"
+            >
+              Launch App →
+            </a>
+            <div class="social-links">
+              <p>
+                Built by
+                <a href="https://x.com/ursleee" target="_blank"
+                  >Urs Lee | Gorilla Moverz</a
+                >
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+    <script>
+      Reveal.initialize({
+        hash: true,
+        slideNumber: true,
+        transition: "slide",
+        backgroundTransition: "fade",
+        center: true,
+        width: 1100,
+        height: 700,
+        margin: 0.1,
+        minScale: 0.2,
+        maxScale: 1.5,
+      });
+    </script>
+  </body>
+</html>

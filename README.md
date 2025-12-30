@@ -102,11 +102,9 @@ Both vesting systems are automatically initialized when a sale completes success
 - `/docs/` - Project documentation
 - `/scripts/` - Build and deployment scripts
 
-## Development Status
+## Open TODOs
 
-Active development with focus on:
-
-- DEX integration for liquidity pools
-- Frontend UI for collection browsing and minting
-- Convex integration for real-time data synchronization
-- Vesting system for NFT holders and team members
+- Testing and Bugfixing
+- Verify collection ownership on uploadRevealData
+- Code cleanup and review
+- Smart Contract checks & audit
