@@ -4,10 +4,11 @@ import { Account, Aptos, AptosConfig, Ed25519PrivateKey, Network } from "@aptos-
 import { createSurfClient } from "@thalalabs/surf";
 import { ABI as launchpadABI } from "../src/abi/nft_launchpad";
 import { ABI as vestingABI } from "../src/abi/vesting";
+import { LAUNCHPAD_MODULE_ADDRESS as DEFAULT_LAUNCHPAD_MODULE_ADDRESS } from "../src/constants";
 import { NETWORKS } from "../src/lib/networks";
 
 const MOVE_NETWORK = NETWORKS.TESTNET;
-const LAUNCHPAD_MODULE_ADDRESS = "0x9c4f549f56f903e59eacd92bc7531b2190b7ebf99b951999fd65d6895efd0bfc";
+const LAUNCHPAD_MODULE_ADDRESS = process.env.LAUNCHPAD_MODULE_ADDRESS || DEFAULT_LAUNCHPAD_MODULE_ADDRESS;
 
 export function createAptosClient() {
 	const config = new AptosConfig({

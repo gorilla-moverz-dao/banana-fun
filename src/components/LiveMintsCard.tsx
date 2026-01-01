@@ -1,9 +1,9 @@
 import { useQuery } from "convex/react";
 import { Zap } from "lucide-react";
-import { api } from "../../convex/_generated/api";
 import { GlassCard } from "@/components/GlassCard";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toShortAddress } from "@/lib/utils";
+import { api } from "../../convex/_generated/api";
 
 interface LiveMintsCardProps {
 	collectionId: string;
@@ -61,13 +61,9 @@ export function LiveMintsCard({ collectionId }: LiveMintsCardProps) {
 											</div>
 											<div className="min-w-0">
 												<div className="font-medium truncate" title={mint.ownerAddress}>
-													{mint.ownerAddress
-														? toShortAddress(mint.ownerAddress)
-														: "Unknown"}
+													{mint.ownerAddress ? toShortAddress(mint.ownerAddress) : "Unknown"}
 												</div>
-												<div className="text-xs text-muted-foreground truncate">
-													{mint.name}
-												</div>
+												<div className="text-xs text-muted-foreground truncate">{mint.name}</div>
 											</div>
 										</div>
 									</td>
@@ -83,4 +79,3 @@ export function LiveMintsCard({ collectionId }: LiveMintsCardProps) {
 		</GlassCard>
 	);
 }
-

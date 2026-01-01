@@ -192,6 +192,9 @@ function RouteComponent() {
 								</div>
 							)}
 
+							{/* Live Mints Section */}
+							<LiveMintsCard collectionId={collectionIdTyped} />
+
 							{/* Token Info Card */}
 							<TokenInfoCard collectionData={collectionData} />
 
@@ -221,9 +224,6 @@ function RouteComponent() {
 					</Tabs>
 				</div>
 			</div>
-
-			{/* Live Mints Section */}
-			<LiveMintsCard collectionId={collectionIdTyped} />
 
 			{/* Mint Success Dialog */}
 			{showMintDialog && (
