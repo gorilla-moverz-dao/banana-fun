@@ -81,7 +81,7 @@ export const revealNft = internalAction({
 		}
 
 		// Create Aptos client and call reveal_nft
-		const { launchpadClient, account } = createAptosClient();
+		const { aptos, launchpadClient, account } = createAptosClient();
 
 		try {
 			// Convert traits to prop_names and prop_values arrays
@@ -102,13 +102,44 @@ export const revealNft = internalAction({
 				account,
 			});
 
-			// Mark the item as revealed
+			// Fetch owner address from indexer
+			let ownerAddress: string | undefined;
+			try {
+				const indexerResult = await aptos.queryIndexer({
+					query: {
+						query: `
+							query GetNFTOwner($token_data_id: String!) {
+								current_token_ownerships_v2(
+									where: { token_data_id: { _eq: $token_data_id }, amount: { _gt: 0 } }
+									limit: 1
+								) {
+									owner_address
+								}
+							}
+						`,
+						variables: {
+							token_data_id: args.nftTokenId,
+						},
+					},
+				});
+
+				const data = indexerResult as {
+					current_token_ownerships_v2: Array<{ owner_address: string }>;
+				};
+
+				ownerAddress = data.current_token_ownerships_v2[0]?.owner_address;
+			} catch (error) {
+				console.warn(`Could not fetch owner for NFT ${args.nftTokenId}:`, error);
+			}
+
+			// Mark the item as revealed with owner address
 			await ctx.runMutation(internal.reveal.markRevealed, {
 				itemId: item._id,
 				nftTokenId: args.nftTokenId,
+				ownerAddress,
 			});
 
-			console.log(`Revealed NFT ${args.nftTokenId} with item ${item.name}`);
+			console.log(`Revealed NFT ${args.nftTokenId} with item ${item.name}, owner: ${ownerAddress}`);
 			return { success: true, revealedItem: { name: item.name, uri: item.uri } };
 		} catch (error) {
 			console.error(`Failed to reveal NFT ${args.nftTokenId}:`, error);

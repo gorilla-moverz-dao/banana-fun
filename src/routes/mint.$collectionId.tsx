@@ -6,6 +6,7 @@ import { AssetDetailDialog } from "@/components/AssetDetailDialog";
 import { ChatCard } from "@/components/ChatCard";
 import { Countdown } from "@/components/Countdown";
 import { GlassCard } from "@/components/GlassCard";
+import { LiveMintsCard } from "@/components/LiveMintsCard";
 import { MintResultDialog } from "@/components/MintResultDialog";
 import { MintStageCard } from "@/components/MintStageCard";
 import { MyNFTsCard } from "@/components/MyNFTsCard";
@@ -220,6 +221,9 @@ function RouteComponent() {
 					</Tabs>
 				</div>
 			</div>
+
+			{/* Live Mints Section */}
+			<LiveMintsCard collectionId={collectionIdTyped} />
 
 			{/* Mint Success Dialog */}
 			{showMintDialog && (
