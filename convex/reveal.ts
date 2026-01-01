@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalMutation, internalQuery } from "./_generated/server";
+import { internalMutation, internalQuery, query } from "./_generated/server";
 
 // Trait type definition for reuse
 export const traitValidator = v.object({
@@ -47,11 +47,14 @@ export const markRevealed = internalMutation({
 	args: {
 		itemId: v.id("nftRevealItems"),
 		nftTokenId: v.string(),
+		ownerAddress: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
 		await ctx.db.patch(args.itemId, {
 			revealed: true,
 			nftTokenId: args.nftTokenId,
+			mintedAt: Date.now(),
+			ownerAddress: args.ownerAddress,
 		});
 	},
 });
@@ -94,5 +97,28 @@ export const countRevealItems = internalQuery({
 			.collect();
 
 		return items.length;
+	},
+});
+
+/**
+ * Public query to get recent mints for a collection (last 20)
+ */
+export const getRecentMints = query({
+	args: {
+		collectionId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		// Get revealed items with mintedAt, ordered by most recent
+		const items = await ctx.db
+			.query("nftRevealItems")
+			.withIndex("by_collection_id", (q) => q.eq("collectionId", args.collectionId))
+			.filter((q) => q.eq(q.field("revealed"), true))
+			.order("desc")
+			.take(20);
+
+		// Sort by mintedAt descending (most recent first)
+		return items
+			.filter((item) => item.mintedAt !== undefined)
+			.sort((a, b) => (b.mintedAt ?? 0) - (a.mintedAt ?? 0));
 	},
 });

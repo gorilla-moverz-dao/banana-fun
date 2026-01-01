@@ -1,17 +1,7 @@
-import { createFileRoute, Outlet, redirect, useParams } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useParams } from "@tanstack/react-router";
 import { CollectionBrowser } from "@/components/CollectionBrowser";
-import { COLLECTION_ID, SINGLE_COLLECTION_MODE } from "@/constants";
 
 export const Route = createFileRoute("/mint")({
-	beforeLoad: ({ location }) => {
-		// Only redirect if we're exactly at /mint (not at a child route)
-		if (location.pathname === "/mint" && SINGLE_COLLECTION_MODE) {
-			throw redirect({
-				to: "/mint/$collectionId",
-				params: { collectionId: COLLECTION_ID },
-			});
-		}
-	},
 	component: RouteComponent,
 });
 

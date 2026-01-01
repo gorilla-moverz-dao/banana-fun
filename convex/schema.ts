@@ -91,9 +91,12 @@ export default defineSchema({
 		),
 		revealed: v.boolean(), // Whether assigned to an NFT
 		nftTokenId: v.optional(v.string()), // Token ID after reveal
+		mintedAt: v.optional(v.number()), // Timestamp when minted/revealed
+		ownerAddress: v.optional(v.string()), // Current owner address
 	})
 		.index("by_collection_id", ["collectionId"])
-		.index("by_collection_unrevealed", ["collectionId", "revealed"]),
+		.index("by_collection_unrevealed", ["collectionId", "revealed"])
+		.index("by_collection_minted", ["collectionId", "mintedAt"]),
 
 	// Chat users - maps device IDs to nicknames
 	chatUsers: defineTable({
