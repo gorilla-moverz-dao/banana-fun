@@ -2,6 +2,7 @@ import { useAction } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { GlassCard } from "@/components/GlassCard";
+import { MintProgressDialog, type MintStep } from "@/components/MintProgressDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +57,8 @@ export function MintStageCard({ stage, collectionId, mintBalance, onMintSuccess 
 
 	const { transactionInProgress: minting, executeTransaction } = useTransaction({ waitForIndexer: true });
 	const [mintAmount, setMintAmount] = useState<number | undefined>(1);
+	const [showProgressDialog, setShowProgressDialog] = useState(false);
+	const [mintStep, setMintStep] = useState<MintStep>("minting");
 
 	const now = new Date();
 	const start = new Date(Number(stage.start_time) * 1000);
@@ -80,23 +83,46 @@ export function MintStageCard({ stage, collectionId, mintBalance, onMintSuccess 
 			toast.error("Please enter a valid mint amount");
 			return;
 		}
-		const amount: number = mintAmount;
-		const reductionTokenIds = reductionNFTs.map((nft) => nft.token_data_id as `0x${string}`);
-		const { result } = await executeTransaction(
-			launchpadClient.mint_nft({
-				arguments: [collectionId, amount, reductionTokenIds],
-				type_arguments: [],
-			}),
-		);
 
-		const newTokenIds = extractTokenIds(result as { events: MintNftEvent[] });
-		// Sync collection supply data after successful mint
-		await afterMint({ collectionId, nftTokenIds: newTokenIds }).catch((error) => {
-			console.error("Failed to sync collection after mint:", error);
-		});
+		// Show progress dialog and start minting
+		setMintStep("minting");
+		setShowProgressDialog(true);
 
-		await refetchNFTs();
-		onMintSuccess(newTokenIds);
+		try {
+			const amount: number = mintAmount;
+			const reductionTokenIds = reductionNFTs.map((nft) => nft.token_data_id as `0x${string}`);
+			const { result } = await executeTransaction(
+				launchpadClient.mint_nft({
+					arguments: [collectionId, amount, reductionTokenIds],
+					type_arguments: [],
+				}),
+			);
+
+			const newTokenIds = extractTokenIds(result as { events: MintNftEvent[] });
+
+			// Move to revealing step
+			setMintStep("revealing");
+
+			// Sync collection supply data and reveal NFTs
+			await afterMint({ collectionId, nftTokenIds: newTokenIds }).catch((error) => {
+				console.error("Failed to sync collection after mint:", error);
+			});
+
+			// Mark as done
+			setMintStep("done");
+
+			// Auto-close after a short delay and trigger success callback
+			setTimeout(async () => {
+				await refetchNFTs();
+
+				setShowProgressDialog(false);
+				onMintSuccess(newTokenIds);
+			}, 500);
+		} catch (error) {
+			// Close dialog on error (toast will be shown by executeTransaction)
+			setShowProgressDialog(false);
+			throw error;
+		}
 	}
 
 	return (
@@ -242,6 +268,14 @@ export function MintStageCard({ stage, collectionId, mintBalance, onMintSuccess 
 					</div>
 				</div>
 			)}
+
+			{/* Mint Progress Dialog */}
+			<MintProgressDialog
+				open={showProgressDialog}
+				currentStep={mintStep}
+				mintAmount={mintAmount ?? 1}
+				onOpenChange={setShowProgressDialog}
+			/>
 		</GlassCard>
 	);
 }
