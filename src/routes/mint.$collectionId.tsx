@@ -6,7 +6,7 @@ import { AssetDetailDialog } from "@/components/AssetDetailDialog";
 import { ChatCard } from "@/components/ChatCard";
 import { Countdown } from "@/components/Countdown";
 import { GlassCard } from "@/components/GlassCard";
-import { LiveMintsCard } from "@/components/LiveMintsCard";
+import { type LiveMint, LiveMintsCard } from "@/components/LiveMintsCard";
 import { MintResultDialog } from "@/components/MintResultDialog";
 import { MintStageCard } from "@/components/MintStageCard";
 import { MyNFTsCard } from "@/components/MyNFTsCard";
@@ -63,6 +63,22 @@ function RouteComponent() {
 
 	const handleNFTClick = (nft: NFT) => {
 		setSelectedNFT(nft);
+		setShowAssetDetailDialog(true);
+	};
+
+	const handleLiveMintClick = (mint: LiveMint) => {
+		// Convert LiveMint to NFT-like object for the dialog
+		const nftLike: NFT = {
+			token_data_id: mint.nftTokenId || mint._id,
+			current_token_data: {
+				collection_id: collectionIdTyped,
+				token_name: mint.name,
+				description: mint.description,
+				token_uri: mint.uri,
+				token_properties: {},
+			},
+		};
+		setSelectedNFT(nftLike);
 		setShowAssetDetailDialog(true);
 	};
 
@@ -193,7 +209,7 @@ function RouteComponent() {
 							)}
 
 							{/* Live Mints Section */}
-							<LiveMintsCard collectionId={collectionIdTyped} />
+							<LiveMintsCard collectionId={collectionIdTyped} onMintClick={handleLiveMintClick} />
 
 							{/* Token Info Card */}
 							<TokenInfoCard collectionData={collectionData} />
