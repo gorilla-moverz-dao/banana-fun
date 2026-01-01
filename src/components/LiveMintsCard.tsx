@@ -26,7 +26,7 @@ export function LiveMintsCard({ collectionId }: LiveMintsCardProps) {
 	}
 
 	return (
-		<GlassCard>
+		<GlassCard className="gap-0">
 			<CardHeader className="pb-2">
 				<CardTitle className="flex items-center gap-2 text-lg">
 					<Zap className="w-5 h-5 text-yellow-400" />
@@ -34,18 +34,18 @@ export function LiveMintsCard({ collectionId }: LiveMintsCardProps) {
 				</CardTitle>
 			</CardHeader>
 			<CardContent>
-				<div className="overflow-x-auto">
+				<div className="max-h-[300px] overflow-y-auto rounded-lg bg-black/20 p-3">
 					<table className="w-full text-sm">
-						<thead>
+						<thead className="sticky top-0">
 							<tr className="text-muted-foreground text-xs uppercase tracking-wider">
-								<th className="text-left pb-3 font-medium">Minter</th>
-								<th className="text-right pb-3 font-medium">Time</th>
+								<th className="text-left pb-2 font-medium">Minter</th>
+								<th className="text-right pb-2 font-medium">Time</th>
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-white/10">
 							{recentMints.map((mint) => (
 								<tr key={mint._id} className="hover:bg-white/5 transition-colors">
-									<td className="py-3">
+									<td className="py-2">
 										<div className="flex items-center gap-3">
 											<div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-yellow-400 to-orange-500 flex-shrink-0">
 												{mint.uri && (
@@ -67,7 +67,7 @@ export function LiveMintsCard({ collectionId }: LiveMintsCardProps) {
 											</div>
 										</div>
 									</td>
-									<td className="py-3 text-right text-muted-foreground whitespace-nowrap">
+									<td className="py-2 text-right text-muted-foreground whitespace-nowrap">
 										{mint.mintedAt ? formatTimeAgo(mint.mintedAt) : "-"}
 									</td>
 								</tr>

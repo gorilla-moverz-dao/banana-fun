@@ -108,17 +108,14 @@ export const getRecentMints = query({
 		collectionId: v.string(),
 	},
 	handler: async (ctx, args) => {
-		// Get revealed items with mintedAt, ordered by most recent
+		// Get revealed items ordered by mintedAt desc (most recent first)
+		// The index is ["collectionId", "mintedAt"], so order("desc") sorts by mintedAt descending
 		const items = await ctx.db
 			.query("nftRevealItems")
-			.withIndex("by_collection_id", (q) => q.eq("collectionId", args.collectionId))
-			.filter((q) => q.eq(q.field("revealed"), true))
+			.withIndex("by_collection_minted", (q) => q.eq("collectionId", args.collectionId).eq("revealed", true))
 			.order("desc")
 			.take(20);
 
-		// Sort by mintedAt descending (most recent first)
-		return items
-			.filter((item) => item.mintedAt !== undefined)
-			.sort((a, b) => (b.mintedAt ?? 0) - (a.mintedAt ?? 0));
+		return items;
 	},
 });

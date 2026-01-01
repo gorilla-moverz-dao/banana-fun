@@ -96,7 +96,7 @@ export default defineSchema({
 	})
 		.index("by_collection_id", ["collectionId"])
 		.index("by_collection_unrevealed", ["collectionId", "revealed"])
-		.index("by_collection_minted", ["collectionId", "mintedAt"]),
+		.index("by_collection_minted", ["collectionId", "revealed", "mintedAt"]),
 
 	// Chat users - maps device IDs to nicknames
 	chatUsers: defineTable({
