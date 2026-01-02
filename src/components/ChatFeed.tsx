@@ -36,7 +36,7 @@ export function ChatFeed() {
 	};
 
 	return (
-		<GlassCard>
+		<GlassCard className="gap-1">
 			<CardHeader className="pb-2">
 				<CardTitle className="flex items-center gap-2 text-lg">
 					<MessageCircle className="w-5 h-5" />

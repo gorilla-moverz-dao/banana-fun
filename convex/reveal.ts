@@ -67,10 +67,10 @@ export const getRandomUnrevealedItem = internalQuery({
 		collectionId: v.string(),
 	},
 	handler: async (ctx, args) => {
-		// Get all unrevealed items for the collection
+		// Get all unrevealed items for the collection (using prefix of by_collection_minted index)
 		const unrevealedItems = await ctx.db
 			.query("nftRevealItems")
-			.withIndex("by_collection_unrevealed", (q) => q.eq("collectionId", args.collectionId).eq("revealed", false))
+			.withIndex("by_collection_minted", (q) => q.eq("collectionId", args.collectionId).eq("revealed", false))
 			.collect();
 
 		if (unrevealedItems.length === 0) {
@@ -91,9 +91,10 @@ export const countRevealItems = internalQuery({
 		collectionId: v.string(),
 	},
 	handler: async (ctx, args) => {
+		// Using prefix of by_collection_minted index (just collectionId)
 		const items = await ctx.db
 			.query("nftRevealItems")
-			.withIndex("by_collection_id", (q) => q.eq("collectionId", args.collectionId))
+			.withIndex("by_collection_minted", (q) => q.eq("collectionId", args.collectionId))
 			.collect();
 
 		return items.length;
@@ -117,5 +118,41 @@ export const getRecentMints = query({
 			.take(20);
 
 		return items;
+	},
+});
+
+/**
+ * Public query to get recent mints across all collections (last 30)
+ */
+export const getAllRecentMints = query({
+	args: {},
+	handler: async (ctx) => {
+		// Use index by_revealed_minted to efficiently query revealed items ordered by mintedAt
+		const sortedItems = await ctx.db
+			.query("nftRevealItems")
+			.withIndex("by_revealed_minted", (q) => q.eq("revealed", true))
+			.order("desc")
+			.take(30);
+
+		// Enrich with collection info
+		const itemsWithCollectionInfo = await Promise.all(
+			sortedItems.map(async (item) => {
+				const collection = await ctx.db
+					.query("collections")
+					.withIndex("by_collection_id", (q) => q.eq("collectionId", item.collectionId))
+					.first();
+
+				const now = Math.floor(Date.now() / 1000);
+				const isActiveMint = collection && !collection.saleCompleted && now < collection.saleDeadline;
+
+				return {
+					...item,
+					collectionName: collection?.collectionName || "Unknown Collection",
+					isActiveMint: isActiveMint,
+				};
+			}),
+		);
+
+		return itemsWithCollectionInfo;
 	},
 });

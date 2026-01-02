@@ -94,9 +94,8 @@ export default defineSchema({
 		mintedAt: v.optional(v.number()), // Timestamp when minted/revealed
 		ownerAddress: v.optional(v.string()), // Current owner address
 	})
-		.index("by_collection_id", ["collectionId"])
-		.index("by_collection_unrevealed", ["collectionId", "revealed"])
-		.index("by_collection_minted", ["collectionId", "revealed", "mintedAt"]),
+		.index("by_collection_minted", ["collectionId", "revealed", "mintedAt"])
+		.index("by_revealed_minted", ["revealed", "mintedAt"]),
 
 	// Chat users - maps device IDs to nicknames
 	chatUsers: defineTable({

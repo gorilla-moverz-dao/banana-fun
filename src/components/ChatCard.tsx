@@ -1,10 +1,9 @@
 import { useMutation, useQuery } from "convex/react";
 import { MessageCircle, Send, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { api } from "../../convex/_generated/api";
-import { useClients } from "@/hooks/useClients";
-import { useDeviceId } from "@/hooks/useDeviceId";
+import { GlassCard } from "@/components/GlassCard";
 import { Button } from "@/components/ui/button";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
@@ -14,8 +13,9 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { GlassCard } from "@/components/GlassCard";
-import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useClients } from "@/hooks/useClients";
+import { useDeviceId } from "@/hooks/useDeviceId";
+import { api } from "../../convex/_generated/api";
 
 interface ChatCardProps {
 	collectionId: string;
@@ -31,10 +31,7 @@ export function ChatCard({ collectionId }: ChatCardProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 
 	// Convex queries and mutations
-	const nickname = useQuery(
-		api.chat.getUserNickname,
-		deviceId ? { deviceId } : "skip",
-	);
+	const nickname = useQuery(api.chat.getUserNickname, deviceId ? { deviceId } : "skip");
 	const messages = useQuery(api.chat.getMessages, { collectionId });
 	const setNicknameMutation = useMutation(api.chat.setNickname);
 	const sendMessageMutation = useMutation(api.chat.sendMessage);
@@ -123,7 +120,7 @@ export function ChatCard({ collectionId }: ChatCardProps) {
 
 	return (
 		<>
-			<GlassCard>
+			<GlassCard className="gap-2">
 				<CardHeader>
 					<CardTitle className="flex items-center gap-2 text-lg">
 						<MessageCircle className="w-5 h-5" />
@@ -144,26 +141,15 @@ export function ChatCard({ collectionId }: ChatCardProps) {
 							</div>
 						)}
 						{messages?.map((msg) => (
-							<div
-								key={msg._id}
-								className={`flex flex-col ${
-									msg.deviceId === deviceId ? "items-end" : "items-start"
-								}`}
-							>
+							<div key={msg._id} className={`flex flex-col ${msg.deviceId === deviceId ? "items-end" : "items-start"}`}>
 								<div
 									className={`max-w-[80%] rounded-lg px-3 py-2 ${
-										msg.deviceId === deviceId
-											? "bg-yellow-500/30 text-foreground"
-											: "bg-white/10 text-foreground"
+										msg.deviceId === deviceId ? "bg-yellow-500/30 text-foreground" : "bg-white/10 text-foreground"
 									}`}
 								>
 									<div className="flex items-center gap-2 mb-1">
-										<span className="text-xs font-semibold text-yellow-400">
-											{msg.nickname}
-										</span>
-										<span className="text-xs text-muted-foreground">
-											{formatTime(msg.createdAt)}
-										</span>
+										<span className="text-xs font-semibold text-yellow-400">{msg.nickname}</span>
+										<span className="text-xs text-muted-foreground">{formatTime(msg.createdAt)}</span>
 									</div>
 									<p className="text-sm break-words">{msg.message}</p>
 								</div>
@@ -192,11 +178,7 @@ export function ChatCard({ collectionId }: ChatCardProps) {
 
 					{/* Set Nickname Button (if not set) */}
 					{!nickname && (
-						<Button
-							variant="outline"
-							onClick={() => setShowNicknameDialog(true)}
-							className="w-full"
-						>
+						<Button variant="outline" onClick={() => setShowNicknameDialog(true)} className="w-full">
 							<User className="w-4 h-4 mr-2" />
 							Set Nickname to Chat
 						</Button>
@@ -210,8 +192,7 @@ export function ChatCard({ collectionId }: ChatCardProps) {
 					<DialogHeader>
 						<DialogTitle>Set Your Nickname</DialogTitle>
 						<DialogDescription>
-							Choose a nickname to display in the chat. This will be visible to
-							other users.
+							Choose a nickname to display in the chat. This will be visible to other users.
 						</DialogDescription>
 					</DialogHeader>
 					<div className="py-4">
@@ -225,19 +206,12 @@ export function ChatCard({ collectionId }: ChatCardProps) {
 						/>
 					</div>
 					<DialogFooter>
-						<Button
-							variant="outline"
-							onClick={() => setShowNicknameDialog(false)}
-						>
+						<Button variant="outline" onClick={() => setShowNicknameDialog(false)}>
 							Cancel
 						</Button>
 						<Button
 							onClick={handleSetNickname}
-							disabled={
-								nicknameInput.trim().length < 2 ||
-								nicknameInput.trim().length > 20 ||
-								isSubmitting
-							}
+							disabled={nicknameInput.trim().length < 2 || nicknameInput.trim().length > 20 || isSubmitting}
 							className="bg-yellow-500 hover:bg-yellow-600 text-black"
 						>
 							{isSubmitting ? "Setting..." : "Set Nickname"}
@@ -248,4 +222,3 @@ export function ChatCard({ collectionId }: ChatCardProps) {
 		</>
 	);
 }
-

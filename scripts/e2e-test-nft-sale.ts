@@ -30,7 +30,7 @@ if (existsSync(envPath)) {
 	}
 }
 
-import type { Account, UserTransactionResponse } from "@aptos-labs/ts-sdk";
+import { Account, type UserTransactionResponse } from "@aptos-labs/ts-sdk";
 import { ConvexHttpClient } from "convex/browser";
 import { LAUNCHPAD_MODULE_ADDRESS, MOVE_NETWORK } from "@/constants";
 import { aptos, launchpadClient, vestingClient } from "@/lib/aptos";
@@ -169,6 +169,28 @@ async function fundAccount(account: Account): Promise<void> {
 	} catch (_error) {
 		console.log("Faucet funding failed, continuing with existing balance...");
 	}
+}
+
+/**
+ * Create and fund multiple test accounts
+ */
+async function createAndFundTestAccounts(count: number): Promise<Account[]> {
+	console.log(`\n🔑 Creating and funding ${count} test accounts...`);
+	const accounts: Account[] = [];
+
+	for (let i = 0; i < count; i++) {
+		const account = Account.generate();
+		console.log(`   Account ${i + 1}: ${account.accountAddress.toString()}`);
+
+		// Fund the account
+		await fundAccount(account);
+		await sleep(2000); // Wait for faucet rate limiting
+
+		accounts.push(account);
+	}
+
+	console.log(`✅ Created and funded ${accounts.length} test accounts`);
+	return accounts;
 }
 
 type ConvexCollectionData = Omit<Doc<"collections">, "_id" | "_creationTime">;
@@ -550,30 +572,53 @@ async function main() {
 	const allNftIds: `0x${string}`[] = [];
 	let totalReveals = 0;
 
-	// Mint in batches to avoid transaction size limits
-	const supplyToMint = 5;
-	const batchSize = 5;
-	for (let i = 0; i < supplyToMint; i += batchSize) {
-		const amount = Math.min(batchSize, TEST_COLLECTION_CONFIG.maxSupply - i);
-		const { nftIds } = await mintNFT(admin, collectionId, amount);
-		allNftIds.push(...nftIds);
+	// Configuration for minting
+	const totalNftsToMint = 9; // Total NFTs to mint across all accounts
+	const nftsPerAccount = 3; // Max NFTs per account (mint limit)
+	const accountsNeeded = Math.ceil(totalNftsToMint / nftsPerAccount);
 
-		// Trigger reveal via Convex afterMint action (if reveal data was uploaded)
-		if (convex && revealDataUploaded && nftIds.length > 0) {
-			try {
-				const afterMintResult = await convex.action(api.collectionSyncActions.afterMint, {
-					collectionId,
-					nftTokenIds: nftIds,
-				});
-				const successfulReveals = afterMintResult.reveals.filter((r) => r.success).length;
-				totalReveals += successfulReveals;
-				console.log(`   Reveals: ${successfulReveals}/${nftIds.length} successful`);
-			} catch (error) {
-				console.warn(`   ⚠️  afterMint failed:`, error);
+	// Create and fund test accounts (we need accountsNeeded - 1 because admin is the first account)
+	const testAccounts = await createAndFundTestAccounts(accountsNeeded - 1);
+	const allMinters = [admin, ...testAccounts];
+
+	console.log(
+		`\n🎯 Will mint ${totalNftsToMint} NFTs using ${allMinters.length} accounts (${nftsPerAccount} per account max)`,
+	);
+
+	// Mint one NFT at a time with 10 second sleep between mints
+	let nftsMinted = 0;
+	for (const minter of allMinters) {
+		if (nftsMinted >= totalNftsToMint) break;
+
+		const mintsForThisAccount = Math.min(nftsPerAccount, totalNftsToMint - nftsMinted);
+		console.log(`\n👤 Minting ${mintsForThisAccount} NFT(s) with account: ${minter.accountAddress.toString()}`);
+
+		for (let j = 0; j < mintsForThisAccount; j++) {
+			// Add 10 second sleep between mints (except before the first mint)
+			if (nftsMinted > 0) {
+				console.log("   ⏳ Waiting 10 seconds before next mint...");
+				await sleep(10000);
+			}
+
+			const { nftIds } = await mintNFT(minter, collectionId, 1);
+			allNftIds.push(...nftIds);
+			nftsMinted++;
+
+			// Trigger reveal via Convex afterMint action (if reveal data was uploaded)
+			if (convex && revealDataUploaded && nftIds.length > 0) {
+				try {
+					const afterMintResult = await convex.action(api.collectionSyncActions.afterMint, {
+						collectionId,
+						nftTokenIds: nftIds,
+					});
+					const successfulReveals = afterMintResult.reveals.filter((r) => r.success).length;
+					totalReveals += successfulReveals;
+					console.log(`   Reveals: ${successfulReveals}/${nftIds.length} successful`);
+				} catch (error) {
+					console.warn(`   ⚠️  afterMint failed:`, error);
+				}
 			}
 		}
-
-		await sleep(1000); // Wait between mints
 	}
 
 	// Get updated collection info
