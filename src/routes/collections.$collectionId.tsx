@@ -160,10 +160,10 @@ function RouteComponent() {
 				</TabsList>
 
 				{/* Vesting Tab */}
-				<TabsContent value="token" className="space-y-6 mt-6">
+				<TabsContent value="token" className="mt-6">
 					{/* For failed launches: Show refund stats instead of vesting cards */}
 					{isFailedLaunch ? (
-						<>
+						<div className="space-y-6">
 							{/* Refund Stats Card */}
 							<RefundStatsCard collectionData={collectionData} />
 
@@ -177,30 +177,35 @@ function RouteComponent() {
 									}}
 								/>
 							)}
-						</>
+						</div>
 					) : (
-						<>
-							{/* Vesting Cards - Side by side on larger screens */}
-							{(hasHolderVesting || hasTeamVesting) && (
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-									{hasHolderVesting && <VestingCard type="holder" collectionData={collectionData} />}
-									{hasTeamVesting && <VestingCard type="team" collectionData={collectionData} />}
-								</div>
-							)}
+						<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+							{/* Chat on the left */}
+							<ChatCard collectionId={collectionId} />
 
-							{/* Creator Vesting Card - Show when user is the dev wallet and sale is completed */}
-							{isCreatorVestingBeneficiary && <CreatorVestingCard collectionData={collectionData} />}
+							{/* Vesting Cards on the right */}
+							<div className="space-y-6">
+								{(hasHolderVesting || hasTeamVesting) && (
+									<div className="space-y-6">
+										{hasHolderVesting && <VestingCard type="holder" collectionData={collectionData} />}
+										{hasTeamVesting && <VestingCard type="team" collectionData={collectionData} />}
+									</div>
+								)}
 
-							{/* My NFTs Card - Show claim card for successful sales */}
-							{connected && isFetchedMyNFTs && myNfts.length > 0 && (
-								<MyNFTsCard
-									nfts={myNfts}
-									collectionData={collectionData}
-									onNFTClick={handleNFTClick}
-									gridCols="grid-cols-2 md:grid-cols-4 lg:grid-cols-6"
-								/>
-							)}
-						</>
+								{/* Creator Vesting Card - Show when user is the dev wallet and sale is completed */}
+								{isCreatorVestingBeneficiary && <CreatorVestingCard collectionData={collectionData} />}
+
+								{/* My NFTs Card - Show claim card for successful sales */}
+								{connected && isFetchedMyNFTs && myNfts.length > 0 && (
+									<MyNFTsCard
+										nfts={myNfts}
+										collectionData={collectionData}
+										onNFTClick={handleNFTClick}
+										gridCols="grid-cols-2 md:grid-cols-3"
+									/>
+								)}
+							</div>
+						</div>
 					)}
 				</TabsContent>
 
@@ -209,9 +214,6 @@ function RouteComponent() {
 					<NFTBrowserCard collectionId={collectionId} collectionData={collectionData} onNFTClick={handleNFTClick} />
 				</TabsContent>
 			</Tabs>
-
-			{/* Chat Section */}
-			<ChatCard collectionId={collectionId} />
 
 			{/* Asset Detail Dialog */}
 			<AssetDetailDialog
