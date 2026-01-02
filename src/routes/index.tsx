@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { ArrowRight, Coins, Droplets, Rocket, Shield, Sparkles, Timer } from "lucide-react";
 import { ChatFeed } from "@/components/ChatFeed";
 import { GlassCard } from "@/components/GlassCard";
+import { LiveMintsFeed } from "@/components/LiveMintsFeed";
 import { Button } from "@/components/ui/button";
 import { api } from "../../convex/_generated/api";
 
@@ -240,7 +241,7 @@ function HomePage() {
 
 					{/* Quick CTA */}
 					<GlassCard className="p-4 mt-4 bg-gradient-to-r from-yellow-500/10 via-orange-500/10 to-yellow-500/10">
-						<p className="text-sm text-muted-foreground mb-3">Ready to participate in the next big launch?</p>
+						<p className="text-sm text-muted-foreground">Ready to participate in the next big launch?</p>
 						<Link to="/mint" className="block">
 							<Button className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600">
 								<Rocket className="w-4 h-4 mr-2" />
@@ -252,6 +253,11 @@ function HomePage() {
 					{/* Live Chat Feed */}
 					<div className="mt-4">
 						<ChatFeed />
+					</div>
+
+					{/* Live Mints Feed */}
+					<div className="mt-4">
+						<LiveMintsFeed />
 					</div>
 				</div>
 			</div>
