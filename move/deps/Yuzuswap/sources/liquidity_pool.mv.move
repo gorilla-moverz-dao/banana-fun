@@ -34,6 +34,7 @@ module yuzuswap::liquidity_pool {
     friend yuzuswap::position_nft_manager;
     friend yuzuswap::reward_manager;
     friend yuzuswap::router;
+    #[event]
     struct AddLiquidityEvent has drop, store {
         user: address,
         pool: address,
@@ -42,12 +43,14 @@ module yuzuswap::liquidity_pool {
         amount_0: u64,
         amount_1: u64,
     }
+    #[event]
     struct AddRewardEvent has drop, store {
         pool: address,
         reward_index: u64,
         manager: address,
         amount: u64,
     }
+    #[event]
     struct CollectFeeEvent has drop, store {
         user: address,
         pool: address,
@@ -55,12 +58,14 @@ module yuzuswap::liquidity_pool {
         amount_0: u64,
         amount_1: u64,
     }
+    #[event]
     struct CollectProtocolFee has drop, store {
         admin: address,
         pool: address,
         amount_0: u64,
         amount_1: u64,
     }
+    #[event]
     struct CollectRewardEvent has drop, store {
         user: address,
         pool: address,
@@ -68,6 +73,7 @@ module yuzuswap::liquidity_pool {
         reward_index: u64,
         amount: u64,
     }
+    #[event]
     struct CreatePoolEvent has drop, store {
         creator: address,
         pool: address,
@@ -76,11 +82,13 @@ module yuzuswap::liquidity_pool {
         fee: u64,
         tick_spacing: u32,
     }
+    #[event]
     struct IncreaseObservationCardinalityNextEvent has drop, store {
         pool: address,
         observation_cardinality_next_old: u16,
         observation_cardinality_next_new: u16,
     }
+    #[event]
     struct InitRewardEvent has drop, store {
         pool: address,
         reward_index: u64,
@@ -165,6 +173,7 @@ module yuzuswap::liquidity_pool {
         reward_growth_inside_last: u256,
         amount_owed: u64,
     }
+    #[event]
     struct RemoveLiquidityEvent has drop, store {
         user: address,
         pool: address,
@@ -173,12 +182,14 @@ module yuzuswap::liquidity_pool {
         amount_0: u64,
         amount_1: u64,
     }
+    #[event]
     struct RemoveRewardEvent has drop, store {
         pool: address,
         reward_index: u64,
         manager: address,
         amount: u64,
     }
+    #[event]
     struct SwapEvent has drop, store {
         pool: address,
         zero_for_one: bool,
@@ -204,12 +215,14 @@ module yuzuswap::liquidity_pool {
         fee_growth_outside_1_x64: u256,
         reward_growths_outside: vector<u256>,
     }
+    #[event]
     struct UpdateRewardEmissionsEvent has drop, store {
         pool: address,
         reward_index: u64,
         manager: address,
         emissions_per_second: u64,
     }
+    #[event]
     struct UpdateRewardManagerEvent has drop, store {
         pool: address,
         reward_index: u64,
