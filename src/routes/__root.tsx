@@ -3,6 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { Toaster } from "sonner";
+import { DustParticles } from "../components/DustParticles";
 import Header from "../components/Header";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 
@@ -19,6 +20,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 					backgroundImage: "url('/images/background.webp')",
 				}}
 			/>
+			<DustParticles />
 			<div className="fixed top-0 left-0 -z-10 h-screen w-screen bg-black/20" />
 			<Header />
 			<main className="pt-4 px-4 md:px-6 lg:px-0 pb-8 w-full max-w-7xl mx-auto">
