@@ -384,27 +384,16 @@ async function syncCollectionSupply(
 } | null> {
 	const collectionId = collection.collectionId as `0x${string}`;
 
-	// Query indexer for current supply and owner count
-	const { currentSupply, ownerCount } = await querySupplyAndOwnerCount(
-		aptos,
-		collectionId,
-		collection.currentSupply,
-		collection.ownerCount ?? 0,
-	);
+	// Get current supply and total funds directly from blockchain (up-to-date immediately after mint)
+	const viewData = await getCollectionViewData(launchpadClient, collectionId);
+	const currentSupply = Number(viewData.current_supply);
+	const totalFundsCollected = Number(viewData.total_funds_collected);
 
-	// Query blockchain for total_funds_collected
-	const [totalFundsCollectedRaw] = await launchpadClient.view.get_collected_funds({
-		typeArguments: [],
-		functionArguments: [collectionId],
-	});
-	const totalFundsCollected = Number(totalFundsCollectedRaw);
+	// Query indexer for owner count only (some lag is acceptable for this)
+	const { ownerCount } = await querySupplyAndOwnerCount(aptos, collectionId, currentSupply, collection.ownerCount ?? 0);
 
-	let saleCompleted = await launchpadClient.view
-		.is_sale_completed({
-			typeArguments: [],
-			functionArguments: [collectionId],
-		})
-		.then((value) => value[0]);
+	// Use sale_completed from view data (already fetched)
+	let saleCompleted = viewData.sale_completed;
 
 	// If max supply reached but sale not completed, trigger completion
 	if (currentSupply === collection.maxSupply && !saleCompleted) {
@@ -415,12 +404,12 @@ async function syncCollectionSupply(
 			account: account,
 		});
 
-		saleCompleted = await launchpadClient.view
-			.is_sale_completed({
-				typeArguments: [],
-				functionArguments: [collectionId],
-			})
-			.then((value) => value[0]);
+		// Re-check sale status after completion attempt (need fresh query)
+		const [freshSaleCompleted] = await launchpadClient.view.is_sale_completed({
+			typeArguments: [],
+			functionArguments: [collectionId],
+		});
+		saleCompleted = freshSaleCompleted;
 	}
 
 	// Check if sale just completed (was false, now true)
@@ -470,7 +459,7 @@ async function syncCollectionSupply(
 export const syncCollectionSupplyAction = internalAction({
 	args: {},
 	handler: async (ctx) => {
-		console.log("Syncing collection supply data from indexer");
+		console.log("Syncing collection supply data from blockchain");
 		const { aptos, launchpadClient, account } = createAptosClient();
 
 		// Get all collections from database

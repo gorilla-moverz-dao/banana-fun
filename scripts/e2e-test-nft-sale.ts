@@ -573,7 +573,7 @@ async function main() {
 	let totalReveals = 0;
 
 	// Configuration for minting
-	const totalNftsToMint = 50; // Total NFTs to mint across all accounts
+	const totalNftsToMint = 45; // Total NFTs to mint across all accounts
 	const nftsPerAccount = 3; // Max NFTs per account (mint limit)
 	const accountsNeeded = Math.ceil(totalNftsToMint / nftsPerAccount);
 
