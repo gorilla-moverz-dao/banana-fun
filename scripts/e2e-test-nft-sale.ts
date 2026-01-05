@@ -573,7 +573,7 @@ async function main() {
 	let totalReveals = 0;
 
 	// Configuration for minting
-	const totalNftsToMint = 9; // Total NFTs to mint across all accounts
+	const totalNftsToMint = 50; // Total NFTs to mint across all accounts
 	const nftsPerAccount = 3; // Max NFTs per account (mint limit)
 	const accountsNeeded = Math.ceil(totalNftsToMint / nftsPerAccount);
 
@@ -585,40 +585,97 @@ async function main() {
 		`\n🎯 Will mint ${totalNftsToMint} NFTs using ${allMinters.length} accounts (${nftsPerAccount} per account max)`,
 	);
 
-	// Mint one NFT at a time with 10 second sleep between mints
-	let nftsMinted = 0;
-	for (const minter of allMinters) {
-		if (nftsMinted >= totalNftsToMint) break;
+	// Run multiple minters in parallel
+	const parallelMinters = 3; // Number of minters to run simultaneously
+	const minterBatches: (typeof allMinters)[] = [];
 
-		const mintsForThisAccount = Math.min(nftsPerAccount, totalNftsToMint - nftsMinted);
-		console.log(`\n👤 Minting ${mintsForThisAccount} NFT(s) with account: ${minter.accountAddress.toString()}`);
+	// Split minters into batches for parallel execution
+	for (let i = 0; i < allMinters.length; i += parallelMinters) {
+		minterBatches.push(allMinters.slice(i, i + parallelMinters));
+	}
+
+	// Helper function for a single minter to mint their NFTs
+	const mintForAccount = async (
+		minter: (typeof allMinters)[0],
+		mintsForThisAccount: number,
+		minterIndex: number,
+	): Promise<{ nftIds: `0x${string}`[]; reveals: number }> => {
+		const nftIds: `0x${string}`[] = [];
+		let reveals = 0;
+
+		console.log(
+			`\n👤 [Minter ${minterIndex}] Starting ${mintsForThisAccount} mint(s) with account: ${minter.accountAddress.toString()}`,
+		);
 
 		for (let j = 0; j < mintsForThisAccount; j++) {
-			// Add 10 second sleep between mints (except before the first mint)
-			if (nftsMinted > 0) {
-				console.log("   ⏳ Waiting 10 seconds before next mint...");
-				await sleep(10000);
+			// Add random delay between mints (except before the first mint of this minter)
+			if (j > 0) {
+				const waitTime = Math.floor(Math.random() * 5) + 1; // 1-5 seconds
+				console.log(`   [Minter ${minterIndex}] ⏳ Waiting ${waitTime}s before next mint...`);
+				await sleep(waitTime * 1000);
 			}
 
-			const { nftIds } = await mintNFT(minter, collectionId, 1);
-			allNftIds.push(...nftIds);
-			nftsMinted++;
+			try {
+				const result = await mintNFT(minter, collectionId, 1);
+				nftIds.push(...result.nftIds);
+				console.log(`   [Minter ${minterIndex}] ✅ Minted NFT ${j + 1}/${mintsForThisAccount}`);
 
-			// Trigger reveal via Convex afterMint action (if reveal data was uploaded)
-			if (convex && revealDataUploaded && nftIds.length > 0) {
-				try {
-					const afterMintResult = await convex.action(api.collectionSyncActions.afterMint, {
-						collectionId,
-						nftTokenIds: nftIds,
-					});
-					const successfulReveals = afterMintResult.reveals.filter((r) => r.success).length;
-					totalReveals += successfulReveals;
-					console.log(`   Reveals: ${successfulReveals}/${nftIds.length} successful`);
-				} catch (error) {
-					console.warn(`   ⚠️  afterMint failed:`, error);
+				// Trigger reveal via Convex afterMint action (if reveal data was uploaded)
+				if (convex && revealDataUploaded && result.nftIds.length > 0) {
+					try {
+						const afterMintResult = await convex.action(api.collectionSyncActions.afterMint, {
+							collectionId,
+							nftTokenIds: result.nftIds,
+						});
+						const successfulReveals = afterMintResult.reveals.filter((r) => r.success).length;
+						reveals += successfulReveals;
+						console.log(`   [Minter ${minterIndex}] Reveals: ${successfulReveals}/${result.nftIds.length} successful`);
+					} catch (error) {
+						console.warn(`   [Minter ${minterIndex}] ⚠️  afterMint failed:`, error);
+					}
 				}
+			} catch (error) {
+				console.error(`   [Minter ${minterIndex}] ❌ Mint failed:`, error);
 			}
 		}
+
+		return { nftIds, reveals };
+	};
+
+	// Process minter batches - each batch runs in parallel
+	let nftsMinted = 0;
+	for (let batchIndex = 0; batchIndex < minterBatches.length; batchIndex++) {
+		const batch = minterBatches[batchIndex];
+		const remainingToMint = totalNftsToMint - nftsMinted;
+
+		if (remainingToMint <= 0) break;
+
+		console.log(`\n🚀 Starting batch ${batchIndex + 1}/${minterBatches.length} with ${batch.length} parallel minters`);
+
+		// Calculate how many NFTs each minter in this batch should mint
+		const mintPromises = batch.map((minter, indexInBatch) => {
+			const globalMinterIndex = batchIndex * parallelMinters + indexInBatch;
+			const nftsAlreadyAssigned = globalMinterIndex * nftsPerAccount;
+			const nftsRemainingForThisMinter = Math.min(nftsPerAccount, totalNftsToMint - nftsAlreadyAssigned);
+
+			if (nftsRemainingForThisMinter <= 0) {
+				return Promise.resolve({ nftIds: [] as `0x${string}`[], reveals: 0 });
+			}
+
+			return mintForAccount(minter, nftsRemainingForThisMinter, globalMinterIndex + 1);
+		});
+
+		// Wait for all minters in this batch to complete
+		const batchResults = await Promise.all(mintPromises);
+
+		// Collect results
+		for (const result of batchResults) {
+			allNftIds.push(...result.nftIds);
+			totalReveals += result.reveals;
+			nftsMinted += result.nftIds.length;
+		}
+
+		console.log(`\n✅ Batch ${batchIndex + 1} complete. Total minted so far: ${nftsMinted}/${totalNftsToMint}`);
 	}
 
 	// Get updated collection info

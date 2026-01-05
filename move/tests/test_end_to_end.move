@@ -1999,5 +1999,69 @@ module deployment_addr::test_end_to_end {
         debug::print(&creator_vesting_balance);
         assert!(creator_vesting_balance == expected_creator_vesting_amount);
     }
+
+    #[test(
+        aptos_framework = @0x1, sender = @deployment_addr, user1 = @0x200, royalty_user = @0x300
+    )]
+    #[expected_failure(arithmetic_error, location = dex)]
+    fun test_free_mint_and_complete_sale(
+        aptos_framework: &signer,
+        sender: &signer,
+        user1: &signer,
+        royalty_user: &signer
+    ) {
+        let _user1_addr = setup_test_env(aptos_framework, user1, sender);
+
+        // Create collection with mint_fee = 0 (free mint)
+        let collection_obj =
+            create_public_only_collection(
+                sender,
+                royalty_user,
+                0, // mint_fee = 0 for free mint
+                MINT_LIMIT_XLARGE,
+                DURATION_MEDIUM
+            );
+
+        // User should be able to mint all NFTs without paying any fee
+        nft_launchpad::mint_nft(user1, collection_obj, MAX_SUPPLY, vector[]);
+
+        // Verify all NFTs were minted
+        assert!(collection::count(collection_obj) == option::some(MAX_SUPPLY));
+        debug::print(&utf8(b"Free mint successful!"));
+
+        // Verify sale is not completed yet
+        assert!(!nft_launchpad::is_sale_completed(collection_obj));
+
+        // Move time past deadline (helper uses SALE_DEADLINE_OFFSET)
+        timestamp::update_global_time_for_test_secs(SALE_DEADLINE_OFFSET + 1);
+
+        // Complete the sale - this should create the fungible asset and LP
+        nft_launchpad::check_and_complete_sale(collection_obj);
+
+        // Verify sale is completed
+        assert!(nft_launchpad::is_sale_completed(collection_obj));
+        debug::print(&utf8(b"Sale completed!"));
+
+        // Get the FA metadata object address
+        let collection_owner_obj = nft_launchpad::get_collection_owner_obj(collection_obj);
+        let collection_owner_addr = object::object_address(&collection_owner_obj);
+        let fa_obj_addr = object::create_object_address(&collection_owner_addr, FA_SYMBOL);
+        let fa_metadata = object::address_to_object<fungible_asset::Metadata>(fa_obj_addr);
+
+        // Verify FA metadata
+        let fa_name = fungible_asset::name(fa_metadata);
+        let fa_symbol = fungible_asset::symbol(fa_metadata);
+        assert!(fa_name == utf8(FA_NAME));
+        assert!(fa_symbol == utf8(FA_SYMBOL));
+        debug::print(&utf8(b"Fungible asset created!"));
+
+        // Verify NFT holder vesting is initialized
+        assert!(vesting::is_vesting_initialized(collection_obj));
+
+        // Verify creator vesting is initialized
+        assert!(vesting::is_creator_vesting_initialized(collection_obj));
+
+        debug::print(&utf8(b"Free mint with LP creation test completed!"));
+    }
 }
 
