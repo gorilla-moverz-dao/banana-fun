@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { ArrowRight, Coins, Droplets, Rocket, Shield, Sparkles, Timer } from "lucide-react";
+import { ArrowRight, Clock, Coins, Droplets, Rocket, Shield, Sparkles, Timer } from "lucide-react";
 import { ChatFeed } from "@/components/ChatFeed";
 import { GlassCard } from "@/components/GlassCard";
 import { LiveMintsFeed } from "@/components/LiveMintsFeed";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { searchDefaults } from "@/hooks/useCollectionSearch";
 import { api } from "../../convex/_generated/api";
@@ -205,7 +206,7 @@ function HomePage() {
 								>
 									<GlassCard hoverEffect={true} className="p-3 group">
 										<div className="flex gap-4">
-											<div className="w-28 h-28 flex-shrink-0 overflow-hidden rounded-lg border">
+											<div className="relative w-28 h-28 flex-shrink-0 overflow-hidden rounded-lg border">
 												<img
 													src={collection.uri}
 													alt={collection.collection_name}
@@ -214,6 +215,12 @@ function HomePage() {
 														e.currentTarget.src = "/images/favicon-1.png";
 													}}
 												/>
+												{collection.current_supply < collection.max_supply && (
+													<Badge className="absolute top-1 right-1 bg-blue-500/90 text-white border-blue-400/50 shadow-lg backdrop-blur-sm text-xs px-1.5 py-0.5">
+														<Clock className="size-3 mr-1" />
+														Live
+													</Badge>
+												)}
 											</div>
 											<div className="flex-1 min-w-0 flex flex-col justify-center">
 												<div className="font-semibold text-lg truncate" title={collection.collection_name}>
