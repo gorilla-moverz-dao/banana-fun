@@ -35,6 +35,7 @@ export function DustParticles() {
 	const animationRef = useRef<number>(0);
 	const timeRef = useRef(0);
 	const lastFrameRef = useRef(0);
+	const mouseRef = useRef({ x: -1000, y: -1000, active: false });
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
@@ -46,6 +47,18 @@ export function DustParticles() {
 		let width = window.innerWidth;
 		let height = window.innerHeight;
 		let dpr = window.devicePixelRatio || 1;
+
+		// Mouse tracking
+		const handleMouseMove = (e: MouseEvent) => {
+			mouseRef.current.x = e.clientX;
+			mouseRef.current.y = e.clientY;
+			mouseRef.current.active = true;
+		};
+		const handleMouseLeave = () => {
+			mouseRef.current.active = false;
+		};
+		window.addEventListener("mousemove", handleMouseMove);
+		window.addEventListener("mouseleave", handleMouseLeave);
 
 		// Set canvas to full screen
 		const resize = () => {
@@ -62,7 +75,7 @@ export function DustParticles() {
 		window.addEventListener("resize", resize);
 
 		// Initialize particles
-		const PARTICLE_COUNT = 500;
+		const PARTICLE_COUNT = 2000;
 		const particles: Particle[] = [];
 
 		for (let i = 0; i < PARTICLE_COUNT; i++) {
@@ -107,8 +120,47 @@ export function DustParticles() {
 			const bottomStart = height * 0.6;
 			const bottomRange = height * 0.4;
 
+			// Wind effect from mouse
+			const mouse = mouseRef.current;
+			const windRadius = 350; // Radius of wind influence
+			const windStrength = 0.12; // Wind force
+
 			for (let i = 0; i < particles.length; i++) {
 				const particle = particles[i];
+
+				// Apply wind effect from mouse position
+				if (mouse.active) {
+					const mdx = particle.x - mouse.x;
+					const mdy = particle.y - mouse.y;
+					const mouseDist = Math.sqrt(mdx * mdx + mdy * mdy);
+
+					if (mouseDist < windRadius && mouseDist > 0) {
+						// Soft falloff: stronger near mouse, fades smoothly
+						const falloff = 1 - mouseDist / windRadius;
+						const softFalloff = falloff * falloff; // Quadratic for smoother feel
+						const force = windStrength * softFalloff * particle.depth;
+
+						// Normalize direction and apply force to velocity
+						const nx = mdx / mouseDist;
+						const ny = mdy / mouseDist;
+						particle.speedX += nx * force;
+						particle.speedY += ny * force;
+					}
+				}
+
+				// Gradually return to base speed (drag/friction)
+				const baseSpeedX = (Math.random() - 0.5) * 0.08 * particle.depth;
+				const baseSpeedY = (Math.random() * 0.15 - 0.03) * particle.depth;
+				particle.speedX += (baseSpeedX - particle.speedX) * 0.01;
+				particle.speedY += (baseSpeedY - particle.speedY) * 0.01;
+
+				// Clamp max speed so particles don't fly off too fast
+				const maxSpeed = 5 * particle.depth;
+				const currentSpeed = Math.sqrt(particle.speedX * particle.speedX + particle.speedY * particle.speedY);
+				if (currentSpeed > maxSpeed) {
+					particle.speedX = (particle.speedX / currentSpeed) * maxSpeed;
+					particle.speedY = (particle.speedY / currentSpeed) * maxSpeed;
+				}
 
 				// Update position with gentle floating motion
 				const wobble = fastSin(time * particle.wobbleSpeed + particle.wobbleOffset);
@@ -147,10 +199,10 @@ export function DustParticles() {
 
 				// Calculate final opacity (boosted for better visibility)
 				const glowBoost = lightIntensity * 3;
-				const opacity = particle.baseOpacity * (0.25 + glowBoost * 0.75) * shadowMultiplier * flicker * particle.depth;
+				const opacity = particle.baseOpacity * (0.55 + glowBoost * 0.45) * shadowMultiplier * flicker * particle.depth;
 
 				// Skip nearly invisible particles early
-				if (opacity < 0.008) continue;
+				if (opacity < 0.005) continue;
 
 				particle.opacity = opacity;
 
@@ -170,6 +222,8 @@ export function DustParticles() {
 
 		return () => {
 			window.removeEventListener("resize", resize);
+			window.removeEventListener("mousemove", handleMouseMove);
+			window.removeEventListener("mouseleave", handleMouseLeave);
 			cancelAnimationFrame(animationRef.current);
 		};
 	}, []);
@@ -184,7 +238,7 @@ export function DustParticles() {
 }
 
 function createParticle(width: number, height: number): Particle {
-	const depth = 0.3 + Math.random() * 0.7;
+	const depth = 0.5 + Math.random() * 0.5;
 
 	// Gaussian-like distribution using Box-Muller
 	const u1 = Math.random();
@@ -209,11 +263,11 @@ function createParticle(width: number, height: number): Particle {
 	return {
 		x,
 		y,
-		size: (0.3 + Math.random() * 1.2) * depth,
+		size: (0.8 + Math.random() * 0.7) * depth,
 		speedX: (Math.random() - 0.5) * 0.08 * depth,
 		speedY: (Math.random() * 0.15 - 0.03) * depth,
 		opacity: 0,
-		baseOpacity: 0.4 + Math.random() * 0.6,
+		baseOpacity: 0.75 + Math.random() * 0.25,
 		depth,
 		wobbleOffset: Math.random() * Math.PI * 2,
 		wobbleSpeed: 0.5 + Math.random() * 1.5,
@@ -232,10 +286,10 @@ function drawParticleOptimized(ctx: CanvasRenderingContext2D, particle: Particle
 
 	// Single gradient for both glow and core (reduces gradient creation by half)
 	const gradient = ctx.createRadialGradient(x, y, 0, x, y, glowSize);
-	gradient.addColorStop(0, `rgba(255,255,250,${opacity})`);
-	gradient.addColorStop(0.15, `rgba(${r | 0},${g | 0},${b | 0},${opacity * 0.8})`);
-	gradient.addColorStop(0.4, `rgba(${r | 0},${g | 0},${b | 0},${opacity * 0.35})`);
-	gradient.addColorStop(0.7, `rgba(${r | 0},${g | 0},${b | 0},${opacity * 0.1})`);
+	gradient.addColorStop(0, `rgba(255,255,250,${Math.min(opacity * 1.5, 1)})`);
+	gradient.addColorStop(0.15, `rgba(${r | 0},${g | 0},${b | 0},${Math.min(opacity * 1.2, 1)})`);
+	gradient.addColorStop(0.4, `rgba(${r | 0},${g | 0},${b | 0},${opacity * 0.65})`);
+	gradient.addColorStop(0.7, `rgba(${r | 0},${g | 0},${b | 0},${opacity * 0.3})`);
 	gradient.addColorStop(1, `rgba(${r | 0},${g | 0},${b | 0},0)`);
 
 	ctx.beginPath();
