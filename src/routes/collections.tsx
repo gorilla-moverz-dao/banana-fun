@@ -37,7 +37,7 @@ function CollectionCard({
 	return (
 		<Link to={linkPath} params={{ collectionId: collection.collection_id }} search={searchDefaults} className="block">
 			<GlassCard hoverEffect={true} className="flex flex-col items-center p-4 h-full group gap-2">
-				<div className="w-full flex items-center justify-center mb-3 overflow-hidden rounded-lg border">
+				<div className="relative w-full flex items-center justify-center mb-3 overflow-hidden rounded-lg border">
 					<img
 						src={collection.uri}
 						alt={collection.collection_name}
@@ -46,6 +46,18 @@ function CollectionCard({
 							e.currentTarget.src = "/images/favicon-1.png";
 						}}
 					/>
+					{status === "ongoing" && (
+						<Badge className="absolute top-2 right-2 bg-blue-500/90 text-white border-blue-400/50 shadow-lg backdrop-blur-sm">
+							<Clock className="size-3 mr-1" />
+							Live
+						</Badge>
+					)}
+					{status === "successful" && (
+						<Badge className="absolute top-2 right-2 bg-emerald-500/90 text-white border-emerald-400/50 shadow-lg backdrop-blur-sm">
+							<CheckCircle className="size-3 mr-1" />
+							Completed
+						</Badge>
+					)}
 				</div>
 				<div className="font-semibold text-lg text-foreground truncate w-full" title={collection.collection_name}>
 					{collection.collection_name}
@@ -122,26 +134,22 @@ function RouteComponent() {
 			<h1 className="text-2xl font-bold mb-6 text-shadow-lg">All Launches</h1>
 
 			{/* Ongoing Launches */}
-			{data.ongoing.length > 0 && (
-				<CollectionGroup
-					title="Ongoing Launches"
-					icon={<Clock className="w-6 h-6 text-blue-400" />}
-					collections={data.ongoing}
-					status="ongoing"
-					emptyMessage="No ongoing launches at the moment."
-				/>
-			)}
+			<CollectionGroup
+				title="Live Launches"
+				icon={<Clock className="w-6 h-6 text-blue-400" />}
+				collections={data.ongoing}
+				status="ongoing"
+				emptyMessage="No live launches at the moment."
+			/>
 
 			{/* Successful Launches */}
-			{data.successful.length > 0 && (
-				<CollectionGroup
-					title="Successful Launches"
-					icon={<CheckCircle className="w-6 h-6 text-green-400" />}
-					collections={data.successful}
-					status="successful"
-					emptyMessage="No successful launches yet."
-				/>
-			)}
+			<CollectionGroup
+				title="Completed Launches"
+				icon={<CheckCircle className="w-6 h-6 text-green-400" />}
+				collections={data.successful}
+				status="successful"
+				emptyMessage="No completed launches yet."
+			/>
 
 			{/* Failed Launches */}
 			{data.failed.length > 0 && (

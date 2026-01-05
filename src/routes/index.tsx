@@ -5,6 +5,7 @@ import { ChatFeed } from "@/components/ChatFeed";
 import { GlassCard } from "@/components/GlassCard";
 import { LiveMintsFeed } from "@/components/LiveMintsFeed";
 import { Button } from "@/components/ui/button";
+import { searchDefaults } from "@/hooks/useCollectionSearch";
 import { api } from "../../convex/_generated/api";
 
 export const Route = createFileRoute("/")({
@@ -188,7 +189,7 @@ function HomePage() {
 				<div>
 					<div className="flex items-center justify-between mb-4">
 						<h2 className="text-xl font-bold text-shadow-lg">Active Launches</h2>
-						<Link to="/mint" className="text-white hover:underline flex items-center gap-1 text-sm">
+						<Link to="/collections" className="text-white hover:underline flex items-center gap-1 text-sm">
 							View all <ArrowRight className="w-4 h-4" />
 						</Link>
 					</div>
@@ -197,8 +198,9 @@ function HomePage() {
 							{featuredCollections.map((collection) => (
 								<Link
 									key={collection.collection_id}
-									to="/mint/$collectionId"
+									to="/collections/$collectionId"
 									params={{ collectionId: collection.collection_id }}
+									search={searchDefaults}
 									className="block"
 								>
 									<GlassCard hoverEffect={true} className="p-3 group">
@@ -242,7 +244,7 @@ function HomePage() {
 					{/* Quick CTA */}
 					<GlassCard className="p-4 mt-4 bg-gradient-to-r from-yellow-500/10 via-orange-500/10 to-yellow-500/10">
 						<p className="text-sm text-muted-foreground">Ready to participate in the next big launch?</p>
-						<Link to="/mint" className="block">
+						<Link to="/collections" className="block">
 							<Button className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600">
 								<Rocket className="w-4 h-4 mr-2" />
 								Browse All Launches

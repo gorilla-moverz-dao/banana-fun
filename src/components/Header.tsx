@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { History, Home, Info, Menu, Rocket, X } from "lucide-react";
+import { Home, Info, Menu, Rocket, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { WalletSelector } from "@/components/WalletSelector";
 
@@ -24,13 +24,8 @@ export default function Header() {
 		},
 		{
 			label: "Launches",
-			to: "/mint",
-			icon: Rocket,
-		},
-		{
-			label: "Previous Launches",
 			to: "/collections",
-			icon: History,
+			icon: Rocket,
 		},
 		{
 			label: "About",
