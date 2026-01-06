@@ -111,7 +111,7 @@ export function DustParticles() {
 			// Pre-calculate light position
 			const lightX = lightRelX * width;
 			const lightY = lightRelY * height;
-			const maxDistSq = Math.pow(lightRadiusFactor * Math.max(width, height), 2);
+			const maxDistSq = (lightRadiusFactor * Math.max(width, height)) ** 2;
 			const invMaxDistSq = 1 / maxDistSq;
 
 			// Pre-calculate edge fade factors
@@ -238,7 +238,7 @@ export function DustParticles() {
 }
 
 function createParticle(width: number, height: number): Particle {
-	const depth = 0.5 + Math.random() * 0.5;
+	const depth = 0.6 + Math.random() * 0.3;
 
 	// Gaussian-like distribution using Box-Muller
 	const u1 = Math.random();
@@ -263,7 +263,7 @@ function createParticle(width: number, height: number): Particle {
 	return {
 		x,
 		y,
-		size: (0.8 + Math.random() * 0.7) * depth,
+		size: (1.2 + Math.random() * 0.25) * depth,
 		speedX: (Math.random() - 0.5) * 0.08 * depth,
 		speedY: (Math.random() * 0.15 - 0.03) * depth,
 		opacity: 0,
