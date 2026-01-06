@@ -37,7 +37,7 @@ export default function Header() {
 	return (
 		<>
 			<header
-				className={`sticky top-0 p-4 flex items-center text-white z-50 overflow-x-hidden transition-all duration-300 ${
+				className={`sticky top-0 p-4 flex items-center text-white z-50 overflow-x-hidden transform-gpu transition-[background-color,box-shadow] duration-300 ${
 					isScrolled ? "bg-black/30 backdrop-blur-xl shadow-lg" : "bg-black/30"
 				}`}
 			>
