@@ -26,6 +26,7 @@ interface MintStageCardProps {
 	stage: MintStageInfo;
 	collectionId: `0x${string}`;
 	mintBalance: Array<{ stage: string; balance: number }> | undefined;
+	remainingSupply: number;
 	onMintSuccess: (tokenIds: Array<string>) => void;
 }
 
@@ -45,7 +46,13 @@ function extractTokenIds(result: { events: Array<MintNftEvent> }): Array<string>
 	return tokenIds;
 }
 
-export function MintStageCard({ stage, collectionId, mintBalance, onMintSuccess }: MintStageCardProps) {
+export function MintStageCard({
+	stage,
+	collectionId,
+	mintBalance,
+	remainingSupply,
+	onMintSuccess,
+}: MintStageCardProps) {
 	const { launchpadClient, connected, address, correctNetwork } = useClients();
 	const { refetch: refetchNFTs } = useCollectionNFTs({
 		onlyOwned: true,
@@ -199,8 +206,8 @@ export function MintStageCard({ stage, collectionId, mintBalance, onMintSuccess 
 								value={mintAmount}
 								onChange={handleMintAmountChange}
 								min={1}
-								max={walletBalance}
-								disabled={minting || walletBalance === 0}
+								max={Math.min(walletBalance, remainingSupply)}
+								disabled={minting || walletBalance === 0 || remainingSupply === 0}
 								className="w-32 flex-shrink-0"
 								aria-label="Mint amount"
 							/>

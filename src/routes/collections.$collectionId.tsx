@@ -249,6 +249,7 @@ function RouteComponent() {
 												stage={stage}
 												collectionId={collectionIdTyped}
 												mintBalance={mintBalance}
+												remainingSupply={total - minted}
 												onMintSuccess={(tokenIds) => {
 													refetchMintBalance();
 													setRecentlyMintedTokenIds(tokenIds);
