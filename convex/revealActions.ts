@@ -2,6 +2,7 @@
 
 import { Workpool } from "@convex-dev/workpool";
 import { v } from "convex/values";
+import { waitForIndexerVersion } from "../src/lib/aptos-utils";
 import { components, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";
@@ -142,7 +143,15 @@ export const doRevealOnChain = internalAction({
 		});
 
 		// Wait for transaction to be committed
-		await aptos.waitForTransaction({ transactionHash: txResponse.hash });
+		const committedTx = await aptos.waitForTransaction({ transactionHash: txResponse.hash });
+
+		// Wait for indexer to catch up to the transaction version
+		// This ensures we can fetch the owner address reliably
+		try {
+			await waitForIndexerVersion(aptos, committedTx.version);
+		} catch (error) {
+			console.warn(`Failed to wait for indexer version, proceeding anyway:`, error);
+		}
 
 		// Fetch owner address from indexer
 		let ownerAddress: string | undefined;
