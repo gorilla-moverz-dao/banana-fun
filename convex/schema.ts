@@ -3,6 +3,9 @@ import { v } from "convex/values";
 
 export default defineSchema({
 	collections: defineTable({
+		// Admin flag to hide collections from frontend
+		deleted: v.optional(v.boolean()),
+
 		// Basic collection info (from indexer/DAS)
 		collectionId: v.string(), // Object address of the collection
 		collectionName: v.string(),

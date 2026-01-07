@@ -3,34 +3,6 @@ import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery, query } from "./_generated/server";
 
 /**
- * Get all collections filtered by sale completion status
- */
-export const getMintingCollections = query({
-	args: {},
-	handler: async (ctx) => {
-		const collections = await ctx.db
-			.query("collections")
-			.withIndex("by_mint_enabled", (q) => q.eq("mintEnabled", true))
-			// filter out collections that are not completed at time of deadline
-			.filter((q) => q.gt(q.field("saleDeadline"), Date.now() / 1000))
-			.collect();
-
-		// Sort by createdAt descending (newest first)
-		collections.sort((a, b) => b.createdAt - a.createdAt);
-
-		// Transform to match the expected format from the old GraphQL query
-		return collections.map(({ collectionId, collectionName, currentSupply, maxSupply, uri, description }) => ({
-			collection_id: collectionId,
-			collection_name: collectionName,
-			current_supply: currentSupply,
-			max_supply: maxSupply,
-			uri: uri || "",
-			description: description || "",
-		}));
-	},
-});
-
-/**
  * Get all collections grouped by status (ongoing, successful, failed)
  */
 export const getCollectionsGrouped = query({
@@ -39,6 +11,7 @@ export const getCollectionsGrouped = query({
 		const allCollections = await ctx.db
 			.query("collections")
 			.withIndex("by_mint_enabled", (q) => q.eq("mintEnabled", true))
+			.filter((q) => q.neq(q.field("deleted"), true))
 			.collect();
 		const now = Math.floor(Date.now() / 1000);
 
@@ -124,7 +97,11 @@ export const getCollection = query({
 export const getCollectionsToSync = internalQuery({
 	args: {},
 	handler: async (ctx) => {
-		return await ctx.db.query("collections").collect();
+		// Skip deleted collections - they should not be synced
+		return await ctx.db
+			.query("collections")
+			.filter((q) => q.neq(q.field("deleted"), true))
+			.collect();
 	},
 });
 

@@ -14,9 +14,9 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-	const collections = useQuery(api.collections.getMintingCollections);
+	const collections = useQuery(api.collections.getCollectionsGrouped);
 
-	const featuredCollections = collections?.slice(0, 3) ?? [];
+	const featuredCollections = collections?.ongoing?.slice(0, 3) ?? [];
 
 	return (
 		<div className="flex flex-col lg:flex-row gap-8">
