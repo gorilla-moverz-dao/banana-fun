@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { Zap } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { searchDefaults } from "@/hooks/useCollectionSearch";
 import { toShortAddress } from "@/lib/utils";
 import { api } from "../../convex/_generated/api";
 
@@ -45,8 +46,9 @@ export function LiveMintsFeed() {
 						{recentMints.map((mint) => (
 							<Link
 								key={mint._id}
-								to={mint.isActiveMint ? "/mint/$collectionId" : "/collections/$collectionId"}
+								to="/collections/$collectionId"
 								params={{ collectionId: mint.collectionId }}
+								search={searchDefaults}
 								className="flex items-center justify-between w-full px-3 py-2 hover:bg-white/5 transition-colors cursor-pointer"
 							>
 								<div className="flex items-center gap-3 min-w-0">

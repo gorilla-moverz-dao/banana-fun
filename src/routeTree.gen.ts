@@ -9,18 +9,11 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as MintRouteImport } from './routes/mint'
 import { Route as CollectionsRouteImport } from './routes/collections'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as MintCollectionIdRouteImport } from './routes/mint.$collectionId'
 import { Route as CollectionsCollectionIdRouteImport } from './routes/collections.$collectionId'
 
-const MintRoute = MintRouteImport.update({
-  id: '/mint',
-  path: '/mint',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CollectionsRoute = CollectionsRouteImport.update({
   id: '/collections',
   path: '/collections',
@@ -36,11 +29,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MintCollectionIdRoute = MintCollectionIdRouteImport.update({
-  id: '/$collectionId',
-  path: '/$collectionId',
-  getParentRoute: () => MintRoute,
-} as any)
 const CollectionsCollectionIdRoute = CollectionsCollectionIdRouteImport.update({
   id: '/$collectionId',
   path: '/$collectionId',
@@ -51,70 +39,42 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/collections': typeof CollectionsRouteWithChildren
-  '/mint': typeof MintRouteWithChildren
   '/collections/$collectionId': typeof CollectionsCollectionIdRoute
-  '/mint/$collectionId': typeof MintCollectionIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/collections': typeof CollectionsRouteWithChildren
-  '/mint': typeof MintRouteWithChildren
   '/collections/$collectionId': typeof CollectionsCollectionIdRoute
-  '/mint/$collectionId': typeof MintCollectionIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/collections': typeof CollectionsRouteWithChildren
-  '/mint': typeof MintRouteWithChildren
   '/collections/$collectionId': typeof CollectionsCollectionIdRoute
-  '/mint/$collectionId': typeof MintCollectionIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/about'
-    | '/collections'
-    | '/mint'
-    | '/collections/$collectionId'
-    | '/mint/$collectionId'
+  fullPaths: '/' | '/about' | '/collections' | '/collections/$collectionId'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/about'
-    | '/collections'
-    | '/mint'
-    | '/collections/$collectionId'
-    | '/mint/$collectionId'
+  to: '/' | '/about' | '/collections' | '/collections/$collectionId'
   id:
     | '__root__'
     | '/'
     | '/about'
     | '/collections'
-    | '/mint'
     | '/collections/$collectionId'
-    | '/mint/$collectionId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   CollectionsRoute: typeof CollectionsRouteWithChildren
-  MintRoute: typeof MintRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/mint': {
-      id: '/mint'
-      path: '/mint'
-      fullPath: '/mint'
-      preLoaderRoute: typeof MintRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/collections': {
       id: '/collections'
       path: '/collections'
@@ -135,13 +95,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/mint/$collectionId': {
-      id: '/mint/$collectionId'
-      path: '/$collectionId'
-      fullPath: '/mint/$collectionId'
-      preLoaderRoute: typeof MintCollectionIdRouteImport
-      parentRoute: typeof MintRoute
     }
     '/collections/$collectionId': {
       id: '/collections/$collectionId'
@@ -165,21 +118,10 @@ const CollectionsRouteWithChildren = CollectionsRoute._addFileChildren(
   CollectionsRouteChildren,
 )
 
-interface MintRouteChildren {
-  MintCollectionIdRoute: typeof MintCollectionIdRoute
-}
-
-const MintRouteChildren: MintRouteChildren = {
-  MintCollectionIdRoute: MintCollectionIdRoute,
-}
-
-const MintRouteWithChildren = MintRoute._addFileChildren(MintRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   CollectionsRoute: CollectionsRouteWithChildren,
-  MintRoute: MintRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

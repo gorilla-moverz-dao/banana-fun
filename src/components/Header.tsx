@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { History, Home, Info, Menu, Rocket, X } from "lucide-react";
+import { Home, Info, Menu, Rocket, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { WalletSelector } from "@/components/WalletSelector";
 
@@ -24,13 +24,8 @@ export default function Header() {
 		},
 		{
 			label: "Launches",
-			to: "/mint",
-			icon: Rocket,
-		},
-		{
-			label: "Previous Launches",
 			to: "/collections",
-			icon: History,
+			icon: Rocket,
 		},
 		{
 			label: "About",
@@ -42,7 +37,7 @@ export default function Header() {
 	return (
 		<>
 			<header
-				className={`sticky top-0 p-4 flex items-center text-white z-50 overflow-x-hidden transition-all duration-300 ${
+				className={`sticky top-0 p-4 flex items-center text-white z-50 overflow-x-hidden transform-gpu transition-[background-color,box-shadow] duration-300 ${
 					isScrolled ? "bg-black/30 backdrop-blur-xl shadow-lg" : "bg-black/30"
 				}`}
 			>

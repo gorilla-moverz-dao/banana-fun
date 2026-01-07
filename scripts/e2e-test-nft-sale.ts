@@ -55,7 +55,7 @@ const MOVEMENT_CONFIG_PATH = `${MOVE_DIR}.movement/config.yaml`;
 
 // Collection configuration for testing
 const TEST_COLLECTION_CONFIG = {
-	name: "BF Collection V2",
+	name: "BF Collection V3",
 	description: "BF Collection for testing the NFT launchpad",
 	uri: "https://banana-fun.gorilla-moverz.xyz/favicon.png",
 	maxSupply: 50,
@@ -63,8 +63,8 @@ const TEST_COLLECTION_CONFIG = {
 	mintFeePerNFT: 100_000_000, // 0.1 MOVE (8 decimals)
 	royaltyPercentage: 5,
 	// Fungible asset config
-	faSymbol: "BFV2_",
-	faName: "BFV2 Token",
+	faSymbol: "BFV3_",
+	faName: "BFV3 Token",
 	faIconUri: "https://banana-fun.gorilla-moverz.xyz/favicon.png",
 	faProjectUri: "https://banana-fun.gorilla-moverz.xyz",
 	// Vesting config
@@ -573,7 +573,7 @@ async function main() {
 	let totalReveals = 0;
 
 	// Configuration for minting
-	const totalNftsToMint = 50; // Total NFTs to mint across all accounts
+	const totalNftsToMint = 45; // Total NFTs to mint across all accounts
 	const nftsPerAccount = 3; // Max NFTs per account (mint limit)
 	const accountsNeeded = Math.ceil(totalNftsToMint / nftsPerAccount);
 

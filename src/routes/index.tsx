@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { ArrowRight, Coins, Droplets, Rocket, Shield, Sparkles, Timer } from "lucide-react";
+import { ArrowRight, Clock, Coins, Droplets, Rocket, Shield, Sparkles, Timer } from "lucide-react";
 import { ChatFeed } from "@/components/ChatFeed";
 import { GlassCard } from "@/components/GlassCard";
 import { LiveMintsFeed } from "@/components/LiveMintsFeed";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { searchDefaults } from "@/hooks/useCollectionSearch";
 import { api } from "../../convex/_generated/api";
 
 export const Route = createFileRoute("/")({
@@ -188,7 +190,7 @@ function HomePage() {
 				<div>
 					<div className="flex items-center justify-between mb-4">
 						<h2 className="text-xl font-bold text-shadow-lg">Active Launches</h2>
-						<Link to="/mint" className="text-white hover:underline flex items-center gap-1 text-sm">
+						<Link to="/collections" className="text-white hover:underline flex items-center gap-1 text-sm">
 							View all <ArrowRight className="w-4 h-4" />
 						</Link>
 					</div>
@@ -197,13 +199,14 @@ function HomePage() {
 							{featuredCollections.map((collection) => (
 								<Link
 									key={collection.collection_id}
-									to="/mint/$collectionId"
+									to="/collections/$collectionId"
 									params={{ collectionId: collection.collection_id }}
+									search={searchDefaults}
 									className="block"
 								>
 									<GlassCard hoverEffect={true} className="p-3 group">
 										<div className="flex gap-4">
-											<div className="w-28 h-28 flex-shrink-0 overflow-hidden rounded-lg border">
+											<div className="relative w-28 h-28 flex-shrink-0 overflow-hidden rounded-lg border">
 												<img
 													src={collection.uri}
 													alt={collection.collection_name}
@@ -212,6 +215,12 @@ function HomePage() {
 														e.currentTarget.src = "/images/favicon-1.png";
 													}}
 												/>
+												{collection.current_supply < collection.max_supply && (
+													<Badge className="absolute top-1 right-1 bg-blue-500/90 text-white border-blue-400/50 shadow-lg backdrop-blur-sm text-xs px-1.5 py-0.5">
+														<Clock className="size-3 mr-1" />
+														Live
+													</Badge>
+												)}
 											</div>
 											<div className="flex-1 min-w-0 flex flex-col justify-center">
 												<div className="font-semibold text-lg truncate" title={collection.collection_name}>
@@ -242,7 +251,7 @@ function HomePage() {
 					{/* Quick CTA */}
 					<GlassCard className="p-4 mt-4 bg-gradient-to-r from-yellow-500/10 via-orange-500/10 to-yellow-500/10">
 						<p className="text-sm text-muted-foreground">Ready to participate in the next big launch?</p>
-						<Link to="/mint" className="block">
+						<Link to="/collections" className="block">
 							<Button className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600">
 								<Rocket className="w-4 h-4 mr-2" />
 								Browse All Launches

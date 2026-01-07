@@ -4,6 +4,7 @@ import { MessageCircle } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { GlassCard } from "@/components/GlassCard";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { searchDefaults } from "@/hooks/useCollectionSearch";
 import { api } from "../../convex/_generated/api";
 
 /**
@@ -51,8 +52,9 @@ export function ChatFeed() {
 					{messages?.map((msg) => (
 						<Link
 							key={msg._id}
-							to={msg.isActiveMint ? "/mint/$collectionId" : "/collections/$collectionId"}
+							to="/collections/$collectionId"
 							params={{ collectionId: msg.collectionId }}
+							search={searchDefaults}
 							className="block text-sm rounded-md px-2 py-1 -mx-2 hover:bg-white/10 transition-colors cursor-pointer"
 						>
 							<div className="flex items-center gap-2 flex-wrap">
