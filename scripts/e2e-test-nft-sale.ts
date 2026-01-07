@@ -33,7 +33,7 @@ if (existsSync(envPath)) {
 import { Account, type UserTransactionResponse } from "@aptos-labs/ts-sdk";
 import { ConvexHttpClient } from "convex/browser";
 import { LAUNCHPAD_MODULE_ADDRESS, MOVE_NETWORK } from "@/constants";
-import { aptos, launchpadClient, vestingClient } from "@/lib/aptos";
+import { aptos, launchpadClient, vestingClient, waitForIndexerVersion } from "@/lib/aptos";
 import { normalizeHexAddress } from "@/lib/utils";
 import { api } from "../convex/_generated/api";
 import type { Doc } from "../convex/_generated/dataModel";
@@ -319,6 +319,15 @@ async function mintNFT(
 		],
 		account: signer,
 	})) as UserTransactionResponse;
+
+	// Wait for indexer to catch up so reveal can find owner addresses
+	try {
+		console.log(`   ⏳ Waiting for indexer to reach version ${response.version}...`);
+		await waitForIndexerVersion(response.version, { maxWaitTimeMs: 30000, pollIntervalMs: 1000 });
+		console.log(`   ✅ Indexer caught up`);
+	} catch (error) {
+		console.warn(`   ⚠️  Failed to wait for indexer, proceeding anyway:`, error);
+	}
 
 	// Extract NFT IDs from events
 	const mintEvent = response.events.find((e) => e.type.includes("BatchMintNftsEvent"));

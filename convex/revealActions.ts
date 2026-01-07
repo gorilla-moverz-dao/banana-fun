@@ -88,7 +88,7 @@ export const revealNft = internalAction({
 			const propNames = item.traits.map((t: { trait_type: string; value: string }) => t.trait_type);
 			const propValues = item.traits.map((t: { trait_type: string; value: string }) => t.value);
 
-			await launchpadClient.entry.reveal_nft({
+			const txResponse = await launchpadClient.entry.reveal_nft({
 				typeArguments: [],
 				functionArguments: [
 					args.collectionId as `0x${string}`, // collection_obj
@@ -101,6 +101,10 @@ export const revealNft = internalAction({
 				],
 				account,
 			});
+
+			// Wait for transaction to be committed before returning
+			// This prevents "Transaction already in mempool" errors when reveals run sequentially
+			await aptos.waitForTransaction({ transactionHash: txResponse.hash });
 
 			// Fetch owner address from indexer
 			let ownerAddress: string | undefined;
