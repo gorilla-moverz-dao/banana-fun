@@ -153,56 +153,34 @@ export const doRevealOnChain = internalAction({
 			console.warn(`Failed to wait for indexer version, proceeding anyway:`, error);
 		}
 
-		// Fetch owner address from indexer with retries
-		// Even after indexer catches up, derived data like token ownership might take a moment
+		// Fetch owner address from indexer
 		let ownerAddress: string | undefined;
-		const maxRetries = 5;
-		const retryDelayMs = 10000;
-
-		for (let attempt = 1; attempt <= maxRetries; attempt++) {
-			try {
-				const indexerResult = await aptos.queryIndexer({
-					query: {
-						query: `
-							query GetNFTOwner($token_data_id: String!) {
-								current_token_ownerships_v2(
-									where: { token_data_id: { _eq: $token_data_id }, amount: { _gt: 0 } }
-									limit: 1
-								) {
-									owner_address
-								}
+		try {
+			const indexerResult = await aptos.queryIndexer({
+				query: {
+					query: `
+						query GetNFTOwner($token_data_id: String!) {
+							current_token_ownerships_v2(
+								where: { token_data_id: { _eq: $token_data_id }, amount: { _gt: 0 } }
+								limit: 1
+							) {
+								owner_address
 							}
-						`,
-						variables: {
-							token_data_id: args.nftTokenId,
-						},
+						}
+					`,
+					variables: {
+						token_data_id: args.nftTokenId,
 					},
-				});
+				},
+			});
 
-				const data = indexerResult as {
-					current_token_ownerships_v2: Array<{ owner_address: string }>;
-				};
+			const data = indexerResult as {
+				current_token_ownerships_v2: Array<{ owner_address: string }>;
+			};
 
-				ownerAddress = data.current_token_ownerships_v2[0]?.owner_address;
-
-				if (ownerAddress) {
-					break; // Found owner, exit retry loop
-				}
-
-				if (attempt < maxRetries) {
-					console.log(`Owner not found for NFT ${args.nftTokenId}, retrying (${attempt}/${maxRetries})...`);
-					await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
-				}
-			} catch (error) {
-				console.warn(`Error fetching owner for NFT ${args.nftTokenId} (attempt ${attempt}/${maxRetries}):`, error);
-				if (attempt < maxRetries) {
-					await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
-				}
-			}
-		}
-
-		if (!ownerAddress) {
-			console.warn(`Could not fetch owner for NFT ${args.nftTokenId} after ${maxRetries} attempts`);
+			ownerAddress = data.current_token_ownerships_v2[0]?.owner_address;
+		} catch (error) {
+			console.warn(`Could not fetch owner for NFT ${args.nftTokenId}:`, error);
 		}
 
 		// Mark the item as revealed with owner address

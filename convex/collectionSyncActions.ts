@@ -693,18 +693,18 @@ export const afterMint = action({
 		if (args.nftTokenIds && args.nftTokenIds.length > 0) {
 			for (const nftTokenId of args.nftTokenIds) {
 				try {
+					const normalizedId = normalizeHexAddress(nftTokenId);
 					const result = await ctx.runAction(internal.revealActions.revealNft, {
 						collectionId: args.collectionId,
-						nftTokenId,
+						nftTokenId: normalizedId,
 					});
-					reveals.push({ nftTokenId, success: result.success });
+					reveals.push({ nftTokenId: normalizedId, success: result.success });
 				} catch (error) {
 					console.error(`afterMint: Error revealing NFT ${nftTokenId}:`, error);
 					reveals.push({ nftTokenId, success: false });
 				}
 			}
 		}
-
 		return { synced, reveals };
 	},
 });
