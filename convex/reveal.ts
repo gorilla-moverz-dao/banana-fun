@@ -156,3 +156,22 @@ export const getAllRecentMints = query({
 		return itemsWithCollectionInfo;
 	},
 });
+
+/**
+ * Internal query to get a revealed item by NFT token ID
+ */
+export const getRevealedItemByNftTokenId = internalQuery({
+	args: {
+		nftTokenId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		// Query all revealed items and filter - not ideal but works for now
+		// TODO: Add an index by nftTokenId if this becomes a performance issue
+		const items = await ctx.db
+			.query("nftRevealItems")
+			.withIndex("by_revealed_minted", (q) => q.eq("revealed", true))
+			.collect();
+
+		return items.find((item) => item.nftTokenId === args.nftTokenId) || null;
+	},
+});
