@@ -15,7 +15,7 @@
     "graphql-codegen": "graphql-codegen --config codegen.ts",
     "graphql-codegen:watch": "graphql-codegen --config codegen.ts --watch",
     "move:test": "cd move && movement move test --dev",
-    "move:deploy": "cd move && movement move publish --profile \"testnet\" --named-addresses deployment_addr=testnet,minter=0x0acb315a48512f7a3ed348702b8ff688794da809f62b0f1f06f5eb816427922b,yuzuswap=0x6d34396ec8854d42007161f0d6edebc34eb6f8a83e7e44e02aeb25ed80520280 && bun run build-abi"
+    "move:deploy": "cd move && movement move publish --profile \"testnet\" --named-addresses deployment_addr=testnet,minter=0x0acb315a48512f7a3ed348702b8ff688794da809f62b0f1f06f5eb816427922b,yuzuswap=0x0fea384ef99e1b7df07544a1ccf152c0340447173e0d7124bc479c3cb6a7fc50 && bun run build-abi"
   },
   "dependencies": {
     "@aptos-labs/wallet-adapter-react": "^7.2.2",
