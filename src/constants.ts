@@ -6,5 +6,5 @@ const env = (import.meta as any)["env"] !== undefined ? (import.meta as any)["en
 const NETWORK = env.VITE_NETWORK || "TESTNET";
 
 export const LAUNCHPAD_MODULE_ADDRESS =
-	env.VITE_LAUNCHPAD_MODULE_ADDRESS || "0x6d6ae10b7105d4f38d41c19077e8c92b89dc55c4df805db0e3bc3067dd7eef81";
+	env.VITE_LAUNCHPAD_MODULE_ADDRESS || "0x7efbe436d50826128f8f3e9feb195c7b6a79ae581ced9002b6feeaf52d8e0efa";
 export const MOVE_NETWORK = NETWORKS[NETWORK as keyof typeof NETWORKS];
