@@ -157,7 +157,7 @@ export const doRevealOnChain = internalAction({
 		// Even after indexer catches up, derived data like token ownership might take a moment
 		let ownerAddress: string | undefined;
 		const maxRetries = 5;
-		const retryDelayMs = 2000;
+		const retryDelayMs = 10000;
 
 		for (let attempt = 1; attempt <= maxRetries; attempt++) {
 			try {
