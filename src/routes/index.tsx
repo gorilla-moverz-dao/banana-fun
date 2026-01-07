@@ -21,7 +21,7 @@ function HomePage() {
 	return (
 		<div className="flex flex-col lg:flex-row gap-8">
 			{/* Main Content - Left Column */}
-			<div className="lg:w-2/3 space-y-8 pb-12">
+			<div className="lg:w-2/3 lg:flex-shrink-0 space-y-8 pb-12">
 				{/* Hero Section */}
 				<GlassCard>
 					<section className="flex flex-col md:flex-row items-center gap-6 px-4">
@@ -186,7 +186,7 @@ function HomePage() {
 			</div>
 
 			{/* Active Launches - Right Column */}
-			<div className="lg:w-1/3">
+			<div className="lg:w-1/3 lg:flex-shrink-0">
 				<div>
 					<div className="flex items-center justify-between mb-4">
 						<h2 className="text-xl font-bold text-shadow-lg">Active Launches</h2>
