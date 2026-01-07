@@ -1,7 +1,8 @@
 # Screenshots
 
 - [Screenshots](public/images/screenshots/)
-- [Video](https://www.youtube.com/watch?v=HgCYi-vm8tE)
+- [Recording V1](https://www.youtube.com/watch?v=HgCYi-vm8tE)
+- [Recording V2](https://drive.google.com/drive/folders/15YcYtApm7I0ikxHl3zZ65hXPu67AT3nI?usp=sharing)
 - [Logo](public/images/logo1.webp)
 
 # Voiceover Script
@@ -22,9 +23,13 @@ In short: Banana Fun synchronizes community, tokens, and liquidity through smart
 
 ## [CHAPTER 2: Mint (Video keyframe ~0:14)] (~30 seconds)
 
-Let's see it in action. Here's a live NFT collection on Banana Fun.
+Let's see it in action.
+
+Let's go to this newly created live NFT collection on Banana Fun.
 
 You can see the minting progress. The interface shows you everything upfront: the token symbol, sale deadline, and importantly – the vesting schedule for both NFT holders and the team.
+
+There's also a live chat where you can discuss the project with other community members, and a live mints feed showing NFTs being minted in real-time – so you can feel the energy of an active launch.
 
 Multiple mint stages support different pricing tiers. There's whitelist protection for early supporters, and public sales for everyone else. Just select how many NFTs you want, click mint, and you're in.
 
@@ -42,7 +47,7 @@ Now the exciting part – what happens when a launch succeeds?
 
 When all NFTs sell out, the magic happens automatically. The smart contract mints the total token supply, creates a liquidity pool on Yuzu DEX, and initializes vesting for both NFT holders and the team.
 
-Look at this completed collection – 20 out of 20 minted. The token is live, trading has begun, and NFT holders can now claim their vested tokens.
+Look at this completed collection. The token is live, trading has begun, and NFT holders can now claim their vested tokens.
 
 Here you can see my three NFTs, each with over 50 million tokens allocated. I can claim what's vested at any time, with tokens unlocking linearly over the vesting period.
 
