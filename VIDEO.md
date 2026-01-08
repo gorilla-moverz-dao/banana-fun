@@ -1,4 +1,8 @@
-# Screenshots
+# Video
+
+- [Watch on Youtube](https://www.youtube.com/watch?v=IYN-9T_piT4)
+
+# Raw Material / Screen recordings
 
 - [Screenshots](public/images/screenshots/)
 - [Recording V1](https://www.youtube.com/watch?v=HgCYi-vm8tE)
@@ -11,15 +15,14 @@
 
 We have a problem:
 
-Token launches are a mess. Platforms like pump.fun flood the market with thousands of low-effort memecoins daily. No quality filter, no accountability – just endless rugs. And traditional presales? Projects raise millions, dump on investors, and vanish.
+Token launches are a mess. Platforms like pump.fun flood the market with thousands of low-effort memecoins daily. No quality filter – just endless rugs.
 
 I have a solution: Banana Fun.
 
-And Banana Fun takes a different approach. By combining NFTs with token launches, you can actually see what you're investing in. Quality art signals a quality project. No more anonymous tokens with zero effort behind them. Plus, NFTs naturally build community – holders share a visual identity and become invested in the project's success.
+And Banana Fun takes a different approach. By combining NFTs with token launches, you can actually see what you're investing in. Quality art signals a quality project.
+Plus, NFTs naturally build community – holders share a visual identity and become invested in the project's success.
 
-Here's how it works: You mint NFTs from a collection – each one entitles you to a share of the project's token. When the sale completes, liquidity is automatically created on a DEX. Then you claim your vested tokens over time.
-
-In short: Banana Fun synchronizes community, tokens, and liquidity through smart contract logic – with built-in investor protection.
+Banana Fun synchronizes community, tokens, and liquidity through smart contract logic – with built-in investor protection.
 
 ## [CHAPTER 2: Mint (Video keyframe ~0:14)] (~30 seconds)
 
@@ -66,3 +69,4 @@ This alignment ensures everyone – holders and creators – succeeds together.
 ## [CLOSING] (~10 seconds)
 
 Banana Fun. Safe launches. Instant liquidity. Fair distribution. The way token launches should be.
+What are you waiting for. Try it now on Testnet.

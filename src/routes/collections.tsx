@@ -80,6 +80,12 @@ function CollectionCard({
 	);
 }
 
+const statusBadgeStyles = {
+	ongoing: "bg-blue-500/90 text-white border-blue-400/50",
+	successful: "bg-emerald-500/90 text-white border-emerald-400/50",
+	failed: "bg-red-500/90 text-white border-red-400/50",
+};
+
 function CollectionGroup({
 	title,
 	icon,
@@ -96,10 +102,10 @@ function CollectionGroup({
 	return (
 		<section className="mb-10">
 			<div className="flex items-center gap-2 mb-4">
-				{icon}
-				<h2 className="text-xl font-bold text-shadow-lg">{title}</h2>
-				<Badge variant="secondary" className="ml-2">
-					{collections.length}
+				<Badge className={`flex items-center gap-2 ${statusBadgeStyles[status]}`}>
+					<span className="flex items-center justify-center">{icon}</span>
+					<h2 className="text-xl font-bold text-shadow-lg">{title}</h2>
+					<Badge className="text-xs text-white bg-opacity-50 border border-white/50">{collections.length}</Badge>
 				</Badge>
 			</div>
 			{collections.length === 0 ? (
@@ -131,12 +137,10 @@ function RouteComponent() {
 
 	return (
 		<div>
-			<h1 className="text-2xl font-bold mb-6 text-shadow-lg">All Launches</h1>
-
 			{/* Ongoing Launches */}
 			<CollectionGroup
 				title="Live Launches"
-				icon={<Clock className="w-6 h-6 text-blue-400" />}
+				icon={<Clock className="w-5 h-5" />}
 				collections={data.ongoing}
 				status="ongoing"
 				emptyMessage="No live launches at the moment."
@@ -145,7 +149,7 @@ function RouteComponent() {
 			{/* Successful Launches */}
 			<CollectionGroup
 				title="Completed Launches"
-				icon={<CheckCircle className="w-6 h-6 text-green-400" />}
+				icon={<CheckCircle className="w-5 h-5" />}
 				collections={data.successful}
 				status="successful"
 				emptyMessage="No completed launches yet."
@@ -155,7 +159,7 @@ function RouteComponent() {
 			{data.failed.length > 0 && (
 				<CollectionGroup
 					title="Failed Launches"
-					icon={<AlertTriangle className="w-6 h-6 text-red-400" />}
+					icon={<AlertTriangle className="w-5 h-5" />}
 					collections={data.failed}
 					status="failed"
 					emptyMessage="No failed launches."
