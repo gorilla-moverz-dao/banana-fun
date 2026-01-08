@@ -106,9 +106,10 @@ Both vesting systems are automatically initialized when a sale completes success
 
 - Testing and Bugfixing
 - Verify collection ownership on uploadRevealData
-- Code cleanup and review
+- Code cleanup
+- Currently Convex has the admin keys to do the reveal. Create a dedicated wallet check for the reveal.
 - Smart Contract checks & audit
 
 ## Contributing
 
-Want to run this project locally or contribute? Check out the [Contributing Guide](./CONTRIBUTING.md) for detailed setup instructions, including:
+Want to run this project locally or contribute? Check out the [Contributing Guide](./CONTRIBUTING.md) for detailed setup instructions:
