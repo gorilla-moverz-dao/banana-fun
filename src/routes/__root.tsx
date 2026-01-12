@@ -2,6 +2,7 @@ import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "sonner";
 import { DustParticles } from "../components/DustParticles";
 import Header from "../components/Header";
@@ -27,6 +28,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				<Outlet />
 			</main>
 			<Toaster />
+			<Analytics />
 			<TanStackDevtools
 				config={{
 					position: "bottom-right",
