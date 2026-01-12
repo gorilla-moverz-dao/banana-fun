@@ -1,5 +1,6 @@
 import { useQuery } from "convex/react";
 import { Zap } from "lucide-react";
+import { useEffect, useState } from "react";
 import { GlassCard } from "@/components/GlassCard";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toShortAddress } from "@/lib/utils";
@@ -22,6 +23,13 @@ interface LiveMintsCardProps {
 
 export function LiveMintsCard({ collectionId, onMintClick }: LiveMintsCardProps) {
 	const recentMints = useQuery(api.reveal.getRecentMints, { collectionId });
+
+	// Force re-render every minute to keep time ago values fresh
+	const [, setTick] = useState(0);
+	useEffect(() => {
+		const interval = setInterval(() => setTick((t) => t + 1), 60_000);
+		return () => clearInterval(interval);
+	}, []);
 
 	const formatTimeAgo = (timestamp: number) => {
 		const seconds = Math.floor((Date.now() - timestamp) / 1000);

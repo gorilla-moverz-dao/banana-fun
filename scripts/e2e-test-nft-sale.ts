@@ -617,13 +617,6 @@ async function main() {
 		);
 
 		for (let j = 0; j < mintsForThisAccount; j++) {
-			// Add random delay between mints (except before the first mint of this minter)
-			if (j > 0) {
-				const waitTime = Math.floor(Math.random() * 5) + 1; // 1-5 seconds
-				console.log(`   [Minter ${minterIndex}] ⏳ Waiting ${waitTime}s before next mint...`);
-				await sleep(waitTime * 1000);
-			}
-
 			try {
 				const result = await mintNFT(minter, collectionId, 1);
 				nftIds.push(...result.nftIds);
