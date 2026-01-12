@@ -1,13 +1,87 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { ArrowRight, Clock, Coins, Droplets, Rocket, Shield, Sparkles, Timer } from "lucide-react";
+import { ArrowRight, Coins, Droplets, Rocket, Shield, Sparkles, Timer } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { ChatFeed } from "@/components/ChatFeed";
 import { GlassCard } from "@/components/GlassCard";
 import { LiveMintsFeed } from "@/components/LiveMintsFeed";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { searchDefaults } from "@/hooks/useCollectionSearch";
 import { api } from "../../convex/_generated/api";
+
+type FeaturedCollection = {
+	collection_id: string;
+	collection_name: string;
+	description: string;
+	uri: string;
+	current_supply: number;
+	max_supply: number;
+};
+
+function CollectionCard({ collection }: { collection: FeaturedCollection }) {
+	const [isShaking, setIsShaking] = useState(false);
+	const prevSupplyRef = useRef(collection.current_supply);
+
+	useEffect(() => {
+		if (prevSupplyRef.current !== collection.current_supply && prevSupplyRef.current < collection.current_supply) {
+			setIsShaking(true);
+			const timer = setTimeout(() => setIsShaking(false), 500);
+			prevSupplyRef.current = collection.current_supply;
+			return () => clearTimeout(timer);
+		}
+		prevSupplyRef.current = collection.current_supply;
+	}, [collection.current_supply]);
+
+	const progress = (collection.current_supply / collection.max_supply) * 100;
+
+	return (
+		<Link
+			to="/collections/$collectionId"
+			params={{ collectionId: collection.collection_id }}
+			search={searchDefaults}
+			className="block group"
+		>
+			<div
+				className={`flex gap-4 p-3 rounded-lg bg-background/30 hover:bg-background/50 transition-colors border border-transparent hover:border-yellow-500/20 ${isShaking ? "animate-shake-mint" : ""}`}
+			>
+				<div className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg border border-white/10">
+					<img
+						src={collection.uri}
+						alt={collection.collection_name}
+						className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+						onError={(e) => {
+							e.currentTarget.src = "/images/favicon-1.png";
+						}}
+					/>
+				</div>
+				<div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
+					<div className="flex items-center gap-2">
+						<span className="font-semibold truncate" title={collection.collection_name}>
+							{collection.collection_name}
+						</span>
+						{collection.current_supply < collection.max_supply && (
+							<span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/90 text-white font-medium shrink-0">
+								LIVE
+							</span>
+						)}
+					</div>
+					<p className="text-xs text-muted-foreground line-clamp-2">{collection.description}</p>
+					<div className="flex items-center gap-3 mt-1">
+						<div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
+							<div
+								className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full transition-all duration-500"
+								style={{ width: `${progress}%` }}
+							/>
+						</div>
+						<span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
+							{collection.current_supply}/{collection.max_supply}
+						</span>
+					</div>
+				</div>
+			</div>
+		</Link>
+	);
+}
 
 export const Route = createFileRoute("/")({
 	component: HomePage,
@@ -188,72 +262,40 @@ function HomePage() {
 			{/* Active Launches - Right Column */}
 			<div className="lg:w-1/3 lg:flex-shrink-0">
 				<div>
-					<div className="flex items-center justify-between mb-4">
-						<h2 className="text-xl font-bold text-shadow-lg">Active Launches</h2>
-						<Link to="/collections" className="text-white hover:underline flex items-center gap-1 text-sm">
-							View all <ArrowRight className="w-4 h-4" />
-						</Link>
-					</div>
-					{featuredCollections.length > 0 ? (
-						<div className="space-y-4">
-							{featuredCollections.map((collection) => (
-								<Link
-									key={collection.collection_id}
-									to="/collections/$collectionId"
-									params={{ collectionId: collection.collection_id }}
-									search={searchDefaults}
-									className="block"
-								>
-									<GlassCard hoverEffect={true} className="p-3 group">
-										<div className="flex gap-4">
-											<div className="relative w-28 h-28 flex-shrink-0 overflow-hidden rounded-lg border">
-												<img
-													src={collection.uri}
-													alt={collection.collection_name}
-													className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-													onError={(e) => {
-														e.currentTarget.src = "/images/favicon-1.png";
-													}}
-												/>
-												{collection.current_supply < collection.max_supply && (
-													<Badge className="absolute top-1 right-1 bg-blue-500/90 text-white border-blue-400/50 shadow-lg backdrop-blur-sm text-xs px-1.5 py-0.5">
-														<Clock className="size-3 mr-1" />
-														Live
-													</Badge>
-												)}
-											</div>
-											<div className="flex-1 min-w-0 flex flex-col justify-center">
-												<div className="font-semibold text-lg truncate" title={collection.collection_name}>
-													{collection.collection_name}
-												</div>
-												<div className="text-sm text-muted-foreground line-clamp-2 mt-1" title={collection.description}>
-													{collection.description}
-												</div>
-												<div className="text-sm text-muted-foreground mt-2">
-													<span className="font-medium text-foreground">{collection.current_supply}</span> /{" "}
-													{collection.max_supply} minted
-												</div>
-											</div>
-										</div>
-									</GlassCard>
-								</Link>
-							))}
-						</div>
-					) : (
-						<GlassCard className="p-6 text-center">
-							<p className="text-muted-foreground">No active launches at the moment.</p>
-							<Link to="/collections" className="text-primary hover:underline text-sm mt-2 inline-block">
-								Browse completed launches
+					{/* Prominent Active Launches Card */}
+					<GlassCard className="p-5 border-yellow-500/30 bg-gradient-to-br from-yellow-500/5 to-orange-500/5 gap-1">
+						<div className="flex items-center justify-between mb-4">
+							<div className="flex items-center gap-2">
+								<div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+								<h2 className="text-lg font-bold">Active Launches</h2>
+							</div>
+							<Link
+								to="/collections"
+								className="text-yellow-400 hover:text-yellow-300 flex items-center gap-1 text-xs font-medium"
+							>
+								View all <ArrowRight className="w-3 h-3" />
 							</Link>
-						</GlassCard>
-					)}
+						</div>
 
-					{/* Quick CTA */}
-					<GlassCard className="p-4 mt-4 bg-gradient-to-r from-yellow-500/10 via-orange-500/10 to-yellow-500/10">
-						<p className="text-sm text-muted-foreground">Ready to participate in the next big launch?</p>
-						<Link to="/collections" className="block">
-							<Button className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600">
-								<Rocket className="w-4 h-4 mr-2" />
+						{featuredCollections.length > 0 ? (
+							<div className="space-y-3">
+								{featuredCollections.map((collection) => (
+									<CollectionCard key={collection.collection_id} collection={collection} />
+								))}
+							</div>
+						) : (
+							<div className="text-center py-4">
+								<p className="text-muted-foreground text-sm">No active launches</p>
+							</div>
+						)}
+
+						{/* Integrated CTA */}
+						<Link to="/collections" className="block mt-4">
+							<Button
+								size="sm"
+								className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-sm h-9"
+							>
+								<Rocket className="w-3.5 h-3.5 mr-1.5" />
 								Browse All Launches
 							</Button>
 						</Link>
