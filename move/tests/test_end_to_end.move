@@ -1211,6 +1211,74 @@ module deployment_addr::test_end_to_end {
     #[test(
         aptos_framework = @0x1, admin = @deployment_addr, user1 = @0x200, royalty_user = @0x300
     )]
+    /// Test that protocol fees are actually transferred to protocol_fee_collector_addr
+    fun test_protocol_fee_collector_receives_fees(
+        aptos_framework: &signer,
+        admin: &signer,
+        user1: &signer,
+        royalty_user: &signer
+    ) {
+        let user1_addr = setup_test_env(aptos_framework, user1, admin);
+        let admin_addr = signer::address_of(admin);
+
+        // Get protocol fee collector (in tests, this is set to admin by init_module_for_test)
+        let protocol_fee_collector_addr = nft_launchpad::get_protocol_fee_collector();
+        assert!(protocol_fee_collector_addr == admin_addr, 0);
+
+        // Get initial balance of protocol fee collector
+        let initial_collector_balance =
+            coin::balance<AptosCoin>(protocol_fee_collector_addr);
+
+        let collection_obj =
+            create_public_only_collection(
+                admin,
+                royalty_user,
+                MINT_FEE_XLARGE, // mint_fee = 100
+                MINT_LIMIT_LARGE, // mint_limit
+                DURATION_SHORT // duration
+            );
+
+        // Set protocol fees
+        nft_launchpad::update_protocol_base_fee_for_collection(
+            admin, collection_obj, PROTOCOL_BASE_FEE // 5
+        );
+        nft_launchpad::update_protocol_percentage_fee_for_collection(
+            admin, collection_obj, PROTOCOL_PERCENTAGE_FEE_MEDIUM // 500 = 5%
+        );
+
+        // Calculate expected protocol fee for minting 2 NFTs
+        // mint_fee = 100 per NFT
+        // protocol_base_fee = 5 per NFT
+        // protocol_percentage_fee = 5% of mint_fee = 5% of 100 = 5 per NFT
+        // Total protocol fee for 2 NFTs = (5 + 5) * 2 = 20
+        let mint_amount = 2;
+        let expected_protocol_fee = nft_launchpad::get_protocol_fee(
+            collection_obj,
+            nft_launchpad::get_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), mint_amount),
+            mint_amount
+        );
+
+        // Mint coins for the user to cover mint fees + protocol fees
+        let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), mint_amount);
+        mint(user1_addr, total_fee);
+
+        // Mint NFTs
+        nft_launchpad::mint_nft(user1, collection_obj, mint_amount, vector[]);
+
+        // Verify protocol fee collector received the protocol fees
+        let final_collector_balance =
+            coin::balance<AptosCoin>(protocol_fee_collector_addr);
+        let fees_received = final_collector_balance - initial_collector_balance;
+
+        assert!(
+            fees_received == expected_protocol_fee,
+            1 // Protocol fee collector did not receive the expected protocol fees
+        );
+    }
+
+    #[test(
+        aptos_framework = @0x1, admin = @deployment_addr, user1 = @0x200, royalty_user = @0x300
+    )]
     fun test_update_max_supply_success(
         aptos_framework: &signer,
         admin: &signer,

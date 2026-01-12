@@ -570,6 +570,8 @@ The `pay_for_mint()` function was updated to:
 2. Transfer only mint fees to `collection_owner_addr` for escrow
 3. The function now properly acquires both `CollectionConfig` and `Config`
 
+**Test Added:** `test_protocol_fee_collector_receives_fees` in `test_end_to_end.move` now explicitly verifies that protocol fees are transferred to the collector address.
+
 ---
 
 ## Common Aptos/Move Exploit Patterns Checklist
