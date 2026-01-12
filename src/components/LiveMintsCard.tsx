@@ -24,15 +24,15 @@ interface LiveMintsCardProps {
 export function LiveMintsCard({ collectionId, onMintClick }: LiveMintsCardProps) {
 	const recentMints = useQuery(api.reveal.getRecentMints, { collectionId });
 
-	// Force re-render every minute to keep time ago values fresh
-	const [, setTick] = useState(0);
+	// Store current time in state so React Compiler sees it as a dependency
+	const [now, setNow] = useState(() => Date.now());
 	useEffect(() => {
-		const interval = setInterval(() => setTick((t) => t + 1), 60_000);
+		const interval = setInterval(() => setNow(Date.now()), 60_000);
 		return () => clearInterval(interval);
 	}, []);
 
 	const formatTimeAgo = (timestamp: number) => {
-		const seconds = Math.floor((Date.now() - timestamp) / 1000);
+		const seconds = Math.floor((now - timestamp) / 1000);
 
 		if (seconds < 60) return "just now";
 		if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
