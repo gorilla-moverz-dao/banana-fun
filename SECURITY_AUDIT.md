@@ -25,7 +25,7 @@ This security audit reviews four Move smart contracts for an NFT launchpad with 
 | AR-02 | Info     | Protocol Fee Reduction Rounding Favors Protocol      | Open   |
 | SM-01 | Low      | Potential Underflow in Refund Tracking               | Open   |
 | SM-02 | Info     | Sale Completion Not Atomic                           | Open   |
-| EC-01 | High     | Free Mint Causes LP Creation Failure                 | Open   |
+| EC-01 | High     | Free Mint Causes LP Creation Failure                 | Fixed  |
 | EC-02 | Medium   | Initial LP Price Manipulation                        | Open   |
 | IV-01 | Low      | Zero Duration Vesting Allows Immediate Claim         | Open   |
 | IV-02 | Info     | Missing Vesting Cliff Validation                     | Open   |
@@ -310,6 +310,7 @@ Move's atomicity ensures all changes revert on failure, so this is informational
 ### EC-01: Free Mint Causes LP Creation Failure
 
 **Severity:** High  
+**Status:** FIXED  
 **Location:** `dex.move` lines 32-36, confirmed by test at `test_end_to_end.move` line 2003-2006
 
 **Description:**
@@ -322,16 +323,6 @@ let raw_sqrt_price = ((sqrt_token1 as u128) << 80) / (sqrt_token0 as u128);  // 
                                                                               // But amount1=0 causes other issues
 ```
 
-Test confirms this:
-
-```move
-#[expected_failure(arithmetic_error, location = dex)]
-fun test_free_mint_and_complete_sale(...) {
-    create_public_only_collection(sender, royalty_user, 0, ...);  // mint_fee = 0
-    // ... fails at LP creation
-}
-```
-
 **Impact:**
 Free mint collections cannot complete their sale and create tokens. This is a fundamental limitation that may or may not be intentional.
 
@@ -341,6 +332,15 @@ Either:
 1. Validate mint_fee > 0 at collection creation
 2. Skip LP creation for free mints and distribute all tokens to vesting/dev
 3. Document this limitation clearly
+
+**Resolution:**
+Option 1 was implemented. The following changes were made to `launchpad.move`:
+
+1. Added new error constant `EMINT_FEE_MUST_BE_GREATER_THAN_ZERO: u64 = 1102`
+2. Added validation in `create_collection()` to reject mint_fee = 0 for all stages
+3. Added validation in `update_mint_fee()` to prevent updating mint fee to zero after creation
+
+**Test Updated:** `test_free_mint_and_complete_sale` now expects abort code 1102 from `nft_launchpad` module, verifying that free mint collections are properly rejected at creation time.
 
 ---
 
@@ -591,7 +591,7 @@ The `pay_for_mint()` function was updated to:
 | Front-running               | Medium | AC-04, EC-02 - Creator/price manipulation                      |
 | Fee/Payment Misrouting      | Fixed  | FS-02 - Protocol fees now transferred to collector (Fixed)     |
 | State Machine Inconsistency | Medium | FS-01 - Complex sale completion logic                          |
-| Division by Zero            | High   | EC-01 - Free mint with 0 funds causes LP failure               |
+| Division by Zero            | Fixed  | EC-01 - Free mint with 0 funds causes LP failure (Fixed)       |
 | Dust/Rounding Attacks       | Low    | AR-01 - Vesting dust permanently locked                        |
 
 ---
@@ -602,7 +602,7 @@ The `pay_for_mint()` function was updated to:
 
 1. ~~**Fix protocol fee handling** - Transfer protocol fees to collector instead of collection owner~~ **FIXED**
 2. Fix single-step admin transfer in `nft_reduction_manager.move`
-3. Handle free mint (fee = 0) edge case for LP creation
+3. ~~Handle free mint (fee = 0) edge case for LP creation~~ **FIXED**
 4. Remove or document object owner admin bypass
 
 ### Medium Priority

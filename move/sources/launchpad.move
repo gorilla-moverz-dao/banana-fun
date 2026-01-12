@@ -100,6 +100,8 @@ module deployment_addr::nft_launchpad {
     /// NFT is already revealed
     const ENFT_ALREADY_REVEALED: u64 = 1101;
 
+    const EMINT_FEE_MUST_BE_GREATER_THAN_ZERO: u64 = 1102;
+
     /// 100 years in seconds, we consider mint end time to be infinite when it is set to 100 years after start time
     const ONE_HUNDRED_YEARS_IN_SECONDS: u64 = 100 * 365 * 24 * 60 * 60;
 
@@ -399,6 +401,9 @@ module deployment_addr::nft_launchpad {
             sender, &collection_obj, EONLY_COLLECTION_CREATOR_CAN_UPDATE_MINT_FEE
         );
 
+        // Validate mint fee is greater than zero to ensure LP can be created on successful sale
+        assert!(new_mint_fee > 0, EMINT_FEE_MUST_BE_GREATER_THAN_ZERO);
+
         // Update the mint fee for the specified stage
         borrow_collection_config_mut(&collection_obj).mint_fee_per_nft_by_stages.upsert(
             stage_name, new_mint_fee
@@ -591,6 +596,9 @@ module deployment_addr::nft_launchpad {
             let end_time = end_times[i];
             let mint_fee = mint_fees_per_nft[i];
             let mint_limit = mint_limits_per_addr[i];
+
+            // Validate mint fee is greater than zero to ensure LP can be created on successful sale
+            assert!(mint_fee > 0, EMINT_FEE_MUST_BE_GREATER_THAN_ZERO);
 
             if (stage_type == STAGE_TYPE_ALLOWLIST) {
                 assert!(allowlist.is_some(), EALLOWLIST_NOT_FOUND);
