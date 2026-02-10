@@ -9,6 +9,7 @@ import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NumberInput } from "@/components/ui/number-input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { WalletSelector } from "@/components/WalletSelector";
+import { LAUNCHPAD_MODULE_ADDRESS } from "@/constants";
 import { useClients } from "@/hooks/useClients";
 import { useCollectionNFTs } from "@/hooks/useCollectionNFTs";
 import { useGetAccountNativeBalance } from "@/hooks/useGetAccountNativeBalance";
@@ -82,7 +83,7 @@ export function MintStageCard({
 	};
 
 	async function handleMint() {
-		if (!address || !launchpadClient) {
+		if (!address) {
 			toast.error("Connect your wallet to mint");
 			return;
 		}
@@ -98,14 +99,23 @@ export function MintStageCard({
 		try {
 			const amount: number = mintAmount;
 			const reductionTokenIds = reductionNFTs.map((nft) => nft.token_data_id as `0x${string}`);
+
 			const { result } = await executeTransaction(
-				launchpadClient.mint_nft({
+				{
+					function: `${LAUNCHPAD_MODULE_ADDRESS}::nft_launchpad::mint_nft`,
 					arguments: [collectionId, amount, reductionTokenIds],
 					type_arguments: [],
-				}),
+					title: "Mint NFT",
+					description: `Mint ${amount} NFT(s)`,
+				},
+				() =>
+					launchpadClient?.mint_nft({
+						arguments: [collectionId, amount, reductionTokenIds],
+						type_arguments: [],
+					}),
 			);
 
-			const newTokenIds = extractTokenIds(result as { events: MintNftEvent[] });
+			const newTokenIds = extractTokenIds(result as { events: Array<MintNftEvent> });
 
 			// Move to revealing step
 			setMintStep("revealing");

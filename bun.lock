@@ -7,6 +7,7 @@
       "dependencies": {
         "@aptos-labs/wallet-adapter-react": "^7.2.2",
         "@convex-dev/workpool": "^0.3.0",
+        "@movement-labs/miniapp-sdk": "github:MoveIndustries/mini-app-sdk",
         "@radix-ui/react-dialog": "^1.1.15",
         "@radix-ui/react-progress": "^1.1.8",
         "@radix-ui/react-select": "^2.2.6",
@@ -483,6 +484,8 @@
     "@ledgerhq/types-live": ["@ledgerhq/types-live@6.89.0", "", { "dependencies": { "bignumber.js": "^9.1.2", "rxjs": "^7.8.1" } }, "sha512-wz+3HiyTjnzGe8yAfzF3gzu0ftt5gYoDBDJaIqRiYsCOZtVkqJ9PG/mvLDBzOCGvR+Tj7dGTHuzRz0UXqSTjRA=="],
 
     "@mermaid-js/parser": ["@mermaid-js/parser@0.6.3", "", { "dependencies": { "langium": "3.3.1" } }, "sha512-lnjOhe7zyHjc+If7yT4zoedx2vo4sHaTmtkl1+or8BRTnCtDmcTpAjpzDSfCZrshM5bCoz0GyidzadJAH1xobA=="],
+
+    "@movement-labs/miniapp-sdk": ["@movement-labs/miniapp-sdk@github:MoveIndustries/mini-app-sdk#5e92ea5", { "peerDependencies": { "react": ">=18.0.0" }, "optionalPeers": ["react"] }, "MoveIndustries-mini-app-sdk-5e92ea5"],
 
     "@mysten/bcs": ["@mysten/bcs@1.9.2", "", { "dependencies": { "@mysten/utils": "0.2.0", "@scure/base": "^1.2.6" } }, "sha512-kBk5xrxV9OWR7i+JhL/plQrgQ2/KJhB2pB5gj+w6GXhbMQwS3DPpOvi/zN0Tj84jwPvHMllpEl0QHj6ywN7/eQ=="],
 

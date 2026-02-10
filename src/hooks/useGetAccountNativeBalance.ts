@@ -1,12 +1,12 @@
-import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { useQuery } from "@tanstack/react-query";
 import { aptos } from "@/lib/aptos";
 import { oaptToApt } from "@/lib/utils";
+import { useMovementWallet } from "./useMovementWallet";
 
 export const useGetAccountNativeBalance = (address?: string) => {
-	const { account } = useWallet();
+	const { address: walletAddress } = useMovementWallet();
 
-	const accountAddress = address || account?.address;
+	const accountAddress = address || walletAddress;
 
 	return useQuery({
 		queryKey: ["nativeBalance", accountAddress],
