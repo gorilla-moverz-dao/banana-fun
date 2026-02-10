@@ -25,8 +25,8 @@ export function MyNFTsCard({
 	onNFTClick,
 	gridCols = "grid-cols-1 md:grid-cols-2 lg:grid-cols-4",
 }: MyNFTsCardProps) {
-	const { isInMiniApp, sendTransaction, vestingClient: walletVestingClient, connected, correctNetwork } = useClients();
-	const { transactionInProgress: claiming, executeTransaction, executeSdkTransaction } = useTransaction();
+	const { vestingClient: walletVestingClient, connected, correctNetwork } = useClients();
+	const { transactionInProgress: claiming, executeTransaction } = useTransaction();
 
 	const nftTokenIds = nfts.map((nft) => nft.token_data_id as `0x${string}`);
 
@@ -61,30 +61,26 @@ export function MyNFTsCard({
 	});
 
 	async function handleClaim(nftIds: `0x${string}`[], amount: number) {
-		if ((!walletVestingClient && !isInMiniApp) || nftIds.length === 0 || amount <= 0) {
+		if (nftIds.length === 0 || amount <= 0) {
 			toast.error("Nothing to claim");
 			return;
 		}
 
 		try {
-			if (isInMiniApp && sendTransaction) {
-				await executeSdkTransaction(sendTransaction, {
+			await executeTransaction(
+				{
 					function: `${LAUNCHPAD_MODULE_ADDRESS}::vesting::claim_batch`,
 					arguments: [collectionData.collectionId as `0x${string}`, nftIds],
 					type_arguments: [],
 					title: "Claim Vesting Tokens",
 					description: `Claim ${faToDisplay(amount).toLocaleString()} ${collectionData.faSymbol}`,
-				});
-			} else if (walletVestingClient) {
-				await executeTransaction(
-					walletVestingClient.claim_batch({
+				},
+				() =>
+					walletVestingClient?.claim_batch({
 						arguments: [collectionData.collectionId as `0x${string}`, nftIds],
 						type_arguments: [],
 					}),
-				);
-			} else {
-				throw new Error("Wallet client not available");
-			}
+			);
 			toast.success(`Successfully claimed ${faToDisplay(amount).toLocaleString()} ${collectionData.faSymbol}!`);
 			await refetchClaimable();
 		} catch {

@@ -54,7 +54,7 @@ export function MintStageCard({
 	remainingSupply,
 	onMintSuccess,
 }: MintStageCardProps) {
-	const { isInMiniApp, sendTransaction, launchpadClient, connected, address, correctNetwork } = useClients();
+	const { launchpadClient, connected, address, correctNetwork } = useClients();
 	const { refetch: refetchNFTs } = useCollectionNFTs({
 		onlyOwned: true,
 		collectionIds: [collectionId],
@@ -63,9 +63,7 @@ export function MintStageCard({
 	const { data: reductionNFTs = [] } = useUserReductionNFTs(address?.toString() || "");
 	const afterMint = useAction(api.collectionSyncActions.afterMint);
 
-	const { transactionInProgress: minting, executeTransaction, executeSdkTransaction } = useTransaction({
-		waitForIndexer: true,
-	});
+	const { transactionInProgress: minting, executeTransaction } = useTransaction({ waitForIndexer: true });
 	const [mintAmount, setMintAmount] = useState<number | undefined>(1);
 	const [showProgressDialog, setShowProgressDialog] = useState(false);
 	const [mintStep, setMintStep] = useState<MintStep>("minting");
@@ -85,7 +83,7 @@ export function MintStageCard({
 	};
 
 	async function handleMint() {
-		if (!address || (!launchpadClient && !isInMiniApp)) {
+		if (!address) {
 			toast.error("Connect your wallet to mint");
 			return;
 		}
@@ -102,30 +100,20 @@ export function MintStageCard({
 			const amount: number = mintAmount;
 			const reductionTokenIds = reductionNFTs.map((nft) => nft.token_data_id as `0x${string}`);
 
-			let result: { events?: Array<MintNftEvent> };
-
-			if (isInMiniApp && sendTransaction) {
-				// Movement Mini App SDK mode
-				const sdkResult = await executeSdkTransaction(sendTransaction, {
+			const { result } = await executeTransaction(
+				{
 					function: `${LAUNCHPAD_MODULE_ADDRESS}::nft_launchpad::mint_nft`,
 					arguments: [collectionId, amount, reductionTokenIds],
 					type_arguments: [],
 					title: "Mint NFT",
 					description: `Mint ${amount} NFT(s)`,
-				});
-				result = sdkResult.result as { events?: Array<MintNftEvent> };
-			} else if (launchpadClient) {
-				// Standalone wallet adapter mode
-				const txResult = await executeTransaction(
-					launchpadClient.mint_nft({
+				},
+				() =>
+					launchpadClient?.mint_nft({
 						arguments: [collectionId, amount, reductionTokenIds],
 						type_arguments: [],
 					}),
-				);
-				result = txResult.result as { events?: Array<MintNftEvent> };
-			} else {
-				throw new Error("Wallet client not available");
-			}
+			);
 
 			const newTokenIds = extractTokenIds(result as { events: Array<MintNftEvent> });
 

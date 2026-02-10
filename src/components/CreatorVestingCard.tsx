@@ -16,9 +16,8 @@ interface CreatorVestingCardProps {
 }
 
 export function CreatorVestingCard({ collectionData }: CreatorVestingCardProps) {
-	const { isInMiniApp, sendTransaction, vestingClient: walletVestingClient, connected, correctNetwork, address } =
-		useClients();
-	const { transactionInProgress: claiming, executeTransaction, executeSdkTransaction } = useTransaction();
+	const { vestingClient: walletVestingClient, connected, correctNetwork, address } = useClients();
+	const { transactionInProgress: claiming, executeTransaction } = useTransaction();
 
 	// Fetch creator claimable amount
 	const {
@@ -106,30 +105,26 @@ export function CreatorVestingCard({ collectionData }: CreatorVestingCardProps) 
 	const isInCliff = hasClaimable ? false : now < cliffEnd;
 
 	async function handleClaim() {
-		if ((!walletVestingClient && !isInMiniApp) || !hasClaimable) {
+		if (!hasClaimable) {
 			toast.error("Nothing to claim");
 			return;
 		}
 
 		try {
-			if (isInMiniApp && sendTransaction) {
-				await executeSdkTransaction(sendTransaction, {
+			await executeTransaction(
+				{
 					function: `${LAUNCHPAD_MODULE_ADDRESS}::vesting::claim_creator_vesting`,
 					arguments: [collectionData.collectionId as `0x${string}`],
 					type_arguments: [],
 					title: "Claim Creator Vesting",
 					description: `Claim vested ${collectionData.faSymbol} tokens`,
-				});
-			} else if (walletVestingClient) {
-				await executeTransaction(
-					walletVestingClient.claim_creator_vesting({
+				},
+				() =>
+					walletVestingClient?.claim_creator_vesting({
 						arguments: [collectionData.collectionId as `0x${string}`],
 						type_arguments: [],
 					}),
-				);
-			} else {
-				throw new Error("Wallet client not available");
-			}
+			);
 			toast.success(
 				`Successfully claimed ${faToDisplay(claimableAmount || 0).toLocaleString()} ${collectionData.faSymbol}!`,
 			);
