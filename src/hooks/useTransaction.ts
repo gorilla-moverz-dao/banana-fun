@@ -1,9 +1,7 @@
 import type { CommittedTransactionResponse } from "@aptos-labs/ts-sdk";
-import type { TransactionPayload } from "@movement-labs/miniapp-sdk";
 import { useState } from "react";
 import { toast } from "sonner";
 import { aptos, waitForIndexerVersion } from "@/lib/aptos";
-import { useMovementWallet } from "@/hooks/useMovementWallet";
 
 export const useTransaction = ({
 	showError = true,
@@ -12,7 +10,6 @@ export const useTransaction = ({
 	showError?: boolean;
 	waitForIndexer?: boolean;
 } = {}) => {
-	const { isInMiniApp, sendTransaction: sdkSendTransaction } = useMovementWallet();
 	const [transactionInProgress, setTransactionInProgress] = useState(false);
 	const [error, setError] = useState<Error | null>(null);
 
@@ -37,46 +34,29 @@ export const useTransaction = ({
 	};
 
 	/**
-	 * Execute a transaction with automatic dual-mode support.
+	 * Execute a transaction via the dual-mode wallet client.
 	 *
-	 * When running inside the Movement wallet the SDK payload is submitted
-	 * via `sdk.sendTransaction()`. In standalone mode the `fallback` factory
-	 * is called to obtain a transaction promise from the Surf wallet client.
+	 * Accepts a factory function that returns a transaction promise from a
+	 * Surf-style ABI client (e.g. `() => launchpadClient?.mint_nft({...})`).
+	 * The factory may return `undefined` when the client is not yet available.
 	 *
-	 * Both paths wait for the full CommittedTransactionResponse (with events)
-	 * and for the indexer to catch up.
-	 *
-	 * @param sdkPayload  - Transaction payload for the Movement Mini App SDK.
-	 * @param fallback    - Factory that returns a Surf wallet-client promise
-	 *                      (used in standalone mode; may return undefined when
-	 *                      the client is not available).
+	 * The `DualModeWalletClient` transparently routes to the Movement SDK
+	 * or the wallet adapter — callers don't need to know which mode is active.
 	 */
-	const executeTransaction = async <T extends { hash: string }>(
-		sdkPayload: TransactionPayload,
-		fallback?: () => Promise<T> | undefined,
-	) => {
+	const executeTransaction = async <T extends { hash: string }>(transaction: () => Promise<T> | undefined) => {
 		setTransactionInProgress(true);
 		setError(null);
 
 		try {
-			let tx: { hash: string };
+			const promise = transaction();
+			if (!promise) {
+				throw new Error("Wallet client not available");
+			}
+			const tx = await promise;
+			console.error("TX:", tx);
 
-			if (isInMiniApp && sdkSendTransaction) {
-				// ---- Movement Mini App SDK mode ----
-				const sdkResult = await sdkSendTransaction(sdkPayload);
-				if (!sdkResult) {
-					throw new Error("Transaction was not submitted");
-				}
-				tx = sdkResult;
-			} else if (fallback) {
-				// ---- Standalone wallet adapter mode ----
-				const promise = fallback();
-				if (!promise) {
-					throw new Error("Wallet client not available");
-				}
-				tx = await promise;
-			} else {
-				throw new Error("No transaction method available");
+			if (!tx.hash) {
+				throw new Error("Transaction hash is required");
 			}
 
 			const result = await waitAndFinalize(tx.hash);

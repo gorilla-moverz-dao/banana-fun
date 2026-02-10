@@ -6,7 +6,6 @@ import { GlassCard } from "@/components/GlassCard";
 import { NFTThumbnail } from "@/components/NFTThumbnail";
 import { Button } from "@/components/ui/button";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LAUNCHPAD_MODULE_ADDRESS } from "@/constants";
 import type { NFT } from "@/fragments/nft";
 import { useClients } from "@/hooks/useClients";
 import { useTransaction } from "@/hooks/useTransaction";
@@ -65,19 +64,11 @@ export function RefundNFTsCard({ nfts, collectionData, onRefundSuccess }: Refund
 		}
 
 		try {
-			await executeTransaction(
-				{
-					function: `${LAUNCHPAD_MODULE_ADDRESS}::nft_launchpad::reclaim_funds`,
+			await executeTransaction(() =>
+				walletLaunchpadClient?.reclaim_funds({
 					arguments: [collectionData.collectionId as `0x${string}`, nftTokenId],
 					type_arguments: [],
-					title: "Refund NFT",
-					description: "Burn NFT and reclaim funds",
-				},
-				() =>
-					walletLaunchpadClient?.reclaim_funds({
-						arguments: [collectionData.collectionId as `0x${string}`, nftTokenId],
-						type_arguments: [],
-					}),
+				}),
 			);
 			toast.success(`Successfully refunded ${oaptToApt(refundAmount).toLocaleString()} MOVE!`);
 

@@ -1,6 +1,6 @@
+import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import type { MovementSDK, TransactionPayload, TransactionResult } from "@movement-labs/miniapp-sdk";
 import { isInMovementApp, useMovementSDK } from "@movement-labs/miniapp-sdk";
-import { useWallet } from "@aptos-labs/wallet-adapter-react";
 
 export interface MovementWalletState {
 	/** Whether the app is running inside the Movement wallet */

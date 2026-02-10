@@ -5,7 +5,6 @@ import { GlassCard } from "@/components/GlassCard";
 import { NFTThumbnail } from "@/components/NFTThumbnail";
 import { Button } from "@/components/ui/button";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LAUNCHPAD_MODULE_ADDRESS } from "@/constants";
 import type { NFT } from "@/fragments/nft";
 import { useClients } from "@/hooks/useClients";
 import { useTransaction } from "@/hooks/useTransaction";
@@ -67,19 +66,11 @@ export function MyNFTsCard({
 		}
 
 		try {
-			await executeTransaction(
-				{
-					function: `${LAUNCHPAD_MODULE_ADDRESS}::vesting::claim_batch`,
+			await executeTransaction(() =>
+				walletVestingClient?.claim_batch({
 					arguments: [collectionData.collectionId as `0x${string}`, nftIds],
 					type_arguments: [],
-					title: "Claim Vesting Tokens",
-					description: `Claim ${faToDisplay(amount).toLocaleString()} ${collectionData.faSymbol}`,
-				},
-				() =>
-					walletVestingClient?.claim_batch({
-						arguments: [collectionData.collectionId as `0x${string}`, nftIds],
-						type_arguments: [],
-					}),
+				}),
 			);
 			toast.success(`Successfully claimed ${faToDisplay(amount).toLocaleString()} ${collectionData.faSymbol}!`);
 			await refetchClaimable();

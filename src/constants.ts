@@ -1,8 +1,7 @@
 import { NETWORKS } from "./lib/networks";
 
-// biome-ignore lint/complexity/useLiteralKeys: import for convex
 // biome-ignore lint/suspicious/noExplicitAny: import for convex
-const env = (import.meta as any)["env"] !== undefined ? (import.meta as any)["env"] : ({} as Record<string, string>);
+const env = (import.meta as any).env !== undefined ? (import.meta as any).env : ({} as Record<string, string>);
 const NETWORK = env.VITE_NETWORK || "TESTNET";
 
 export const LAUNCHPAD_MODULE_ADDRESS =

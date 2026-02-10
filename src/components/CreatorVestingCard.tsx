@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { GlassCard } from "@/components/GlassCard";
 import { Button } from "@/components/ui/button";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LAUNCHPAD_MODULE_ADDRESS, MOVE_NETWORK } from "@/constants";
+import { MOVE_NETWORK } from "@/constants";
 import { useClients } from "@/hooks/useClients";
 import { useTransaction } from "@/hooks/useTransaction";
 import { vestingClient } from "@/lib/aptos";
@@ -111,19 +111,11 @@ export function CreatorVestingCard({ collectionData }: CreatorVestingCardProps) 
 		}
 
 		try {
-			await executeTransaction(
-				{
-					function: `${LAUNCHPAD_MODULE_ADDRESS}::vesting::claim_creator_vesting`,
+			await executeTransaction(() =>
+				walletVestingClient?.claim_creator_vesting({
 					arguments: [collectionData.collectionId as `0x${string}`],
 					type_arguments: [],
-					title: "Claim Creator Vesting",
-					description: `Claim vested ${collectionData.faSymbol} tokens`,
-				},
-				() =>
-					walletVestingClient?.claim_creator_vesting({
-						arguments: [collectionData.collectionId as `0x${string}`],
-						type_arguments: [],
-					}),
+				}),
 			);
 			toast.success(
 				`Successfully claimed ${faToDisplay(claimableAmount || 0).toLocaleString()} ${collectionData.faSymbol}!`,
