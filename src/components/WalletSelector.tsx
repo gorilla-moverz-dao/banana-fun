@@ -11,19 +11,47 @@ import {
 	useWallet,
 	WalletItem,
 } from "@aptos-labs/wallet-adapter-react";
+import { isInMovementApp } from "@movement-labs/miniapp-sdk";
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MOVE_NETWORK } from "@/constants";
+import { useMovementWallet } from "@/hooks/useMovementWallet";
 
 interface WalletSelectorProps extends WalletSortingOptions {
 	isModalOpen?: boolean;
 	setModalOpen?: Dispatch<SetStateAction<boolean>>;
 }
 
+/**
+ * Simplified wallet display for Movement Mini App mode.
+ * The wallet is managed by the host app – just show the connected address.
+ */
+function MiniAppWalletDisplay() {
+	const { address, connected } = useMovementWallet();
+
+	const buttonText = address ? truncateAddress(address) : "Not Connected";
+
+	return (
+		<Button variant="default" className="wallet-button text-xs md:text-sm px-2 md:px-4 cursor-default" disabled>
+			{connected ? buttonText : "Loading..."}
+		</Button>
+	);
+}
+
 export function WalletSelector({ isModalOpen, setModalOpen, ...walletSortingOptions }: WalletSelectorProps) {
+	// When running inside the Movement wallet, show simplified UI
+	if (isInMovementApp()) {
+		return <MiniAppWalletDisplay />;
+	}
+
+	// Standalone mode – use the full wallet adapter selector
+	return <StandaloneWalletSelector isModalOpen={isModalOpen} setModalOpen={setModalOpen} {...walletSortingOptions} />;
+}
+
+function StandaloneWalletSelector({ isModalOpen, setModalOpen, ...walletSortingOptions }: WalletSelectorProps) {
 	const [walletSelectorModalOpen, setWalletSelectorModalOpen] = useState(false);
 	useEffect(() => {
 		// If the component is being used as a controlled component,

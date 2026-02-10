@@ -6,6 +6,7 @@ import { GlassCard } from "@/components/GlassCard";
 import { NFTThumbnail } from "@/components/NFTThumbnail";
 import { Button } from "@/components/ui/button";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { LAUNCHPAD_MODULE_ADDRESS } from "@/constants";
 import type { NFT } from "@/fragments/nft";
 import { useClients } from "@/hooks/useClients";
 import { useTransaction } from "@/hooks/useTransaction";
@@ -21,8 +22,9 @@ interface RefundNFTsCardProps {
 }
 
 export function RefundNFTsCard({ nfts, collectionData, onRefundSuccess }: RefundNFTsCardProps) {
-	const { launchpadClient: walletLaunchpadClient, connected, correctNetwork } = useClients();
-	const { transactionInProgress: refunding, executeTransaction } = useTransaction();
+	const { isInMiniApp, sendTransaction, launchpadClient: walletLaunchpadClient, connected, correctNetwork } =
+		useClients();
+	const { transactionInProgress: refunding, executeTransaction, executeSdkTransaction } = useTransaction();
 	const afterRefund = useAction(api.collectionSyncActions.afterRefund);
 
 	const nftTokenIds = nfts.map((nft) => nft.token_data_id as `0x${string}`);
@@ -58,18 +60,30 @@ export function RefundNFTsCard({ nfts, collectionData, onRefundSuccess }: Refund
 	const hasRefundable = totalRefundable > 0;
 
 	async function handleRefund(nftTokenId: `0x${string}`, refundAmount: number) {
-		if (!walletLaunchpadClient || refundAmount <= 0) {
+		if ((!walletLaunchpadClient && !isInMiniApp) || refundAmount <= 0) {
 			toast.error("Nothing to refund");
 			return;
 		}
 
 		try {
-			await executeTransaction(
-				walletLaunchpadClient.reclaim_funds({
+			if (isInMiniApp && sendTransaction) {
+				await executeSdkTransaction(sendTransaction, {
+					function: `${LAUNCHPAD_MODULE_ADDRESS}::nft_launchpad::reclaim_funds`,
 					arguments: [collectionData.collectionId as `0x${string}`, nftTokenId],
 					type_arguments: [],
-				}),
-			);
+					title: "Refund NFT",
+					description: "Burn NFT and reclaim funds",
+				});
+			} else if (walletLaunchpadClient) {
+				await executeTransaction(
+					walletLaunchpadClient.reclaim_funds({
+						arguments: [collectionData.collectionId as `0x${string}`, nftTokenId],
+						type_arguments: [],
+					}),
+				);
+			} else {
+				throw new Error("Wallet client not available");
+			}
 			toast.success(`Successfully refunded ${oaptToApt(refundAmount).toLocaleString()} MOVE!`);
 
 			// Sync refund stats to Convex

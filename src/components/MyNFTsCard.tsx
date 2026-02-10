@@ -5,6 +5,7 @@ import { GlassCard } from "@/components/GlassCard";
 import { NFTThumbnail } from "@/components/NFTThumbnail";
 import { Button } from "@/components/ui/button";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { LAUNCHPAD_MODULE_ADDRESS } from "@/constants";
 import type { NFT } from "@/fragments/nft";
 import { useClients } from "@/hooks/useClients";
 import { useTransaction } from "@/hooks/useTransaction";
@@ -24,8 +25,8 @@ export function MyNFTsCard({
 	onNFTClick,
 	gridCols = "grid-cols-1 md:grid-cols-2 lg:grid-cols-4",
 }: MyNFTsCardProps) {
-	const { vestingClient: walletVestingClient, connected, correctNetwork } = useClients();
-	const { transactionInProgress: claiming, executeTransaction } = useTransaction();
+	const { isInMiniApp, sendTransaction, vestingClient: walletVestingClient, connected, correctNetwork } = useClients();
+	const { transactionInProgress: claiming, executeTransaction, executeSdkTransaction } = useTransaction();
 
 	const nftTokenIds = nfts.map((nft) => nft.token_data_id as `0x${string}`);
 
@@ -60,18 +61,30 @@ export function MyNFTsCard({
 	});
 
 	async function handleClaim(nftIds: `0x${string}`[], amount: number) {
-		if (!walletVestingClient || nftIds.length === 0 || amount <= 0) {
+		if ((!walletVestingClient && !isInMiniApp) || nftIds.length === 0 || amount <= 0) {
 			toast.error("Nothing to claim");
 			return;
 		}
 
 		try {
-			await executeTransaction(
-				walletVestingClient.claim_batch({
+			if (isInMiniApp && sendTransaction) {
+				await executeSdkTransaction(sendTransaction, {
+					function: `${LAUNCHPAD_MODULE_ADDRESS}::vesting::claim_batch`,
 					arguments: [collectionData.collectionId as `0x${string}`, nftIds],
 					type_arguments: [],
-				}),
-			);
+					title: "Claim Vesting Tokens",
+					description: `Claim ${faToDisplay(amount).toLocaleString()} ${collectionData.faSymbol}`,
+				});
+			} else if (walletVestingClient) {
+				await executeTransaction(
+					walletVestingClient.claim_batch({
+						arguments: [collectionData.collectionId as `0x${string}`, nftIds],
+						type_arguments: [],
+					}),
+				);
+			} else {
+				throw new Error("Wallet client not available");
+			}
 			toast.success(`Successfully claimed ${faToDisplay(amount).toLocaleString()} ${collectionData.faSymbol}!`);
 			await refetchClaimable();
 		} catch {
