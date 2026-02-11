@@ -1211,6 +1211,74 @@ module deployment_addr::test_end_to_end {
     #[test(
         aptos_framework = @0x1, admin = @deployment_addr, user1 = @0x200, royalty_user = @0x300
     )]
+    /// Test that protocol fees are actually transferred to protocol_fee_collector_addr
+    fun test_protocol_fee_collector_receives_fees(
+        aptos_framework: &signer,
+        admin: &signer,
+        user1: &signer,
+        royalty_user: &signer
+    ) {
+        let user1_addr = setup_test_env(aptos_framework, user1, admin);
+        let admin_addr = signer::address_of(admin);
+
+        // Get protocol fee collector (in tests, this is set to admin by init_module_for_test)
+        let protocol_fee_collector_addr = nft_launchpad::get_protocol_fee_collector();
+        assert!(protocol_fee_collector_addr == admin_addr, 0);
+
+        // Get initial balance of protocol fee collector
+        let initial_collector_balance =
+            coin::balance<AptosCoin>(protocol_fee_collector_addr);
+
+        let collection_obj =
+            create_public_only_collection(
+                admin,
+                royalty_user,
+                MINT_FEE_XLARGE, // mint_fee = 100
+                MINT_LIMIT_LARGE, // mint_limit
+                DURATION_SHORT // duration
+            );
+
+        // Set protocol fees
+        nft_launchpad::update_protocol_base_fee_for_collection(
+            admin, collection_obj, PROTOCOL_BASE_FEE // 5
+        );
+        nft_launchpad::update_protocol_percentage_fee_for_collection(
+            admin, collection_obj, PROTOCOL_PERCENTAGE_FEE_MEDIUM // 500 = 5%
+        );
+
+        // Calculate expected protocol fee for minting 2 NFTs
+        // mint_fee = 100 per NFT
+        // protocol_base_fee = 5 per NFT
+        // protocol_percentage_fee = 5% of mint_fee = 5% of 100 = 5 per NFT
+        // Total protocol fee for 2 NFTs = (5 + 5) * 2 = 20
+        let mint_amount = 2;
+        let expected_protocol_fee = nft_launchpad::get_protocol_fee(
+            collection_obj,
+            nft_launchpad::get_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), mint_amount),
+            mint_amount
+        );
+
+        // Mint coins for the user to cover mint fees + protocol fees
+        let total_fee = get_total_mint_fee(collection_obj, utf8(STAGE_NAME_PUBLIC), mint_amount);
+        mint(user1_addr, total_fee);
+
+        // Mint NFTs
+        nft_launchpad::mint_nft(user1, collection_obj, mint_amount, vector[]);
+
+        // Verify protocol fee collector received the protocol fees
+        let final_collector_balance =
+            coin::balance<AptosCoin>(protocol_fee_collector_addr);
+        let fees_received = final_collector_balance - initial_collector_balance;
+
+        assert!(
+            fees_received == expected_protocol_fee,
+            1 // Protocol fee collector did not receive the expected protocol fees
+        );
+    }
+
+    #[test(
+        aptos_framework = @0x1, admin = @deployment_addr, user1 = @0x200, royalty_user = @0x300
+    )]
     fun test_update_max_supply_success(
         aptos_framework: &signer,
         admin: &signer,
@@ -2003,7 +2071,7 @@ module deployment_addr::test_end_to_end {
     #[test(
         aptos_framework = @0x1, sender = @deployment_addr, user1 = @0x200, royalty_user = @0x300
     )]
-    #[expected_failure(arithmetic_error, location = dex)]
+    #[expected_failure(abort_code = 1102, location = nft_launchpad)]
     fun test_free_mint_and_complete_sale(
         aptos_framework: &signer,
         sender: &signer,
@@ -2013,55 +2081,16 @@ module deployment_addr::test_end_to_end {
         let _user1_addr = setup_test_env(aptos_framework, user1, sender);
 
         // Create collection with mint_fee = 0 (free mint)
-        let collection_obj =
+        // This should fail with EMINT_FEE_MUST_BE_GREATER_THAN_ZERO (1102)
+        // because free mints cannot complete their sale (LP creation requires funds)
+        let _collection_obj =
             create_public_only_collection(
                 sender,
                 royalty_user,
-                0, // mint_fee = 0 for free mint
+                0, // mint_fee = 0 for free mint - now rejected at creation
                 MINT_LIMIT_XLARGE,
                 DURATION_MEDIUM
             );
-
-        // User should be able to mint all NFTs without paying any fee
-        nft_launchpad::mint_nft(user1, collection_obj, MAX_SUPPLY, vector[]);
-
-        // Verify all NFTs were minted
-        assert!(collection::count(collection_obj) == option::some(MAX_SUPPLY));
-        debug::print(&utf8(b"Free mint successful!"));
-
-        // Verify sale is not completed yet
-        assert!(!nft_launchpad::is_sale_completed(collection_obj));
-
-        // Move time past deadline (helper uses SALE_DEADLINE_OFFSET)
-        timestamp::update_global_time_for_test_secs(SALE_DEADLINE_OFFSET + 1);
-
-        // Complete the sale - this should create the fungible asset and LP
-        nft_launchpad::check_and_complete_sale(collection_obj);
-
-        // Verify sale is completed
-        assert!(nft_launchpad::is_sale_completed(collection_obj));
-        debug::print(&utf8(b"Sale completed!"));
-
-        // Get the FA metadata object address
-        let collection_owner_obj = nft_launchpad::get_collection_owner_obj(collection_obj);
-        let collection_owner_addr = object::object_address(&collection_owner_obj);
-        let fa_obj_addr = object::create_object_address(&collection_owner_addr, FA_SYMBOL);
-        let fa_metadata = object::address_to_object<fungible_asset::Metadata>(fa_obj_addr);
-
-        // Verify FA metadata
-        let fa_name = fungible_asset::name(fa_metadata);
-        let fa_symbol = fungible_asset::symbol(fa_metadata);
-        assert!(fa_name == utf8(FA_NAME));
-        assert!(fa_symbol == utf8(FA_SYMBOL));
-        debug::print(&utf8(b"Fungible asset created!"));
-
-        // Verify NFT holder vesting is initialized
-        assert!(vesting::is_vesting_initialized(collection_obj));
-
-        // Verify creator vesting is initialized
-        assert!(vesting::is_creator_vesting_initialized(collection_obj));
-
-        debug::print(&utf8(b"Free mint with LP creation test completed!"));
     }
 }
 

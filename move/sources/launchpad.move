@@ -65,8 +65,6 @@ module deployment_addr::nft_launchpad {
     const EONLY_COLLECTION_CREATOR_CAN_UPDATE_MINT_FEE: u64 = 20;
     /// Only collection creator can update mint times
     const EONLY_COLLECTION_CREATOR_CAN_UPDATE_MINT_TIMES: u64 = 21;
-    /// Only admin can recover funds
-    const EONLY_ADMIN_CAN_RECOVER_FUNDS: u64 = 22;
     /// Only collection creator can modify allowlist
     const EONLY_COLLECTION_CREATOR_CAN_MODIFY_ALLOWLIST: u64 = 17;
     /// Only collection creator can update max supply
@@ -101,6 +99,8 @@ module deployment_addr::nft_launchpad {
     const EONLY_ADMIN_CAN_REVEAL: u64 = 1100;
     /// NFT is already revealed
     const ENFT_ALREADY_REVEALED: u64 = 1101;
+
+    const EMINT_FEE_MUST_BE_GREATER_THAN_ZERO: u64 = 1102;
 
     /// 100 years in seconds, we consider mint end time to be infinite when it is set to 100 years after start time
     const ONE_HUNDRED_YEARS_IN_SECONDS: u64 = 100 * 365 * 24 * 60 * 60;
@@ -401,6 +401,9 @@ module deployment_addr::nft_launchpad {
             sender, &collection_obj, EONLY_COLLECTION_CREATOR_CAN_UPDATE_MINT_FEE
         );
 
+        // Validate mint fee is greater than zero to ensure LP can be created on successful sale
+        assert!(new_mint_fee > 0, EMINT_FEE_MUST_BE_GREATER_THAN_ZERO);
+
         // Update the mint fee for the specified stage
         borrow_collection_config_mut(&collection_obj).mint_fee_per_nft_by_stages.upsert(
             stage_name, new_mint_fee
@@ -594,6 +597,9 @@ module deployment_addr::nft_launchpad {
             let mint_fee = mint_fees_per_nft[i];
             let mint_limit = mint_limits_per_addr[i];
 
+            // Validate mint fee is greater than zero to ensure LP can be created on successful sale
+            assert!(mint_fee > 0, EMINT_FEE_MUST_BE_GREATER_THAN_ZERO);
+
             if (stage_type == STAGE_TYPE_ALLOWLIST) {
                 assert!(allowlist.is_some(), EALLOWLIST_NOT_FOUND);
                 assert!(allowlist_mint_limit.is_some(), EALLOWLIST_NOT_FOUND);
@@ -662,7 +668,7 @@ module deployment_addr::nft_launchpad {
         collection_obj: Object<Collection>,
         amount: u64,
         reduction_nfts: vector<Object<Token>>
-    ) acquires CollectionConfig, CollectionOwnerObjConfig {
+    ) acquires CollectionConfig, CollectionOwnerObjConfig, Config {
         mint_nft_internal(sender, collection_obj, amount, reduction_nfts);
     }
 
@@ -673,7 +679,7 @@ module deployment_addr::nft_launchpad {
         collection_obj: Object<Collection>,
         amount: u64,
         reduction_nfts: vector<Object<Token>>
-    ): vector<Object<Token>> acquires CollectionConfig, CollectionOwnerObjConfig {
+    ): vector<Object<Token>> acquires CollectionConfig, CollectionOwnerObjConfig, Config {
         assert!(amount > 0, ECANNOT_MINT_ZERO);
         assert!(is_mint_enabled(collection_obj), EMINT_IS_DISABLED);
         let sender_addr = signer::address_of(sender);
@@ -1494,7 +1500,8 @@ module deployment_addr::nft_launchpad {
     }
 
     /// Calculate and pay fees with NFT-based reductions
-    /// Funds are stored in the collection's fund store until sale completion
+    /// Mint fees are stored in the collection's fund store until sale completion
+    /// Protocol fees are transferred directly to the protocol fee collector
     /// The NFT itself serves as proof of purchase for refunds
     /// Returns total_fee for events (caller already has nft_mint_fee for refunds)
     fun pay_for_mint(
@@ -1503,7 +1510,7 @@ module deployment_addr::nft_launchpad {
         collection_obj: Object<Collection>,
         amount: u64,
         reduction_nfts: vector<Object<Token>>
-    ): u64 acquires CollectionConfig {
+    ): u64 acquires CollectionConfig, Config {
         let sender_addr = signer::address_of(sender);
 
         // Calculate protocol fees separately
@@ -1517,18 +1524,26 @@ module deployment_addr::nft_launchpad {
 
         let total_fee = nft_mint_fee + reduced_protocol_fee;
 
-        // Transfer funds to the collection's fund store (held until sale completion)
-        if (total_fee > 0) {
+        // Transfer protocol fees to protocol fee collector
+        if (reduced_protocol_fee > 0) {
+            let global_config = borrow_global<Config>(@deployment_addr);
+            aptos_account::transfer(
+                sender, global_config.protocol_fee_collector_addr, reduced_protocol_fee
+            );
+        };
+
+        // Transfer mint fees to the collection's fund store (held until sale completion)
+        if (nft_mint_fee > 0) {
             let config = borrow_collection_config_mut(&collection_obj);
 
             // Ensure sale is not already completed
             assert!(!config.sale_completed, ESALE_ALREADY_COMPLETED);
 
-            // Transfer funds to the collection owner object address (acts as escrow)
+            // Transfer mint fees to the collection owner object address (acts as escrow)
             let collection_owner_addr = object::object_address(&config.collection_owner_obj);
-            aptos_account::transfer(sender, collection_owner_addr, total_fee);
+            aptos_account::transfer(sender, collection_owner_addr, nft_mint_fee);
 
-            // Update total funds collected (only NFT cost, not protocol fees)
+            // Update total funds collected
             config.total_funds_collected += nft_mint_fee;
         };
 
